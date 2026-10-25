@@ -1,0 +1,1736 @@
+{
+  "routeMap": {
+    "T19R00067423243177": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-027",
+      "routeCode": "T19R00067423243177",
+      "routeName": "Manda-2"
+    },
+    "manda-2": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-027",
+      "routeCode": "T19R00067423243177",
+      "routeName": "Manda-2"
+    },
+    "T19R00067423243172": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-027",
+      "routeCode": "T19R00067423243172",
+      "routeName": "Madinabag-1"
+    },
+    "madinabag-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-027",
+      "routeCode": "T19R00067423243172",
+      "routeName": "Madinabag-1"
+    },
+    "T19R00067423243162": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-027",
+      "routeCode": "T19R00067423243162",
+      "routeName": "Madinabag-2"
+    },
+    "madinabag-2": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-027",
+      "routeCode": "T19R00067423243162",
+      "routeName": "Madinabag-2"
+    },
+    "T19R00067423243164": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-027",
+      "routeCode": "T19R00067423243164",
+      "routeName": "Manda-1"
+    },
+    "manda-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-027",
+      "routeCode": "T19R00067423243164",
+      "routeName": "Manda-1"
+    },
+    "T19R00067423243168": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-027",
+      "routeCode": "T19R00067423243168",
+      "routeName": "Maya Kanon-01"
+    },
+    "maya kanon-01": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-027",
+      "routeCode": "T19R00067423243168",
+      "routeName": "Maya Kanon-01"
+    },
+    "T19R00067423243167": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-027",
+      "routeCode": "T19R00067423243167",
+      "routeName": "South Mugda"
+    },
+    "south mugda": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-027",
+      "routeCode": "T19R00067423243167",
+      "routeName": "South Mugda"
+    },
+    "T19R00067423243137": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-003",
+      "routeCode": "T19R00067423243137",
+      "routeName": "Bhuiya Para"
+    },
+    "bhuiya para": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-003",
+      "routeCode": "T19R00067423243137",
+      "routeName": "Bhuiya Para"
+    },
+    "T19R00067423243135": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-003",
+      "routeCode": "T19R00067423243135",
+      "routeName": "Banasree ABC"
+    },
+    "banasree abc": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-003",
+      "routeCode": "T19R00067423243135",
+      "routeName": "Banasree ABC"
+    },
+    "T19R00067423243136": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-003",
+      "routeCode": "T19R00067423243136",
+      "routeName": "Banasree DEFG"
+    },
+    "banasree defg": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-003",
+      "routeCode": "T19R00067423243136",
+      "routeName": "Banasree DEFG"
+    },
+    "T19R00067423243138": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-003",
+      "routeCode": "T19R00067423243138",
+      "routeName": "East Rampura-1"
+    },
+    "east rampura-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-003",
+      "routeCode": "T19R00067423243138",
+      "routeName": "East Rampura-1"
+    },
+    "T19R00067423243150": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-003",
+      "routeCode": "T19R00067423243150",
+      "routeName": "East Rumpura-2"
+    },
+    "east rumpura-2": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-003",
+      "routeCode": "T19R00067423243150",
+      "routeName": "East Rumpura-2"
+    },
+    "T19R00067423243139": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-003",
+      "routeCode": "T19R00067423243139",
+      "routeName": "Wast Rampura"
+    },
+    "wast rampura": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-003",
+      "routeCode": "T19R00067423243139",
+      "routeName": "Wast Rampura"
+    },
+    "T19R00067423243129": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-237",
+      "routeCode": "T19R00067423243129",
+      "routeName": "Ambagan"
+    },
+    "ambagan": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-237",
+      "routeCode": "T19R00067423243129",
+      "routeName": "Ambagan"
+    },
+    "T19R00067423243152": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-237",
+      "routeCode": "T19R00067423243152",
+      "routeName": "Banasree-1"
+    },
+    "banasree-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-237",
+      "routeCode": "T19R00067423243152",
+      "routeName": "Banasree-1"
+    },
+    "T19R00067423243134": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-237",
+      "routeCode": "T19R00067423243134",
+      "routeName": "Mohanagor"
+    },
+    "mohanagor": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-237",
+      "routeCode": "T19R00067423243134",
+      "routeName": "Mohanagor"
+    },
+    "T19R00067423243153": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-237",
+      "routeCode": "T19R00067423243153",
+      "routeName": "Banasree-2"
+    },
+    "banasree-2": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-237",
+      "routeCode": "T19R00067423243153",
+      "routeName": "Banasree-2"
+    },
+    "T19R00067423243133": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-237",
+      "routeCode": "T19R00067423243133",
+      "routeName": "Ulon"
+    },
+    "ulon": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-237",
+      "routeCode": "T19R00067423243133",
+      "routeName": "Ulon"
+    },
+    "T19R00067423243140": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-014",
+      "routeCode": "T19R00067423243140",
+      "routeName": "B-Block"
+    },
+    "b-block": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-014",
+      "routeCode": "T19R00067423243140",
+      "routeName": "B-Block"
+    },
+    "T19R00067423243128": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-014",
+      "routeCode": "T19R00067423243128",
+      "routeName": "Boro mogbazar"
+    },
+    "boro mogbazar": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-014",
+      "routeCode": "T19R00067423243128",
+      "routeName": "Boro mogbazar"
+    },
+    "T19R00067423243146": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-014",
+      "routeCode": "T19R00067423243146",
+      "routeName": "C-Block"
+    },
+    "c-block": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-014",
+      "routeCode": "T19R00067423243146",
+      "routeName": "C-Block"
+    },
+    "T19R00067423243127": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-014",
+      "routeCode": "T19R00067423243127",
+      "routeName": "Tilpapara"
+    },
+    "tilpapara": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-014",
+      "routeCode": "T19R00067423243127",
+      "routeName": "Tilpapara"
+    },
+    "T19R00067423243130": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-014",
+      "routeCode": "T19R00067423243130",
+      "routeName": "Magbazar-1"
+    },
+    "magbazar-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-014",
+      "routeCode": "T19R00067423243130",
+      "routeName": "Magbazar-1"
+    },
+    "T19R00067423243148": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-014",
+      "routeCode": "T19R00067423243148",
+      "routeName": "Malibag"
+    },
+    "malibag": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-014",
+      "routeCode": "T19R00067423243148",
+      "routeName": "Malibag"
+    },
+    "T19R00067423243173": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-030",
+      "routeCode": "T19R00067423243173",
+      "routeName": "Dokkhingoan-1"
+    },
+    "dokkhingoan-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-030",
+      "routeCode": "T19R00067423243173",
+      "routeName": "Dokkhingoan-1"
+    },
+    "T19R00067423243151": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-030",
+      "routeCode": "T19R00067423243151",
+      "routeName": "Goran-1"
+    },
+    "goran-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-030",
+      "routeCode": "T19R00067423243151",
+      "routeName": "Goran-1"
+    },
+    "T19R00067423243178": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-030",
+      "routeCode": "T19R00067423243178",
+      "routeName": "Madartek-2"
+    },
+    "madartek-2": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-030",
+      "routeCode": "T19R00067423243178",
+      "routeName": "Madartek-2"
+    },
+    "T19R00067423243124": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-030",
+      "routeCode": "T19R00067423243124",
+      "routeName": "Madartek-1"
+    },
+    "madartek-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-030",
+      "routeCode": "T19R00067423243124",
+      "routeName": "Madartek-1"
+    },
+    "T19R00067423243149": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-030",
+      "routeCode": "T19R00067423243149",
+      "routeName": "Nondipara"
+    },
+    "nondipara": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-030",
+      "routeCode": "T19R00067423243149",
+      "routeName": "Nondipara"
+    },
+    "T19R00067423243156": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-030",
+      "routeCode": "T19R00067423243156",
+      "routeName": "Trimohoni"
+    },
+    "trimohoni": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-030",
+      "routeCode": "T19R00067423243156",
+      "routeName": "Trimohoni"
+    },
+    "T19R00067423243157": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-006",
+      "routeCode": "T19R00067423243157",
+      "routeName": "Fakirapul"
+    },
+    "fakirapul": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-006",
+      "routeCode": "T19R00067423243157",
+      "routeName": "Fakirapul"
+    },
+    "T19R00067423243114": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-006",
+      "routeCode": "T19R00067423243114",
+      "routeName": "Mouchak"
+    },
+    "mouchak": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-006",
+      "routeCode": "T19R00067423243114",
+      "routeName": "Mouchak"
+    },
+    "T19R00067423243120": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-006",
+      "routeCode": "T19R00067423243120",
+      "routeName": "North Basabo"
+    },
+    "north basabo": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-006",
+      "routeCode": "T19R00067423243120",
+      "routeName": "North Basabo"
+    },
+    "T19R00067423243119": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-006",
+      "routeCode": "T19R00067423243119",
+      "routeName": "Segunbagicha"
+    },
+    "segunbagicha": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-006",
+      "routeCode": "T19R00067423243119",
+      "routeName": "Segunbagicha"
+    },
+    "T19R00067423243165": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-006",
+      "routeCode": "T19R00067423243165",
+      "routeName": "South Basabo-1"
+    },
+    "south basabo-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-006",
+      "routeCode": "T19R00067423243165",
+      "routeName": "South Basabo-1"
+    },
+    "T19R00067423243141": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-005",
+      "routeCode": "T19R00067423243141",
+      "routeName": "Gulbag-1"
+    },
+    "gulbag-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-005",
+      "routeCode": "T19R00067423243141",
+      "routeName": "Gulbag-1"
+    },
+    "T19R00067423243171": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-005",
+      "routeCode": "T19R00067423243171",
+      "routeName": "North Mugda-1"
+    },
+    "north mugda-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-005",
+      "routeCode": "T19R00067423243171",
+      "routeName": "North Mugda-1"
+    },
+    "T19R00067423243142": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-005",
+      "routeCode": "T19R00067423243142",
+      "routeName": "North Shahjahanpur"
+    },
+    "north shahjahanpur": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-005",
+      "routeCode": "T19R00067423243142",
+      "routeName": "North Shahjahanpur"
+    },
+    "T19R00067423243143": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-005",
+      "routeCode": "T19R00067423243143",
+      "routeName": "Rajarbag"
+    },
+    "rajarbag": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-005",
+      "routeCode": "T19R00067423243143",
+      "routeName": "Rajarbag"
+    },
+    "T19R00067423243144": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-005",
+      "routeCode": "T19R00067423243144",
+      "routeName": "Shantibag"
+    },
+    "shantibag": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-005",
+      "routeCode": "T19R00067423243144",
+      "routeName": "Shantibag"
+    },
+    "T19R00067423243145": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-005",
+      "routeCode": "T19R00067423243145",
+      "routeName": "Taltola"
+    },
+    "taltola": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-005",
+      "routeCode": "T19R00067423243145",
+      "routeName": "Taltola"
+    },
+    "T19R00067423243158": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243158",
+      "routeName": "Kamolpur"
+    },
+    "kamolpur": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243158",
+      "routeName": "Kamolpur"
+    },
+    "T19R00067423243161": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243161",
+      "routeName": "Shantinagar"
+    },
+    "shantinagar": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243161",
+      "routeName": "Shantinagar"
+    },
+    "T19R00067423243131": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243131",
+      "routeName": "Modhubag-1"
+    },
+    "modhubag-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243131",
+      "routeName": "Modhubag-1"
+    },
+    "T19R00067423243132": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243132",
+      "routeName": "Modhubag-2"
+    },
+    "modhubag-2": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243132",
+      "routeName": "Modhubag-2"
+    },
+    "T19R00067423243159": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243159",
+      "routeName": "Motijheel"
+    },
+    "motijheel": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243159",
+      "routeName": "Motijheel"
+    },
+    "T19R00067423243118": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243118",
+      "routeName": "Paltan-1"
+    },
+    "paltan-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243118",
+      "routeName": "Paltan-1"
+    },
+    "T19R00067423243160": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243160",
+      "routeName": "Pirjongi"
+    },
+    "pirjongi": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-011",
+      "routeCode": "T19R00067423243160",
+      "routeName": "Pirjongi"
+    },
+    "T19R00067423243175": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243175",
+      "routeName": "Khilgaon Bazar(ws)"
+    },
+    "khilgaon bazar(ws)": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243175",
+      "routeName": "Khilgaon Bazar(ws)"
+    },
+    "T19R00067423243121": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243121",
+      "routeName": "Meradia-1"
+    },
+    "meradia-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243121",
+      "routeName": "Meradia-1"
+    },
+    "T19R00067423243122": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243122",
+      "routeName": "Meradia-2"
+    },
+    "meradia-2": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243122",
+      "routeName": "Meradia-2"
+    },
+    "T19R00067423243179": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243179",
+      "routeName": "Riyajbag"
+    },
+    "riyajbag": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243179",
+      "routeName": "Riyajbag"
+    },
+    "T19R00067423243123": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243123",
+      "routeName": "Santipur"
+    },
+    "santipur": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243123",
+      "routeName": "Santipur"
+    },
+    "T19R00067423243154": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243154",
+      "routeName": "Shekher Jaiga-1"
+    },
+    "shekher jaiga-1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243154",
+      "routeName": "Shekher Jaiga-1"
+    },
+    "T19R00067423243125": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243125",
+      "routeName": "Sipahibag"
+    },
+    "sipahibag": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-008",
+      "routeCode": "T19R00067423243125",
+      "routeName": "Sipahibag"
+    },
+    "T03R00067423242407": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-072",
+      "routeCode": "T03R00067423242407",
+      "routeName": "Begunbari 1"
+    },
+    "begunbari 1": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-072",
+      "routeCode": "T03R00067423242407",
+      "routeName": "Begunbari 1"
+    },
+    "T03R00067423242408": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-072",
+      "routeCode": "T03R00067423242408",
+      "routeName": "Dilu Road"
+    },
+    "dilu road": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-072",
+      "routeCode": "T03R00067423242408",
+      "routeName": "Dilu Road"
+    },
+    "T03R00067423242410": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-072",
+      "routeCode": "T03R00067423242410",
+      "routeName": "Farmgate"
+    },
+    "farmgate": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-072",
+      "routeCode": "T03R00067423242410",
+      "routeName": "Farmgate"
+    },
+    "T03R00067423242398": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-072",
+      "routeCode": "T03R00067423242398",
+      "routeName": "Kawran Bajar_WS"
+    },
+    "kawran bajar_ws": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-072",
+      "routeCode": "T03R00067423242398",
+      "routeName": "Kawran Bajar_WS"
+    },
+    "T03R00067423242409": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-072",
+      "routeCode": "T03R00067423242409",
+      "routeName": "Kawran Bazar"
+    },
+    "kawran bazar": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-072",
+      "routeCode": "T03R00067423242409",
+      "routeName": "Kawran Bazar"
+    },
+    "T03R00067423242411": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-072",
+      "routeCode": "T03R00067423242411",
+      "routeName": "Shahinpara"
+    },
+    "shahinpara": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "DM-072",
+      "routeCode": "T03R00067423242411",
+      "routeName": "Shahinpara"
+    },
+    "RT-001-Test": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "Test SR",
+      "routeCode": "RT-001-Test",
+      "routeName": "Boro Bazar_Test"
+    },
+    "boro bazar_test": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "Test SR",
+      "routeCode": "RT-001-Test",
+      "routeName": "Boro Bazar_Test"
+    },
+    "T16R00067423245243": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-059",
+      "routeCode": "T16R00067423245243",
+      "routeName": "Adorshobagh"
+    },
+    "adorshobagh": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-059",
+      "routeCode": "T16R00067423245243",
+      "routeName": "Adorshobagh"
+    },
+    "T16R00067423245245": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-059",
+      "routeCode": "T16R00067423245245",
+      "routeName": "Badshamia Road"
+    },
+    "badshamia road": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-059",
+      "routeCode": "T16R00067423245245",
+      "routeName": "Badshamia Road"
+    },
+    "T16R00067423245242": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-059",
+      "routeCode": "T16R00067423245242",
+      "routeName": "Bamoil Bazar"
+    },
+    "bamoil bazar": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-059",
+      "routeCode": "T16R00067423245242",
+      "routeName": "Bamoil Bazar"
+    },
+    "T16R00067423245241": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-059",
+      "routeCode": "T16R00067423245241",
+      "routeName": "Basherpul"
+    },
+    "basherpul": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-059",
+      "routeCode": "T16R00067423245241",
+      "routeName": "Basherpul"
+    },
+    "T16R00067423245240": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-059",
+      "routeCode": "T16R00067423245240",
+      "routeName": "MUSLIM NAGAR"
+    },
+    "muslim nagar": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-059",
+      "routeCode": "T16R00067423245240",
+      "routeName": "MUSLIM NAGAR"
+    },
+    "T16R00067423245246": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-059",
+      "routeCode": "T16R00067423245246",
+      "routeName": "Samsul haque"
+    },
+    "samsul haque": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-059",
+      "routeCode": "T16R00067423245246",
+      "routeName": "Samsul haque"
+    },
+    "T16R00067423245244": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-057",
+      "routeCode": "T16R00067423245244",
+      "routeName": "Alamin Road"
+    },
+    "alamin road": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-057",
+      "routeCode": "T16R00067423245244",
+      "routeName": "Alamin Road"
+    },
+    "T16R00067423245294": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-057",
+      "routeCode": "T16R00067423245294",
+      "routeName": "Amulia"
+    },
+    "amulia": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-057",
+      "routeCode": "T16R00067423245294",
+      "routeName": "Amulia"
+    },
+    "T16R00067423245292": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-057",
+      "routeCode": "T16R00067423245292",
+      "routeName": "BOXNAGAR"
+    },
+    "boxnagar": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-057",
+      "routeCode": "T16R00067423245292",
+      "routeName": "BOXNAGAR"
+    },
+    "T16R00067423245295": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-057",
+      "routeCode": "T16R00067423245295",
+      "routeName": "Konapara"
+    },
+    "konapara": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-057",
+      "routeCode": "T16R00067423245295",
+      "routeName": "Konapara"
+    },
+    "T16R00067423245293": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-057",
+      "routeCode": "T16R00067423245293",
+      "routeName": "PAITY"
+    },
+    "paity": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-057",
+      "routeCode": "T16R00067423245293",
+      "routeName": "PAITY"
+    },
+    "T16R00067423245272": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-057",
+      "routeCode": "T16R00067423245272",
+      "routeName": "Sarulia"
+    },
+    "sarulia": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-057",
+      "routeCode": "T16R00067423245272",
+      "routeName": "Sarulia"
+    },
+    "T16R00067423245303": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-217",
+      "routeCode": "T16R00067423245303",
+      "routeName": "Bhuyamosjid road"
+    },
+    "bhuyamosjid road": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-217",
+      "routeCode": "T16R00067423245303",
+      "routeName": "Bhuyamosjid road"
+    },
+    "T16R00067423245301": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-217",
+      "routeCode": "T16R00067423245301",
+      "routeName": "Dogaire"
+    },
+    "dogaire": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-217",
+      "routeCode": "T16R00067423245301",
+      "routeName": "Dogaire"
+    },
+    "T16R00067423245280": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-217",
+      "routeCode": "T16R00067423245280",
+      "routeName": "London market"
+    },
+    "london market": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-217",
+      "routeCode": "T16R00067423245280",
+      "routeName": "London market"
+    },
+    "T16R00067423245279": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-217",
+      "routeCode": "T16R00067423245279",
+      "routeName": "Nimaikasari"
+    },
+    "nimaikasari": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-217",
+      "routeCode": "T16R00067423245279",
+      "routeName": "Nimaikasari"
+    },
+    "T16R00067423245288": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-217",
+      "routeCode": "T16R00067423245288",
+      "routeName": "Ranimohol"
+    },
+    "ranimohol": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-217",
+      "routeCode": "T16R00067423245288",
+      "routeName": "Ranimohol"
+    },
+    "T16R00067423245302": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-217",
+      "routeCode": "T16R00067423245302",
+      "routeName": "Rasulnagar"
+    },
+    "rasulnagar": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-217",
+      "routeCode": "T16R00067423245302",
+      "routeName": "Rasulnagar"
+    },
+    "T16R00067423245269": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-060",
+      "routeCode": "T16R00067423245269",
+      "routeName": "Ctg Road"
+    },
+    "ctg road": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-060",
+      "routeCode": "T16R00067423245269",
+      "routeName": "Ctg Road"
+    },
+    "T16R00067423245300": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-060",
+      "routeCode": "T16R00067423245300",
+      "routeName": "Hazinagar"
+    },
+    "hazinagar": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-060",
+      "routeCode": "T16R00067423245300",
+      "routeName": "Hazinagar"
+    },
+    "T16R00067423245267": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-060",
+      "routeCode": "T16R00067423245267",
+      "routeName": "KATERPUL"
+    },
+    "katerpul": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-060",
+      "routeCode": "T16R00067423245267",
+      "routeName": "KATERPUL"
+    },
+    "T16R00067423245270": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-060",
+      "routeCode": "T16R00067423245270",
+      "routeName": "Madeninagar"
+    },
+    "madeninagar": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-060",
+      "routeCode": "T16R00067423245270",
+      "routeName": "Madeninagar"
+    },
+    "T16R00067423245268": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-060",
+      "routeCode": "T16R00067423245268",
+      "routeName": "MATUAIL"
+    },
+    "matuail": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-060",
+      "routeCode": "T16R00067423245268",
+      "routeName": "MATUAIL"
+    },
+    "T16R00067423245304": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-060",
+      "routeCode": "T16R00067423245304",
+      "routeName": "Rostomali"
+    },
+    "rostomali": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-060",
+      "routeCode": "T16R00067423245304",
+      "routeName": "Rostomali"
+    }
+  },
+  "prefixMap": {
+    "T03": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T03",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "Test SR",
+      "routeCode": "RT-001-Test",
+      "routeName": "Boro Bazar_Test"
+    },
+    "T16": {
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "territoryCode": "T16",
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "srPositionCode": "DM-060",
+      "routeCode": "T16R00067423245304",
+      "routeName": "Rostomali"
+    },
+    "T19": {
+      "area": "Central South",
+      "territory": "Gulshan",
+      "territoryCode": "T19",
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "srPositionCode": "GUL-01",
+      "routeCode": "T19",
+      "routeName": "Gulshan"
+    }
+  }
+}

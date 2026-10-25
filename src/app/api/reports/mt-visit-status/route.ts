@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchWithAuth } from '@/lib/sokrioClient';
+import territoriesMasterData from '@/lib/territoriesMaster.json';
 import * as XLSX from 'xlsx';
 import path from 'path';
 import fs from 'fs';
@@ -56,6 +57,51 @@ function formatDateTime(val: any, isTimeOnly = false): string {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
+// Resolve DB Code, DB Name, Area, Territory from Sokrio Territories Master (territories-bulk-download)
+function resolveTerritoryMeta(customerNo: string, routeCode: string, routeName: string, territoryName: string) {
+  const prefix = customerNo.split('-')[0].trim().toUpperCase();
+  const cleanRouteCode = String(routeCode || '').trim();
+  const cleanRouteName = String(routeName || '').trim().toLowerCase();
+  const cleanTerritory = String(territoryName || '').trim().toLowerCase();
+
+  const prefixMap: Record<string, any> = territoriesMasterData.prefixMap || {};
+  const routeMap: Record<string, any> = territoriesMasterData.routeMap || {};
+
+  // 1. Match by Customer prefix (e.g. T16 -> M/S Ahamed Enterprise, T19 / T03 -> Sara Enterprise)
+  if (prefix && prefixMap[prefix]) {
+    return prefixMap[prefix];
+  }
+
+  // 2. Match by Route Code (e.g. T16R..., T19R...)
+  if (cleanRouteCode && routeMap[cleanRouteCode]) {
+    return routeMap[cleanRouteCode];
+  }
+
+  // 3. Match by Route Name
+  if (cleanRouteName && routeMap[cleanRouteName]) {
+    return routeMap[cleanRouteName];
+  }
+
+  // 4. Default by territory keyword
+  if (cleanTerritory.includes('jatra') || cleanTerritory.includes('sarulia') || prefix === 'T16') {
+    return {
+      area: 'Central South',
+      territory: 'Jatra Bari',
+      dbCode: '102267',
+      dbName: 'M/S Ahamed Enterprise',
+      srPositionCode: 'JTB-01',
+    };
+  }
+
+  return {
+    area: 'Central South',
+    territory: 'Gulshan',
+    dbCode: '101820',
+    dbName: 'Sara Enterprise',
+    srPositionCode: 'GUL-01',
+  };
+}
+
 // Helper to get sample data from Report Sample.xlsx
 function getExcelSampleData(forDate?: string): MTVisitRecord[] {
   try {
@@ -70,20 +116,22 @@ function getExcelSampleData(forDate?: string): MTVisitRecord[] {
       const clockIn = formatDateTime(row['Clock In Time']);
       const clockOut = formatDateTime(row['Clock Out Time']);
       const dateVal = forDate || (clockIn ? clockIn.split(' ')[0] : '2026-10-25');
+      const custNo = String(row['Customer No'] || '');
+      const meta = resolveTerritoryMeta(custNo, String(row['Route Code'] || ''), String(row['Route Name'] || ''), String(row['Territory'] || ''));
 
       return {
         id: `sample-${idx + 1}`,
         date: dateVal,
-        area: String(row['Area'] || 'Organized Trade'),
-        territory: String(row['Territory'] || 'Organized Trade'),
-        dbCode: String(row['DB Code'] || '100001'),
-        dbName: String(row['DB Name'] || 'Organized Trade'),
-        srPositionCode: String(row['SR Position Code'] || `MT-00${(idx % 2) + 1}`),
+        area: meta.area || String(row['Area'] || 'Central South'),
+        territory: meta.territory || String(row['Territory'] || 'Gulshan'),
+        dbCode: meta.dbCode || String(row['DB Code'] || '101820'),
+        dbName: meta.dbName || String(row['DB Name'] || 'Sara Enterprise'),
+        srPositionCode: meta.srPositionCode || String(row['SR Position Code'] || `SR-${(idx % 2) + 1}`),
         srCode: String(row['SR Code'] || ''),
         srName: String(row['SR Name'] || ''),
         routeCode: String(row['Route Code'] || ''),
         routeName: String(row['Route Name'] || ''),
-        customerNo: String(row['Customer No'] || ''),
+        customerNo: custNo,
         customerName: String(row['Customer Name'] || ''),
         clockInTime: clockIn,
         clockOutTime: clockOut,
@@ -124,20 +172,29 @@ async function fetchFromSokrio(start: string, end: string): Promise<{ records: M
     const user = item.user || {};
     const route = item.route || {};
 
+    const customerNo = String(dept.code || '').trim();
+    const customerName = String(dept.name || '').trim();
+    const rawTerritory = dept.territory?.name || route.name || '';
+    const rawRouteCode = route.code || (item.route_id ? `R-${item.route_id}` : '');
+    const rawRouteName = route.name || '';
+
+    // Dynamically resolve DB Code, DB Name, Area, Territory from Sokrio Territories Bulk Master
+    const meta = resolveTerritoryMeta(customerNo, rawRouteCode, rawRouteName, rawTerritory);
+
     return {
       id: item._id || `rec-${idx + 1}`,
       date: datePart,
-      area: dept.territory?.parent?.name || dept.territory?.name || 'Dhaka',
-      territory: dept.territory?.name || 'Bangladesh',
-      dbCode: dept.distributor?.code || '100001',
-      dbName: dept.distributor?.name || 'Organized Trade',
-      srPositionCode: user.position_code || (user.code ? `SR-${user.code}` : `MT-00${(idx % 2) + 1}`),
+      area: meta.area || dept.territory?.parent?.name || 'Central South',
+      territory: meta.territory || rawTerritory || 'Gulshan',
+      dbCode: meta.dbCode,
+      dbName: meta.dbName,
+      srPositionCode: user.position_code || meta.srPositionCode || `SR-${user.code || idx + 1}`,
       srCode: String(user.code || ''),
       srName: user.name || '',
-      routeCode: route.code || (item.route_id ? `OT03R${item.route_id}` : `R-${item.route_id || idx}`),
-      routeName: route.name || '',
-      customerNo: dept.code || '',
-      customerName: dept.name || '',
+      routeCode: rawRouteCode || meta.routeCode || `R-${item.route_id || idx}`,
+      routeName: rawRouteName || meta.routeName || rawTerritory,
+      customerNo: customerNo,
+      customerName: customerName,
       clockInTime: createdAt,
       clockOutTime: checkedOutAt,
       timeSpentMinutes: timeSpent,
@@ -157,7 +214,7 @@ async function fetchFromSokrio(start: string, end: string): Promise<{ records: M
       uniqueSRs,
       uniqueCustomers,
       completedVisits,
-      source: 'Live Sokrio SFA API',
+      source: 'Live Sokrio SFA API (Dynamic Territories Master)',
     },
   };
 }
@@ -179,7 +236,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 2. In-flight request deduplication: if identical request is pending, await it
+    // 2. In-flight request deduplication
     let fetchPromise = inFlightRequests.get(cacheKey);
     if (!fetchPromise) {
       fetchPromise = fetchFromSokrio(start, end).finally(() => {
@@ -214,7 +271,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Otherwise fallback to sample data mapped to current date
+    // Otherwise fallback to sample data mapped to current date and master territories
     const sampleRecords = getExcelSampleData(start);
     return NextResponse.json({
       success: true,
