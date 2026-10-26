@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
-export type ActiveTab = 'bwiw' | 'daily_sr' | 'live_detail' | 'mt_visit';
+export type ActiveTab = 'bwiw' | 'daily_sr' | 'live_detail' | 'live_order_update' | 'mt_visit';
 
 export interface ColumnDef {
   key: string;
@@ -170,6 +170,46 @@ const TAB_CONFIGS: {
       { key: 'totalSpendTimeOrderTaking', label: 'Order Taking Time', pillType: 'timeIn' },
       { key: 'transitTime', label: 'Transit Time', pillType: 'timeOut' },
       { key: 'srLeave', label: 'SR Leave', pillType: 'warning' },
+    ],
+  },
+  {
+    id: 'live_order_update',
+    label: 'Live Order Update Report',
+    icon: ShoppingBag,
+    endpoint: '/api/reports/live-order-update',
+    badge: 'LIVE ORDERS',
+    desc: 'Real-Time SKU-Wise & Outlet-Wise Live Order Booking Tracker',
+    columns: [
+      { key: 'cluster', label: 'Cluster' },
+      { key: 'area', label: 'Area' },
+      { key: 'territory', label: 'Territory' },
+      { key: 'dbCode', label: 'DB Code', pillType: 'route' },
+      { key: 'dbName', label: 'DB Name' },
+      { key: 'dbType', label: 'DB Type' },
+      { key: 'srPosition', label: 'SR Position', pillType: 'sr' },
+      { key: 'srCode', label: 'SR Code' },
+      { key: 'srName', label: 'SR Name', pillType: 'bold' },
+      { key: 'orderDate', label: 'Order Date', pillType: 'bold' },
+      { key: 'routeCode', label: 'Route Code', pillType: 'route' },
+      { key: 'routeName', label: 'Route Name' },
+      { key: 'customerNo', label: 'Customer No', pillType: 'cust' },
+      { key: 'customerName', label: 'Customer Name', pillType: 'bold' },
+      { key: 'orderNo', label: 'Order No', pillType: 'bold' },
+      { key: 'category', label: 'Category' },
+      { key: 'motherSkuCode', label: 'Mother SKU Code' },
+      { key: 'motherSkuName', label: 'Mother SKU Name' },
+      { key: 'brand', label: 'Brand', pillType: 'bold' },
+      { key: 'skuCode', label: 'SKU Code', pillType: 'bold' },
+      { key: 'skuName', label: 'SKU Name' },
+      { key: 'qty', label: 'Qty', pillType: 'number' },
+      { key: 'price', label: 'Price', pillType: 'currency' },
+      { key: 'orderValue', label: 'Order Value', pillType: 'currency' },
+      { key: 'discountValue', label: 'Discount Value', pillType: 'currency' },
+      { key: 'cashDiscount', label: 'Cash Discount', pillType: 'currency' },
+      { key: 'valueAfterDiscount', label: 'Value After Discount', pillType: 'currency' },
+      { key: 'orderStatus', label: 'Order Status', pillType: 'success' },
+      { key: 'uom', label: 'UOM', pillType: 'bold' },
+      { key: 'channel', label: 'Channel' },
     ],
   },
   {
@@ -860,6 +900,84 @@ export default function DashboardPage() {
                     ৳ {Math.round(filteredAndSortedRecords.reduce((s, r) => s + (Number(r.orderValue) || 0), 0)).toLocaleString()}
                   </span>
                   <span className="kpi-subtext">Booked Orders Today</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-amber" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'live_order_update' && (
+            <>
+              <div className="kpi-card-premium kpi-card-blue">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Total Orders</span>
+                  <div className="kpi-icon-pill icon-blue">
+                    <FileSpreadsheet size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">
+                    {metaInfo?.totalOrders ?? new Set(filteredAndSortedRecords.map(r => r.orderNo)).size}
+                  </span>
+                  <span className="kpi-subtext">Distinct Invoices / Orders</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-blue" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-green">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Outlets Ordered</span>
+                  <div className="kpi-icon-pill icon-green">
+                    <Store size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">
+                    {metaInfo?.totalOutlets ?? new Set(filteredAndSortedRecords.map(r => r.customerNo)).size}
+                  </span>
+                  <span className="kpi-subtext">Productive Customer Stores</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-green" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-purple">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Total Live Sales</span>
+                  <div className="kpi-icon-pill icon-purple">
+                    <DollarSign size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val" style={{ color: '#047857' }}>
+                    ৳ {Math.round(filteredAndSortedRecords.reduce((s, r) => s + (Number(r.valueAfterDiscount || r.orderValue) || 0), 0)).toLocaleString()}
+                  </span>
+                  <span className="kpi-subtext">Value After Discount</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-purple" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-amber">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">SKU Lines Booked</span>
+                  <div className="kpi-icon-pill icon-amber">
+                    <Layers size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">
+                    {filteredAndSortedRecords.length.toLocaleString()}
+                  </span>
+                  <span className="kpi-subtext">
+                    Across {new Set(filteredAndSortedRecords.map(r => r.skuCode)).size} Unique SKUs
+                  </span>
                 </div>
                 <div className="kpi-progress-bar">
                   <div className="kpi-progress-fill fill-amber" style={{ width: '100%' }}></div>
