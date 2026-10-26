@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchWithAuth } from '@/lib/sokrioClient';
 import territoriesMasterData from '@/lib/territoriesMaster.json';
+import skuCatalogData from '@/lib/skuCatalog.json';
 import * as XLSX from 'xlsx';
 import path from 'path';
 import fs from 'fs';
@@ -272,11 +273,11 @@ function getDeliverySummaryData(): BWIWRecord[] {
         channel: 'Retail',
         subChannel: 'General & Grocery Store',
         invoiceNo: invNo,
-        category: String(r['Product Category'] || 'Confectionery'),
-        brand: String(r['Product Brand'] || 'Center Fruit'),
+        category: ((skuCatalogData as any)[String(r['Product SKU'] || '')])?.category || String(r['Product Category'] || 'Confectionery'),
+        brand: ((skuCatalogData as any)[String(r['Product SKU'] || '')])?.brand || String(r['Product Brand'] || 'Center Fruit'),
         skuCode: String(r['Product SKU'] || ''),
         skuName: String(r['Product Name'] || ''),
-        deliveryUom: 'PCS',
+        deliveryUom: ((skuCatalogData as any)[String(r['Product SKU'] || '')])?.uom || 'PCS',
         noofSKUinCTN: 15,
         weightperSKUgm: 360,
         skutp: unitPrice,
@@ -293,7 +294,7 @@ function getDeliverySummaryData(): BWIWRecord[] {
         freeQuantity: 0,
         deliveryValueAfterDiscount: val,
         wsCashDiscount: 0,
-        motherSkuCode: 'MSKU0097',
+        motherSkuCode: ((skuCatalogData as any)[String(r['Product SKU'] || '')])?.motherSkuCode || 'MSKU0072',
         createDeliveryDate: delDate,
       };
     });
