@@ -184,6 +184,42 @@ function getExcelSampleData(): BWIWRecord[] {
   }
 }
 
+// Precise metadata map for all SRs present in PVM Sokrio
+const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; territory: string; territoryCode: string; dbCode: string; dbName: string }> = {
+  '54506': {
+    srPositionCode: 'DM-060',
+    srName: 'Mostafizur Rahman',
+    territory: 'Jatra Bari',
+    territoryCode: 'T16',
+    dbCode: '102267',
+    dbName: 'M/S Ahamed Enterprise',
+  },
+  '53995': {
+    srPositionCode: 'DM-057',
+    srName: 'Chaon Khandker',
+    territory: 'Jatra Bari',
+    territoryCode: 'T16',
+    dbCode: '102267',
+    dbName: 'M/S Ahamed Enterprise',
+  },
+  '54233': {
+    srPositionCode: 'DM-059',
+    srName: 'Md. Asebur Rahman Ashik',
+    territory: 'Jatra Bari',
+    territoryCode: 'T16',
+    dbCode: '102267',
+    dbName: 'M/S Ahamed Enterprise',
+  },
+  '51639': {
+    srPositionCode: 'DM-217',
+    srName: 'Md. Shawkat Hossen',
+    territory: 'Jatra Bari',
+    territoryCode: 'T16',
+    dbCode: '102267',
+    dbName: 'M/S Ahamed Enterprise',
+  },
+};
+
 // Helper to get all 8,007 records from Sokrio Delivery Summary
 function getDeliverySummaryData(): BWIWRecord[] {
   try {
@@ -192,9 +228,20 @@ function getDeliverySummaryData(): BWIWRecord[] {
     const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
     return raw.map((r: any, idx: number) => {
       const custCode = String(r['Buyer Department Code'] || '');
-      const territoryCode = String(r['Buyer Territory Code'] || '');
+      const rawTerritoryCode = String(r['Buyer Territory Code'] || '');
       const routeName = String(r['Buyer Territory Name'] || '');
-      const meta = resolveTerritoryMeta(custCode, territoryCode, routeName, routeName);
+      const meta = resolveTerritoryMeta(custCode, rawTerritoryCode, routeName, routeName);
+
+      const srCode = String(r['Order Creator Code'] || '');
+      const srMeta = SR_METADATA_MAP[srCode];
+
+      const dbCode = String(r['Seller Department Code'] || srMeta?.dbCode || meta.dbCode || '102267');
+      const sellerDeptName = String(r['Seller Department Name'] || '');
+      const dbName = (sellerDeptName && sellerDeptName !== 'Super Admin') ? sellerDeptName : (srMeta?.dbName || meta.dbName || 'M/S Ahamed Enterprise');
+      const srName = String(r['Order Creator Name'] || srMeta?.srName || 'Mostafizur Rahman');
+      const srPositionCode = srMeta?.srPositionCode || meta.srPositionCode || 'DM-057';
+      const territory = srMeta?.territory || meta.territory || 'Jatra Bari';
+      const territoryCode = srMeta?.territoryCode || meta.territoryCode || (rawTerritoryCode ? rawTerritoryCode.substring(0, 3) : 'T16');
 
       const orderDate = toStandardDate(r['Delivery Date']);
       const delDate = orderDate;
@@ -209,16 +256,16 @@ function getDeliverySummaryData(): BWIWRecord[] {
         orderDate,
         cluster: 'Central',
         area: meta.area || 'Central South',
-        territory: meta.territory || routeName || 'Jatra Bari',
-        territoryCode: meta.territoryCode || (territoryCode ? territoryCode.substring(0, 3) : 'T16'),
+        territory,
+        territoryCode,
         town: '',
-        dbCode: String(r['Employee Code'] || meta.dbCode || '102267'),
-        dbName: String(r['Employee Name'] || meta.dbName || 'M/S Ahamed Enterprise'),
+        dbCode,
+        dbName,
         dbType: 'MAIN',
-        srCode: String(r['Order Creator Code'] || '54506'),
-        srName: String(r['Order Creator Name'] || 'Mostafizur Rahman'),
-        srPositionCode: meta.srPositionCode || 'DM-057',
-        routeCode: territoryCode || meta.routeCode || '',
+        srCode,
+        srName,
+        srPositionCode,
+        routeCode: rawTerritoryCode || meta.routeCode || '',
         routeName: routeName || meta.routeName || '',
         customerCode: custCode,
         customerName: String(r['Buyer Department Name'] || ''),
