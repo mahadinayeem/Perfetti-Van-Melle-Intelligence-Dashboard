@@ -166,6 +166,50 @@ function getExcelSampleData(): BWIWRecord[] {
   }
 }
 
+const BRAND_MAP: Record<number, string> = {
+  1: 'Mentos',
+  2: 'Alpenliebe Juzt Jelly',
+  3: 'Alpenliebe Creamfills',
+  4: 'Center Fresh',
+  5: 'Alpenliebe Chewy',
+  6: 'Center Fruit',
+  7: 'Air Action',
+  10: 'Chupa Chups Bites',
+  12: 'Chupa Chups Duo',
+};
+
+const CATEGORY_MAP: Record<number, string> = {
+  1: 'Chewy',
+  2: 'Jelly',
+  3: 'Hard Candy',
+  4: 'Gum',
+};
+
+function resolveBrandName(baseName: string, brandId?: number): string {
+  const n = String(baseName || '').toLowerCase();
+  if (n.includes('সেন্টার ফ্রেশ') || n.includes('center fresh')) return 'Center Fresh';
+  if (n.includes('সেন্টার ফ্রূট') || n.includes('center fruit')) return 'Center Fruit';
+  if (n.includes('ক্রিমফিলস') || n.includes('creamfills')) return 'Alpenliebe Creamfills';
+  if (n.includes('জাস্ট জেলি') || n.includes('juzt jelly')) return 'Alpenliebe Juzt Jelly';
+  if (n.includes('চিউই') || n.includes('chewy')) return 'Alpenliebe Chewy';
+  if (n.includes('অ্যালপেনলিবে') || n.includes('alpenliebe')) return 'Alpenliebe';
+  if (n.includes('চুপা চুপস') || n.includes('chupa chups')) return 'Chupa Chups';
+  if (n.includes('মেন্টস') || n.includes('mentos')) return 'Mentos';
+  if (n.includes('এয়ার অ্যাকশন') || n.includes('air action')) return 'Air Action';
+  if (brandId && BRAND_MAP[brandId]) return BRAND_MAP[brandId];
+  return 'Perfetti Van Melle';
+}
+
+function resolveCategoryName(baseName: string, catId?: number): string {
+  const n = String(baseName || '').toLowerCase();
+  if (n.includes('জেলি') || n.includes('jelly') || n.includes('rope')) return 'Jelly';
+  if (n.includes('গাম') || n.includes('gum') || n.includes('ফ্রেশ') || n.includes('fresh') || n.includes('fruit')) return 'Gum';
+  if (n.includes('ক্যান্ডি') || n.includes('creamfills') || n.includes('ক্রিমফিলস')) return 'Hard Candy';
+  if (n.includes('চিউই') || n.includes('chewy') || n.includes('মেন্টস') || n.includes('mentos')) return 'Chewy';
+  if (catId && CATEGORY_MAP[catId]) return CATEGORY_MAP[catId];
+  return 'Confectionery';
+}
+
 // Fetch live deliveries and map to BWIW structure
 async function fetchFromSokrio(): Promise<BWIWRecord[]> {
   const baseUrl = process.env.SOKRIO_BASE_URL || 'https://pvm.core.sokrio.com';
@@ -178,10 +222,9 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
 
   list.forEach((del: any, dIdx: number) => {
     const order = del.order || {};
-    const buyer = del.buyer || {};
-    const seller = del.seller || {};
+    const buyer = del.buyer || order.buyer || {};
     const orderedBy = del.ordered_by || order.ordered_by || {};
-    const deliveredProducts = del.delivered_products || order.ordered_products || [];
+    const products = del.products || del.delivered_products || order.ordered_products || [];
 
     const orderDate = (order.created_at || del.created_at || '').split(' ')[0] || '';
     const deliveryDate = del.deliver_date || orderDate;
@@ -191,7 +234,7 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
     const routeName = String(buyer.route?.name || order.route?.name || '');
     const meta = resolveTerritoryMeta(custNo, routeCode, routeName, buyer.territory?.name || '');
 
-    if (deliveredProducts.length === 0) {
+    if (products.length === 0) {
       records.push({
         id: `live-del-${del.id}`,
         orderDate,
@@ -228,13 +271,17 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
         deliveryValueAfterDiscount: Number(del.payable || del.amount || 0),
       });
     } else {
-      deliveredProducts.forEach((pItem: any, pIdx: number) => {
+      products.forEach((pItem: any, pIdx: number) => {
         const prod = pItem.product || {};
         const base = prod.base_product || {};
         const price = Number(pItem.price || prod.mrp || 0);
         const qty = Number(pItem.qty || 1);
         const lineVal = price * qty;
         const disc = Number(pItem.custom_discount || pItem.promotion_discount || 0);
+
+        const skuName = String(base.usp || base.name || prod.full_name || 'PVM SKU');
+        const brandName = (base.product_brand && base.product_brand.name) || resolveBrandName(skuName, base.product_brand_id);
+        const catName = (base.product_category && base.product_category.name) || resolveCategoryName(skuName, base.product_category_id);
 
         records.push({
           id: `live-del-${del.id}-${pIdx}`,
@@ -256,10 +303,10 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
           channel: 'Retail',
           subChannel: 'General Store',
           invoiceNo: String(order.code || `INV-${del.id}`),
-          category: base.product_category_id ? `Category ${base.product_category_id}` : 'Confectionery',
-          brand: base.product_brand_id ? `Brand ${base.product_brand_id}` : 'Perfetti',
+          category: catName,
+          brand: brandName,
           skuCode: String(base.sku || prod.id || ''),
-          skuName: String(base.name || prod.full_name || 'PVM SKU'),
+          skuName,
           deliveryUom: 'PCS',
           skutp: price,
           orderQty: qty,
