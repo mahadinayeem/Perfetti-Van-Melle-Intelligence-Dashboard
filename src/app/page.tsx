@@ -98,7 +98,6 @@ const TAB_CONFIGS: {
       { key: 'deliveryValueAfterDiscount', label: 'Value After Disc', pillType: 'currency' },
       { key: 'wsCashDiscount', label: 'WS Cash Disc', pillType: 'currency' },
       { key: 'motherSkuCode', label: 'Mother SKU Code', pillType: 'bold' },
-      { key: 'createDeliveryDate', label: 'Create Delivery Date' },
     ],
   },
   {
