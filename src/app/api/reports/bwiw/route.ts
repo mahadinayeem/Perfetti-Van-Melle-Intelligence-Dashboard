@@ -184,6 +184,78 @@ function getExcelSampleData(): BWIWRecord[] {
   }
 }
 
+// Helper to get all 8,007 records from Sokrio Delivery Summary
+function getDeliverySummaryData(): BWIWRecord[] {
+  try {
+    const jsonPath = path.join(process.cwd(), 'src', 'data', 'deliverySummary.json');
+    if (!fs.existsSync(jsonPath)) return [];
+    const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    return raw.map((r: any, idx: number) => {
+      const custCode = String(r['Buyer Department Code'] || '');
+      const territoryCode = String(r['Buyer Territory Code'] || '');
+      const routeName = String(r['Buyer Territory Name'] || '');
+      const meta = resolveTerritoryMeta(custCode, territoryCode, routeName, routeName);
+
+      const orderDate = toStandardDate(r['Delivery Date']);
+      const delDate = orderDate;
+      const qty = Number(r['Delivery Quantity'] || 0);
+      const unitPrice = Number(r['Unit Price'] || 0);
+      const val = Number(r['Amount'] || r['Subtotal'] || (qty * unitPrice));
+      const trackingId = r['Tracking ID'];
+      const invNo = trackingId ? `INV-${trackingId}` : `INV-${1000 + idx}`;
+
+      return {
+        id: `del-sum-${idx + 1}`,
+        orderDate,
+        cluster: 'Central',
+        area: meta.area || 'Central South',
+        territory: meta.territory || routeName || 'Jatra Bari',
+        territoryCode: meta.territoryCode || (territoryCode ? territoryCode.substring(0, 3) : 'T16'),
+        town: '',
+        dbCode: String(r['Employee Code'] || meta.dbCode || '102267'),
+        dbName: String(r['Employee Name'] || meta.dbName || 'M/S Ahamed Enterprise'),
+        dbType: 'MAIN',
+        srCode: String(r['Order Creator Code'] || '54506'),
+        srName: String(r['Order Creator Name'] || 'Mostafizur Rahman'),
+        srPositionCode: meta.srPositionCode || 'DM-057',
+        routeCode: territoryCode || meta.routeCode || '',
+        routeName: routeName || meta.routeName || '',
+        customerCode: custCode,
+        customerName: String(r['Buyer Department Name'] || ''),
+        channel: 'Retail',
+        subChannel: 'General & Grocery Store',
+        invoiceNo: invNo,
+        category: String(r['Product Category'] || 'Confectionery'),
+        brand: String(r['Product Brand'] || 'Center Fruit'),
+        skuCode: String(r['Product SKU'] || ''),
+        skuName: String(r['Product Name'] || ''),
+        deliveryUom: 'PCS',
+        noofSKUinCTN: 15,
+        weightperSKUgm: 360,
+        skutp: unitPrice,
+        orderQty: qty,
+        orderVol: (qty * 0.00036).toFixed(5),
+        orderValue: val,
+        orderCashDiscount: 0,
+        deliveryConfirmationDate: delDate,
+        deliveryDate: delDate,
+        deliveryQty: qty,
+        deliveryVol: (qty * 0.00036).toFixed(5),
+        deliveryValue: val,
+        deliveryCashDiscount: 0,
+        freeQuantity: 0,
+        deliveryValueAfterDiscount: val,
+        wsCashDiscount: 0,
+        motherSkuCode: 'MSKU0097',
+        createDeliveryDate: delDate,
+      };
+    });
+  } catch (e) {
+    console.warn('[BWIW] getDeliverySummaryData error:', e);
+    return [];
+  }
+}
+
 const BRAND_MAP: Record<number, string> = {
   1: 'Mentos',
   2: 'Alpenliebe Juzt Jelly',
@@ -382,10 +454,17 @@ export async function GET(req: NextRequest) {
     let records: BWIWRecord[] = [];
     let source = 'live';
 
-    try {
-      records = await fetchFromSokrio();
-    } catch (apiErr) {
-      console.warn('[BWIW] Live fetch failed, using sample excel:', (apiErr as any).message);
+    const deliverySummary = getDeliverySummaryData();
+    if (deliverySummary && deliverySummary.length > 0) {
+      records = deliverySummary;
+      source = 'sokrio_delivery_summary';
+    } else {
+      try {
+        records = await fetchFromSokrio();
+        source = 'live_deliveries_api';
+      } catch (apiErr) {
+        console.warn('[BWIW] Live fetch failed, using sample excel:', (apiErr as any).message);
+      }
     }
 
     if (!records || records.length === 0) {
@@ -404,19 +483,9 @@ export async function GET(req: NextRequest) {
       if (filtered.length > 0) {
         records = filtered;
       } else {
-        const excelFallback = getExcelSampleData().filter(r => {
-          const d = toStandardDate(r.orderDate);
-          return d >= startDate && d <= endDate;
-        });
-        if (excelFallback.length > 0) {
-          records = excelFallback;
-          source = 'excel_fallback_range';
-        } else if (startDate === endDate) {
-          // If today has no new delivery yet, show latest available records
-          source = 'live_latest_available';
-        } else {
-          records = [];
-        }
+        // If exact date has no records (e.g. today has no new delivery yet),
+        // keep latest available delivery summary records so user gets full data insight
+        source = `${source}_latest_available`;
       }
     }
 
