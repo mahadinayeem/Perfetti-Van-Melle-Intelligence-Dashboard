@@ -59,9 +59,9 @@ export async function loginAndGetToken(): Promise<string> {
 /**
  * Returns a guaranteed valid token. If token is missing or older than 4 hours, refreshes automatically.
  */
-export async function getValidToken(): Promise<string> {
+export async function getValidToken(forceRefresh = false): Promise<string> {
   const isExpired = Date.now() - lastTokenTime > TOKEN_MAX_AGE_MS;
-  if (!activeToken || isExpired) {
+  if (!activeToken || isExpired || forceRefresh) {
     try {
       return await loginAndGetToken();
     } catch (e) {
