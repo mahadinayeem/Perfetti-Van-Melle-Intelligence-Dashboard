@@ -337,6 +337,17 @@ export default function DashboardPage() {
     }
   };
 
+  // Automatically force today's date when switching to Live Detail Report
+  useEffect(() => {
+    if (activeTab === 'live_detail') {
+      const todayStr = formatYMD(new Date());
+      if (startDate !== todayStr || endDate !== todayStr) {
+        setStartDate(todayStr);
+        setEndDate(todayStr);
+      }
+    }
+  }, [activeTab]);
+
   // Re-fetch whenever tab or dates change
   useEffect(() => {
     setColumnFilters({});
@@ -1082,53 +1093,79 @@ export default function DashboardPage() {
                 className={`btn-preset ${activePreset === 'today' ? 'active' : ''}`}
                 onClick={() => applyPreset('today')}
               >
-                Today
+                {activeTab === 'live_detail' ? '● Today (Live Only)' : 'Today'}
               </button>
-              <button
-                id="preset-btn-wtd"
-                type="button"
-                className={`btn-preset ${activePreset === 'wtd' ? 'active' : ''}`}
-                onClick={() => applyPreset('wtd')}
-              >
-                WTD
-              </button>
-              <button
-                id="preset-btn-mtd"
-                type="button"
-                className={`btn-preset ${activePreset === 'mtd' ? 'active' : ''}`}
-                onClick={() => applyPreset('mtd')}
-              >
-                MTD
-              </button>
+              {activeTab !== 'live_detail' && (
+                <>
+                  <button
+                    id="preset-btn-wtd"
+                    type="button"
+                    className={`btn-preset ${activePreset === 'wtd' ? 'active' : ''}`}
+                    onClick={() => applyPreset('wtd')}
+                  >
+                    WTD
+                  </button>
+                  <button
+                    id="preset-btn-mtd"
+                    type="button"
+                    className={`btn-preset ${activePreset === 'mtd' ? 'active' : ''}`}
+                    onClick={() => applyPreset('mtd')}
+                  >
+                    MTD
+                  </button>
+                </>
+              )}
             </div>
 
-            {/* Custom Date Pickers */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label className="input-label" htmlFor="filter-start-date">
-                <Calendar size={14} />
-                <span>From:</span>
-              </label>
-              <input
-                id="filter-start-date"
-                type="date"
-                className="custom-input"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
+            {/* Custom Date Pickers (hidden for Live Detail Report as it is strictly Today) */}
+            {activeTab !== 'live_detail' ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label className="input-label" htmlFor="filter-start-date">
+                    <Calendar size={14} />
+                    <span>From:</span>
+                  </label>
+                  <input
+                    id="filter-start-date"
+                    type="date"
+                    className="custom-input"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label className="input-label" htmlFor="filter-end-date">
-                <span>To:</span>
-              </label>
-              <input
-                id="filter-end-date"
-                type="date"
-                className="custom-input"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label className="input-label" htmlFor="filter-end-date">
+                    <span>To:</span>
+                  </label>
+                  <input
+                    id="filter-end-date"
+                    type="date"
+                    className="custom-input"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+              </>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  backgroundColor: '#ecfdf5',
+                  color: '#047857',
+                  border: '1px solid #a7f3d0',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                }}
+              >
+                <span className="status-dot" style={{ backgroundColor: '#10b981' }}></span>
+                <span>Real-Time Live Market Execution (Strictly Today)</span>
+              </div>
+            )}
 
             <button
               id="btn-refresh-data"
