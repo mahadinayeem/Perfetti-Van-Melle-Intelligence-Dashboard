@@ -347,7 +347,7 @@ function resolveCategoryName(baseName: string, catId?: number): string {
   return 'Confectionery';
 }
 
-// Fetch live deliveries and map to BWIW structure
+// Fetch live deliveries directly from Sokrio API and map to BWIW structure
 async function fetchFromSokrio(): Promise<BWIWRecord[]> {
   const baseUrl = process.env.SOKRIO_BASE_URL || 'https://pvm.core.sokrio.com';
   const res = await fetchWithAuth(`${baseUrl}/api/v1/deliveries`, { per_page: 50 });
@@ -357,42 +357,53 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
 
   const records: BWIWRecord[] = [];
 
-  list.forEach((del: any, dIdx: number) => {
+  list.forEach((del: any) => {
     const order = del.order || {};
     const buyer = del.buyer || order.buyer || {};
-    const orderedBy = del.ordered_by || order.ordered_by || {};
+    const orderedBy = del.ordered_by || {};
     const products = del.products || del.delivered_products || order.ordered_products || [];
 
-    const orderDate = (order.created_at || del.created_at || '').split(' ')[0] || '';
-    const deliveryDate = del.deliver_date || orderDate;
-    const custNo = String(buyer.code || `CUST-${del.buyer_id || ''}`);
-    const custName = String(buyer.name || `Outlet #${del.buyer_id || ''}`);
-    const routeCode = String(buyer.route?.code || order.route?.code || '');
-    const routeName = String(buyer.route?.name || order.route?.name || '');
-    const meta = resolveTerritoryMeta(custNo, routeCode, routeName, buyer.territory?.name || '');
+    const srCode = String(orderedBy.code || '');
+    const srMeta = SR_METADATA_MAP[srCode];
+
+    const orderDate = toStandardDate(order.order_date || del.deliver_date || order.created_at || del.created_at);
+    const deliveryDate = toStandardDate(del.deliver_date || orderDate);
+    const custNo = String(order.buyer_id ? `T16-${order.buyer_id}` : (buyer.code || `CUST-${del.buyer_id || ''}`));
+    const custName = String(order.buyer_name || buyer.name || `Outlet #${del.buyer_id || ''}`);
+    const routeCode = String(buyer.route?.code || order.route?.code || 'T16R01');
+    const routeName = String(order.buyer_territory_name || buyer.route?.name || order.route?.name || 'Jatra Bari');
+    const meta = resolveTerritoryMeta(custNo, routeCode, routeName, routeName);
+
+    const dbCode = String(srMeta?.dbCode || meta.dbCode || '102267');
+    const dbName = String(srMeta?.dbName || meta.dbName || 'M/S Ahamed Enterprise');
+    const srName = String(orderedBy.name || srMeta?.srName || 'Mostafizur Rahman');
+    const srPositionCode = String(srMeta?.srPositionCode || meta.srPositionCode || 'DM-060');
+    const territory = String(srMeta?.territory || meta.territory || 'Jatra Bari');
+    const territoryCode = String(srMeta?.territoryCode || meta.territoryCode || 'T16');
+    const invoiceNo = String(order.code || `INV-${del.id}`);
 
     if (products.length === 0) {
       records.push({
         id: `live-del-${del.id}`,
         orderDate,
         cluster: 'Central',
-        area: meta.area,
-        territory: meta.territory,
-        territoryCode: meta.territoryCode || 'T16',
+        area: meta.area || 'Central South',
+        territory,
+        territoryCode,
         town: '',
-        dbCode: meta.dbCode,
-        dbName: meta.dbName,
+        dbCode,
+        dbName,
         dbType: 'MAIN',
-        srCode: String(orderedBy.code || ''),
-        srName: String(orderedBy.name || ''),
-        srPositionCode: meta.srPositionCode,
-        routeCode: routeCode || meta.routeCode || '',
-        routeName: routeName || meta.routeName || '',
+        srCode,
+        srName,
+        srPositionCode,
+        routeCode,
+        routeName,
         customerCode: custNo,
         customerName: custName,
         channel: 'Retail',
         subChannel: 'General Store',
-        invoiceNo: String(order.code || `INV-${del.id}`),
+        invoiceNo,
         category: 'Confectionery',
         brand: 'Perfetti Van Melle',
         skuCode: 'SKU-001',
@@ -405,7 +416,7 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
         orderVol: '0.00036',
         orderValue: Number(del.amount || 0),
         orderCashDiscount: Number(del.discount || 0),
-        deliveryConfirmationDate: (del.created_at || '').split(' ')[0],
+        deliveryConfirmationDate: deliveryDate,
         deliveryDate,
         deliveryQty: 1,
         deliveryVol: '0.00036',
@@ -415,14 +426,14 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
         deliveryValueAfterDiscount: Number(del.payable || del.amount || 0),
         wsCashDiscount: 0,
         motherSkuCode: 'MSKU0097',
-        createDeliveryDate: (del.created_at || '').split(' ')[0],
+        createDeliveryDate: deliveryDate,
       });
     } else {
       products.forEach((pItem: any, pIdx: number) => {
         const prod = pItem.product || {};
         const base = prod.base_product || {};
         const price = Number(pItem.price || prod.mrp || 0);
-        const qty = Number(pItem.qty || 1);
+        const qty = Number(pItem.quantity || pItem.qty || pItem.pivot?.quantity || 1);
         const lineVal = price * qty;
         const disc = Number(pItem.custom_discount || pItem.promotion_discount || 0);
 
@@ -434,26 +445,26 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
           id: `live-del-${del.id}-${pIdx}`,
           orderDate,
           cluster: 'Central',
-          area: meta.area,
-          territory: meta.territory,
-          territoryCode: meta.territoryCode || 'T16',
+          area: meta.area || 'Central South',
+          territory,
+          territoryCode,
           town: '',
-          dbCode: meta.dbCode,
-          dbName: meta.dbName,
+          dbCode,
+          dbName,
           dbType: 'MAIN',
-          srCode: String(orderedBy.code || ''),
-          srName: String(orderedBy.name || ''),
-          srPositionCode: meta.srPositionCode,
-          routeCode: routeCode || meta.routeCode || '',
-          routeName: routeName || meta.routeName || '',
+          srCode,
+          srName,
+          srPositionCode,
+          routeCode,
+          routeName,
           customerCode: custNo,
           customerName: custName,
           channel: 'Retail',
           subChannel: 'General Store',
-          invoiceNo: String(order.code || `INV-${del.id}`),
+          invoiceNo,
           category: catName,
           brand: brandName,
-          skuCode: String(base.sku || prod.id || ''),
+          skuCode: String(base.sku || prod.id || `SKU-${pIdx + 1}`),
           skuName,
           deliveryUom: 'PCS',
           noofSKUinCTN: 15,
@@ -463,7 +474,7 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
           orderVol: (qty * 0.00036).toFixed(5),
           orderValue: lineVal,
           orderCashDiscount: disc,
-          deliveryConfirmationDate: (del.created_at || '').split(' ')[0],
+          deliveryConfirmationDate: deliveryDate,
           deliveryDate,
           deliveryQty: qty,
           deliveryVol: (qty * 0.00036).toFixed(5),
@@ -473,7 +484,7 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
           deliveryValueAfterDiscount: Math.max(0, lineVal - disc),
           wsCashDiscount: 0,
           motherSkuCode: base.mother_product_id ? `MSKU00${base.mother_product_id}` : 'MSKU0097',
-          createDeliveryDate: (del.created_at || '').split(' ')[0],
+          createDeliveryDate: deliveryDate,
         });
       });
     }
@@ -501,17 +512,11 @@ export async function GET(req: NextRequest) {
     let records: BWIWRecord[] = [];
     let source = 'live';
 
-    const deliverySummary = getDeliverySummaryData();
-    if (deliverySummary && deliverySummary.length > 0) {
-      records = deliverySummary;
-      source = 'sokrio_delivery_summary';
-    } else {
-      try {
-        records = await fetchFromSokrio();
-        source = 'live_deliveries_api';
-      } catch (apiErr) {
-        console.warn('[BWIW] Live fetch failed, using sample excel:', (apiErr as any).message);
-      }
+    try {
+      records = await fetchFromSokrio();
+      source = 'live_sokrio_api';
+    } catch (apiErr) {
+      console.warn('[BWIW] Live fetch failed, using sample excel:', (apiErr as any).message);
     }
 
     if (!records || records.length === 0) {
