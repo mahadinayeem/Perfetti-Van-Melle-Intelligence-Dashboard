@@ -31,15 +31,24 @@ export interface BWIWRecord {
   skuCode: string;
   skuName: string;
   deliveryUom: string;
+  noofSKUinCTN?: string | number;
+  weightperSKUgm?: string | number;
   skutp: number;
   orderQty: number;
+  orderVol?: string | number;
   orderValue: number;
   orderCashDiscount: number;
+  deliveryConfirmationDate?: string;
   deliveryDate: string;
   deliveryQty: number;
+  deliveryVol?: string | number;
   deliveryValue: number;
   deliveryCashDiscount: number;
+  freeQuantity?: number;
   deliveryValueAfterDiscount: number;
+  wsCashDiscount?: number;
+  motherSkuCode?: string;
+  createDeliveryDate?: string;
 }
 
 // In-memory caching
@@ -149,15 +158,24 @@ function getExcelSampleData(): BWIWRecord[] {
         skuCode: String(row['SKUCode'] || row['SKU Code'] || ''),
         skuName: String(row['SKUName'] || row['SKU Name'] || ''),
         deliveryUom: String(row['DeliveryUOM'] || 'PCS'),
+        noofSKUinCTN: row['NoofSKUinCTN'] || '15',
+        weightperSKUgm: row['WeightperSKUgm'] || '360',
         skutp: Number(row['SKUTP'] || 0),
         orderQty: Number(row['OrderQty'] || 0),
+        orderVol: row['OrderVol'] || '0.00036',
         orderValue: orderVal,
         orderCashDiscount: Number(row['OrderCashDiscount'] || 0),
+        deliveryConfirmationDate: toStandardDate(row['DeliveryConfirmationDate']),
         deliveryDate: delDate,
         deliveryQty: Number(row['DeliveryQty'] || row['OrderQty'] || 0),
+        deliveryVol: row['DeliveryVol'] || '0.00036',
         deliveryValue: delVal,
         deliveryCashDiscount: Number(row['DeliveryCashDiscount'] || 0),
+        freeQuantity: Number(row['FreeQuantity'] || 0),
         deliveryValueAfterDiscount: Number(row['DeliveryValueAfterDiscount'] || delVal),
+        wsCashDiscount: Number(row['WSCashDiscount'] || 0),
+        motherSkuCode: String(row['Mother SKU Code'] || row['MotherSKUCode'] || 'MSKU0097'),
+        createDeliveryDate: toStandardDate(row['Create Delivery Date'] || row['CreateDeliveryDate']),
       };
     });
   } catch (e) {
@@ -242,6 +260,7 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
         area: meta.area,
         territory: meta.territory,
         territoryCode: meta.territoryCode || 'T16',
+        town: '',
         dbCode: meta.dbCode,
         dbName: meta.dbName,
         dbType: 'MAIN',
@@ -260,15 +279,24 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
         skuCode: 'SKU-001',
         skuName: 'PVM Product Line',
         deliveryUom: 'PCS',
+        noofSKUinCTN: 15,
+        weightperSKUgm: 360,
         skutp: Number(del.amount || 0),
         orderQty: 1,
+        orderVol: '0.00036',
         orderValue: Number(del.amount || 0),
         orderCashDiscount: Number(del.discount || 0),
+        deliveryConfirmationDate: (del.created_at || '').split(' ')[0],
         deliveryDate,
         deliveryQty: 1,
+        deliveryVol: '0.00036',
         deliveryValue: Number(del.payable || del.amount || 0),
         deliveryCashDiscount: Number(del.discount || 0),
+        freeQuantity: 0,
         deliveryValueAfterDiscount: Number(del.payable || del.amount || 0),
+        wsCashDiscount: 0,
+        motherSkuCode: 'MSKU0097',
+        createDeliveryDate: (del.created_at || '').split(' ')[0],
       });
     } else {
       products.forEach((pItem: any, pIdx: number) => {
@@ -290,6 +318,7 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
           area: meta.area,
           territory: meta.territory,
           territoryCode: meta.territoryCode || 'T16',
+          town: '',
           dbCode: meta.dbCode,
           dbName: meta.dbName,
           dbType: 'MAIN',
@@ -308,15 +337,24 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
           skuCode: String(base.sku || prod.id || ''),
           skuName,
           deliveryUom: 'PCS',
+          noofSKUinCTN: 15,
+          weightperSKUgm: 360,
           skutp: price,
           orderQty: qty,
+          orderVol: (qty * 0.00036).toFixed(5),
           orderValue: lineVal,
           orderCashDiscount: disc,
+          deliveryConfirmationDate: (del.created_at || '').split(' ')[0],
           deliveryDate,
           deliveryQty: qty,
+          deliveryVol: (qty * 0.00036).toFixed(5),
           deliveryValue: lineVal,
           deliveryCashDiscount: disc,
+          freeQuantity: Number(pItem.free_with || 0),
           deliveryValueAfterDiscount: Math.max(0, lineVal - disc),
+          wsCashDiscount: 0,
+          motherSkuCode: base.mother_product_id ? `MSKU00${base.mother_product_id}` : 'MSKU0097',
+          createDeliveryDate: (del.created_at || '').split(' ')[0],
         });
       });
     }
