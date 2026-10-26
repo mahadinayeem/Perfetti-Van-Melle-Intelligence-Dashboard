@@ -530,21 +530,13 @@ export async function GET(req: NextRequest) {
       source = 'excel_fallback';
     }
 
-    // Filter by date range if provided
+    // Filter strictly by date range if provided
     if (startDate && endDate) {
-      const filtered = records.filter(r => {
-        if (!r.orderDate) return true;
+      records = records.filter(r => {
+        if (!r.orderDate) return false;
         const d = toStandardDate(r.orderDate);
         return d >= startDate && d <= endDate;
       });
-
-      if (filtered.length > 0) {
-        records = filtered;
-      } else {
-        // If exact date has no records (e.g. today has no new delivery yet),
-        // keep latest available delivery summary records so user gets full data insight
-        source = `${source}_latest_available`;
-      }
     }
 
     const totalOrderVal = records.reduce((sum, r) => sum + (r.orderValue || 0), 0);
