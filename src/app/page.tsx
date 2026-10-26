@@ -58,7 +58,7 @@ const TAB_CONFIGS: {
     badge: 'Line Level',
     desc: 'Brand-Wise Item-Wise Sales, Invoices & Delivery Details',
     columns: [
-      { key: 'orderDate', label: 'Order Date', pillType: 'bold' },
+      { key: 'deliveryDate', label: 'Delivery Date', pillType: 'bold' },
       { key: 'cluster', label: 'Cluster' },
       { key: 'area', label: 'Area' },
       { key: 'territory', label: 'Territory' },
@@ -90,7 +90,6 @@ const TAB_CONFIGS: {
       { key: 'orderValue', label: 'Order Value', pillType: 'currency' },
       { key: 'orderCashDiscount', label: 'Order Cash Disc', pillType: 'currency' },
       { key: 'deliveryConfirmationDate', label: 'Delivery Confirm Date' },
-      { key: 'deliveryDate', label: 'Delivery Date' },
       { key: 'deliveryQty', label: 'Delivery Qty', pillType: 'number' },
       { key: 'deliveryVol', label: 'Delivery Vol', pillType: 'number' },
       { key: 'deliveryValue', label: 'Delivery Value', pillType: 'currency' },
