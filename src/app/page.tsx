@@ -278,8 +278,11 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [metaInfo, setMetaInfo] = useState<any>(null);
 
-  // Date range filters (Default: Today on initial entry)
-  const [startDate, setStartDate] = useState(() => formatYMD(new Date()));
+  // Date range filters (Default: MTD for BWIW Report on initial entry)
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date();
+    return formatYMD(new Date(now.getFullYear(), now.getMonth(), 1));
+  });
   const [endDate, setEndDate] = useState(() => formatYMD(new Date()));
   const [globalSearch, setGlobalSearch] = useState('');
 
@@ -335,10 +338,18 @@ export default function DashboardPage() {
     }
   };
 
-  // Automatically force today's date when switching to Live Detail Report
+  // Automatically set default date ranges when switching tabs
   useEffect(() => {
-    if (activeTab === 'live_detail') {
-      const todayStr = formatYMD(new Date());
+    const now = new Date();
+    const todayStr = formatYMD(now);
+    const startOfMonth = formatYMD(new Date(now.getFullYear(), now.getMonth(), 1));
+
+    if (activeTab === 'bwiw') {
+      if (startDate !== startOfMonth || endDate !== todayStr) {
+        setStartDate(startOfMonth);
+        setEndDate(todayStr);
+      }
+    } else if (activeTab === 'live_detail') {
       if (startDate !== todayStr || endDate !== todayStr) {
         setStartDate(todayStr);
         setEndDate(todayStr);
