@@ -670,24 +670,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="kpi-card-premium kpi-card-green">
-                <div className="kpi-top-row">
-                  <span className="kpi-title">Total Order Value</span>
-                  <div className="kpi-icon-pill icon-green">
-                    <DollarSign size={20} />
-                  </div>
-                </div>
-                <div className="kpi-middle-row">
-                  <span className="kpi-main-val" style={{ color: '#047857' }}>
-                    ৳ {Math.round(filteredAndSortedRecords.reduce((s, r) => s + (Number(r.orderValue) || 0), 0)).toLocaleString()}
-                  </span>
-                  <span className="kpi-subtext">Gross Booking Value</span>
-                </div>
-                <div className="kpi-progress-bar">
-                  <div className="kpi-progress-fill fill-green" style={{ width: '100%' }}></div>
-                </div>
-              </div>
-
               <div className="kpi-card-premium kpi-card-purple">
                 <div className="kpi-top-row">
                   <span className="kpi-title">Delivery Value</span>
