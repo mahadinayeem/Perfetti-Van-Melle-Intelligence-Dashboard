@@ -510,13 +510,19 @@ export async function GET(req: NextRequest) {
     }
 
     let records: BWIWRecord[] = [];
-    let source = 'live';
+    let source = 'sokrio_delivery_summary';
 
-    try {
-      records = await fetchFromSokrio();
-      source = 'live_sokrio_api';
-    } catch (apiErr) {
-      console.warn('[BWIW] Live fetch failed, using sample excel:', (apiErr as any).message);
+    const deliverySummary = getDeliverySummaryData();
+    if (deliverySummary && deliverySummary.length > 0) {
+      records = deliverySummary;
+      source = 'sokrio_delivery_summary';
+    } else {
+      try {
+        records = await fetchFromSokrio();
+        source = 'live_sokrio_api';
+      } catch (apiErr) {
+        console.warn('[BWIW] Live fetch failed, using sample excel:', (apiErr as any).message);
+      }
     }
 
     if (!records || records.length === 0) {
