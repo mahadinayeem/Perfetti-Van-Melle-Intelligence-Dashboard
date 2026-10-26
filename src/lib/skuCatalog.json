@@ -14,15 +14,15 @@
     "brand": "Mentos"
   },
   "651092": {
-    "motherSkuCode": "MSKU0046",
+    "motherSkuCode": "MSKU0057",
     "motherSkuName": "Mentos Roll Orange Box",
     "category": "Chewy",
     "uom": "BOX",
     "brand": "Mentos"
   },
   "651135": {
-    "motherSkuCode": "MSKU0023",
-    "motherSkuName": "Alpenliebe Juzt Jelly Box",
+    "motherSkuCode": "MSKU0061",
+    "motherSkuName": "Alpenliebe Juzt Jelly ST-Box",
     "category": "Jelly",
     "uom": "BOX",
     "brand": "Alpenliebe Juzt Jelly"
@@ -35,8 +35,8 @@
     "brand": "Center Fresh"
   },
   "651170": {
-    "motherSkuCode": "MSKU0072",
-    "motherSkuName": "Center Fruit Max Strawberry Jar",
+    "motherSkuCode": "MSKU0066",
+    "motherSkuName": "Center Fruit Max",
     "category": "Gum",
     "uom": "JAR",
     "brand": "Center Fruit"
@@ -49,8 +49,8 @@
     "brand": "Mentos"
   },
   "651260": {
-    "motherSkuCode": "MSKU0055",
-    "motherSkuName": "Air Action Mentos Jar",
+    "motherSkuCode": "MSKU0020",
+    "motherSkuName": "Air Action Mentos Eucamint Jar",
     "category": "Hard Candy",
     "uom": "JAR",
     "brand": "Air Action Mentos"
@@ -70,22 +70,22 @@
     "brand": "Chupa Chups Bites & Tube"
   },
   "651288": {
-    "motherSkuCode": "MSKU0081",
+    "motherSkuCode": "MSKU0079",
     "motherSkuName": "Chupa Chups Bites",
     "category": "Jelly",
     "uom": "HNG",
     "brand": "Chupa Chups Bites & Tube"
   },
   "651289": {
-    "motherSkuCode": "MSKU0082",
-    "motherSkuName": "CC Tube",
+    "motherSkuCode": "MSKU0054",
+    "motherSkuName": "CC TUBE 24HNGx40P",
     "category": "Jelly",
     "uom": "TUBE",
     "brand": "Chupa Chups Tube"
   },
   "651293": {
-    "motherSkuCode": "MSKU0083",
-    "motherSkuName": "Alpenliebe Juzt Jelly ST",
+    "motherSkuCode": "MSKU0088",
+    "motherSkuName": "Alpenliebe Juzt Jelly ST SAS",
     "category": "Jelly",
     "uom": "JAR",
     "brand": "Alpenliebe Juzt Jelly"
@@ -119,7 +119,7 @@
     "brand": "Alpenliebe Chewy"
   },
   "651305": {
-    "motherSkuCode": "MSKU0084",
+    "motherSkuCode": "MSKU0086",
     "motherSkuName": "Alpenliebe Chewy Box",
     "category": "Chewy",
     "uom": "BOX",
@@ -140,8 +140,8 @@
     "brand": "Alpenliebe Creamfills"
   },
   "651314": {
-    "motherSkuCode": "MSKU0055",
-    "motherSkuName": "Air Action Mentos Jar",
+    "motherSkuCode": "MSKU0020",
+    "motherSkuName": "Air Action Mentos Eucamint Jar",
     "category": "Hard Candy",
     "uom": "JAR",
     "brand": "Air Action Mentos"

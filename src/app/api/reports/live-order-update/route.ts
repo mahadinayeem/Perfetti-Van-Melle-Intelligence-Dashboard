@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidToken } from '@/lib/sokrioClient';
+import skuCatalogData from '@/lib/skuCatalog.json';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
 import path from 'path';
@@ -82,19 +83,7 @@ const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; 
   },
 };
 
-const SKU_CATALOG: Record<string, { motherSkuCode: string; motherSkuName: string; category: string; uom: string; brand: string }> = {
-  '650961': { motherSkuCode: 'MSKU0023', motherSkuName: 'Alpenliebe Juzt Jelly ST-MN Jar', category: 'Jelly', uom: 'JAR', brand: 'Alpenliebe Juzt Jelly' },
-  '651287': { motherSkuCode: 'MSKU0079', motherSkuName: 'Chupa Chups Bites', category: 'Jelly', uom: 'HNG', brand: 'Chupa Chups Bites & Tube' },
-  '651296': { motherSkuCode: 'MSKU0065', motherSkuName: 'CC ROPE 24HNGx80P', category: 'Jelly', uom: 'HNG', brand: 'Chupa Chups Rope' },
-  '651300': { motherSkuCode: 'MSKU0064', motherSkuName: 'Center Fruit Box - 2TK', category: 'Gum', uom: 'BOX', brand: 'Center Fruit' },
-  '651302': { motherSkuCode: 'MSKU0072', motherSkuName: 'Center Fruit Jar - 2TK', category: 'Gum', uom: 'JAR', brand: 'Center Fruit' },
-  '651303': { motherSkuCode: 'MSKU0058', motherSkuName: 'Alpenliebe Chewy Hanger', category: 'Chewy', uom: 'HNG', brand: 'Alpenliebe Chewy' },
-  '651306': { motherSkuCode: 'MSKU0068', motherSkuName: 'Center Fresh Box - 2TK', category: 'Gum', uom: 'BOX', brand: 'Center Fresh' },
-  '651311': { motherSkuCode: 'MSKU0018', motherSkuName: 'Alpenliebe Creamfills Caramel Jar', category: 'Hard Candy', uom: 'JAR', brand: 'Alpenliebe Creamfills' },
-  '651319': { motherSkuCode: 'MSKU0071', motherSkuName: 'Center Fresh Jar - 2TK', category: 'Gum', uom: 'JAR', brand: 'Center Fresh' },
-  '651352': { motherSkuCode: 'MSKU0079', motherSkuName: 'Chupa Chups Bites', category: 'Jelly', uom: 'HNG', brand: 'Chupa Chups Bites & Tube' },
-  '651373': { motherSkuCode: 'MSKU0097', motherSkuName: 'Chupa Chups DUO', category: 'Gum', uom: 'BOX', brand: 'Chupa Chups Duo' },
-};
+const SKU_CATALOG: Record<string, { motherSkuCode: string; motherSkuName: string; category: string; uom: string; brand: string }> = skuCatalogData as any;
 
 function getSampleExcelData(): LiveOrderUpdateRecord[] {
   try {
