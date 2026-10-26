@@ -173,33 +173,54 @@ h1, h2, h3, h4, h5, h6 {
   padding: 6px 28px 0 28px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  overflow-x: auto;
 }
 
-.excel-tab-active {
+.excel-tab-btn {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 22px;
+  gap: 8px;
+  padding: 9px 18px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  border-top: 3px solid transparent;
+  border-left: 1px solid #cbd5e1;
+  border-right: 1px solid #cbd5e1;
+  border-bottom: 2px solid #cbd5e1;
+  margin-bottom: -2px;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.excel-tab-btn:hover {
   background: #ffffff;
   color: var(--primary);
-  font-size: 13px;
+  border-top-color: #94a3b8;
+}
+
+.excel-tab-btn.active {
+  background: #ffffff;
+  color: var(--primary);
   font-weight: 700;
   border-top: 3px solid var(--excel-green);
   border-left: 1px solid #cbd5e1;
   border-right: 1px solid #cbd5e1;
   border-bottom: 2px solid #ffffff;
-  margin-bottom: -2px;
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.03);
 }
 
 .tab-live-badge {
   background: var(--excel-green-light);
   color: var(--excel-green);
-  font-size: 11px;
-  padding: 2px 8px;
+  font-size: 10px;
+  padding: 2px 7px;
   border-radius: 9999px;
   font-weight: 700;
   border: 1px solid #bbf7d0;
