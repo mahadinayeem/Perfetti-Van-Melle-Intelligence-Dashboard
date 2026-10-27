@@ -400,8 +400,12 @@ export default function DashboardPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Track active fetch request sequence to ignore stale responses
+  const reqIdRef = useRef(0);
+
   // Fetch report data directly from corresponding API endpoint
   const fetchData = async (tab = activeTab, start = startDate, end = endDate) => {
+    const currentReqId = ++reqIdRef.current;
     setLoading(true);
     setError(null);
     try {
@@ -410,39 +414,61 @@ export default function DashboardPage() {
       const url = `${cfg.endpoint}${separator}startDate=${start}&endDate=${end}&start=${start}&end=${end}`;
 
       const res = await fetch(url);
+      if (currentReqId !== reqIdRef.current) return; // Stale request, ignore
+
+      if (!res.ok) {
+        const text = await res.text();
+        let errMsg = `Server returned status ${res.status}`;
+        try {
+          const parsed = JSON.parse(text);
+          errMsg = parsed.message || parsed.error || errMsg;
+        } catch {}
+        setError(errMsg);
+        return;
+      }
+
       const json = await res.json();
+      if (currentReqId !== reqIdRef.current) return; // Stale request, ignore
+
       if (json.success) {
         setRecords(json.data || []);
         setMetaInfo(json.meta || null);
         setCurrentPage(1);
       } else {
-        setError(json.message || 'Failed to load report');
+        setError(json.message || json.error || 'Failed to load report data');
       }
     } catch (err: any) {
+      if (currentReqId !== reqIdRef.current) return;
       setError(err.message || 'Error connecting to report service');
     } finally {
-      setLoading(false);
+      if (currentReqId === reqIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
-  // Automatically set default date ranges when switching tabs
-  useEffect(() => {
+  // Synchronized tab change handler to avoid race conditions
+  const handleTabChange = (newTab: ActiveTab) => {
+    if (newTab === activeTab) return;
     const now = new Date();
     const todayStr = formatYMD(now);
     const startOfMonth = formatYMD(new Date(now.getFullYear(), now.getMonth(), 1));
 
-    if (activeTab === 'bwiw' || activeTab === 'stock') {
-      if (startDate !== startOfMonth || endDate !== todayStr) {
-        setStartDate(startOfMonth);
-        setEndDate(todayStr);
-      }
-    } else if (activeTab === 'live_detail') {
-      if (startDate !== todayStr || endDate !== todayStr) {
-        setStartDate(todayStr);
-        setEndDate(todayStr);
-      }
+    let newStart = startDate;
+    let newEnd = endDate;
+
+    if (newTab === 'bwiw' || newTab === 'stock') {
+      newStart = startOfMonth;
+      newEnd = todayStr;
+    } else if (newTab === 'live_detail') {
+      newStart = todayStr;
+      newEnd = todayStr;
     }
-  }, [activeTab]);
+
+    setActiveTab(newTab);
+    setStartDate(newStart);
+    setEndDate(newEnd);
+  };
 
   // Re-fetch whenever tab or dates change
   useEffect(() => {
@@ -796,7 +822,7 @@ export default function DashboardPage() {
                 id={`tab-${tab.id}`}
                 data-testid={`tab-${tab.id}`}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`excel-tab-btn ${isActive ? 'active' : ''}`}
               >
                 <Icon size={15} style={{ color: isActive ? 'var(--excel-green)' : '#64748b' }} />
@@ -1443,7 +1469,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Error Alert */}
+        {/* Error Alert with Quick Retry */}
         {error && (
           <div style={{
             padding: '14px 20px',
@@ -1453,9 +1479,34 @@ export default function DashboardPage() {
             color: '#be123c',
             border: '1px solid #fecdd3',
             fontSize: '13px',
-            fontWeight: 500
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
           }}>
-            <strong>Notice:</strong> {error}
+            <div>
+              <strong>Notice:</strong> {error}
+            </div>
+            <button
+              type="button"
+              onClick={() => fetchData(activeTab, startDate, endDate)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                borderRadius: '6px',
+                background: '#be123c',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: 600,
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <RefreshCw size={12} />
+              <span>Retry</span>
+            </button>
           </div>
         )}
 

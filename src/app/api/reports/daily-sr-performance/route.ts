@@ -74,7 +74,8 @@ interface CacheEntry {
   timestamp: number;
 }
 const memoryCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 60 * 1000;
+const inFlightRequests = new Map<string, Promise<DailySRRecord[]>>();
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes TTL for stable high performance
 
 const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; territory: string; territoryCode: string; dbCode: string; dbName: string }> = {
   '54506': {
@@ -574,9 +575,11 @@ export async function GET(req: NextRequest) {
     const startDate = url.searchParams.get('startDate') || '2026-10-14';
     const endDate = url.searchParams.get('endDate') || '2026-10-14';
 
+    const forceRefresh = url.searchParams.get('refresh') === 'true';
+
     const cacheKey = `daily_sr_${startDate}_${endDate}`;
     const cached = memoryCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       return NextResponse.json({
         success: true,
         data: cached.records,
@@ -584,14 +587,32 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Always fetch directly and purely from Sokrio Live APIs
+    // Reuse in-flight request for identical date ranges
     let records: DailySRRecord[] = [];
     let source = 'live_sokrio_api';
 
     try {
-      records = await fetchLiveDailySRPerformance(startDate, endDate);
+      let pending = inFlightRequests.get(cacheKey);
+      if (!pending) {
+        pending = fetchLiveDailySRPerformance(startDate, endDate).finally(() => {
+          inFlightRequests.delete(cacheKey);
+        });
+        inFlightRequests.set(cacheKey, pending);
+      }
+      records = await pending;
     } catch (err: any) {
       console.error('[Daily SR Performance] Live fetch error:', err.message);
+      if (cached) {
+        return NextResponse.json({
+          success: true,
+          data: cached.records,
+          meta: { ...cached.meta, note: 'Serving cached data during remote API update' },
+        });
+      }
+    }
+
+    if ((!records || records.length === 0) && cached) {
+      records = cached.records;
     }
 
     const totalActiveSRs = new Set(records.map(r => r.srCode)).size;

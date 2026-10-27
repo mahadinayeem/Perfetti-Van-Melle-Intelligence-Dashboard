@@ -60,7 +60,8 @@ interface CacheEntry {
   timestamp: number;
 }
 const memoryCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 60 * 1000;
+const inFlightBwiw = new Map<string, Promise<BWIWRecord[]>>();
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes TTL for reliable performance
 
 // Resolve DB Code, DB Name, Area, Territory from Sokrio Territories Master
 function resolveTerritoryMeta(customerNo: string, routeCode: string, routeName: string, territoryName: string) {
@@ -683,26 +684,38 @@ export async function GET(req: NextRequest) {
     const forceRefresh = url.searchParams.get('refresh') === 'true';
 
     const cacheKey = `bwiw_${startDate}_${endDate}`;
-    if (!forceRefresh) {
-      const cached = memoryCache.get(cacheKey);
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-        return NextResponse.json({
-          success: true,
-          data: cached.records,
-          meta: cached.meta,
-        });
-      }
+    const cached = memoryCache.get(cacheKey);
+    if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return NextResponse.json({
+        success: true,
+        data: cached.records,
+        meta: cached.meta,
+      });
     }
 
     let records: BWIWRecord[] = [];
     let source = 'live_sokrio_api';
 
-    // Prioritize direct live API fetch from Sokrio
+    // Prioritize direct live API fetch from Sokrio with in-flight deduplication
     try {
-      records = await fetchLiveBWIWFromSokrio(startDate, endDate);
+      let pending = inFlightBwiw.get(cacheKey);
+      if (!pending) {
+        pending = fetchLiveBWIWFromSokrio(startDate, endDate).finally(() => {
+          inFlightBwiw.delete(cacheKey);
+        });
+        inFlightBwiw.set(cacheKey, pending);
+      }
+      records = await pending;
       source = 'live_sokrio_api';
     } catch (liveErr: any) {
       console.warn('[BWIW] Live fetch failed, using fallback delivery summary:', liveErr.message);
+      if (cached) {
+        return NextResponse.json({
+          success: true,
+          data: cached.records,
+          meta: { ...cached.meta, note: 'Serving cached data during remote API update' },
+        });
+      }
       const deliverySummary = getDeliverySummaryData();
       if (deliverySummary && deliverySummary.length > 0) {
         records = deliverySummary;
