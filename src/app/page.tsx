@@ -30,10 +30,11 @@ import {
   Layers,
   Activity,
   Target,
+  Boxes,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
-export type ActiveTab = 'bwiw' | 'daily_sr' | 'live_detail' | 'live_order_update' | 'mt_visit';
+export type ActiveTab = 'bwiw' | 'daily_sr' | 'live_detail' | 'live_order_update' | 'stock' | 'mt_visit';
 
 export interface ColumnDef {
   key: string;
@@ -211,6 +212,56 @@ const TAB_CONFIGS: {
     ],
   },
   {
+    id: 'stock',
+    label: 'Stock Report',
+    icon: Boxes,
+    endpoint: '/api/reports/stock-report',
+    badge: 'INVENTORY',
+    desc: 'Distributor Live Stock Ledger, Floor Stock, Billable Stock & Valuation',
+    columns: [
+      { key: 'cluster', label: 'Cluster' },
+      { key: 'area', label: 'Area' },
+      { key: 'territory', label: 'Territory' },
+      { key: 'dbCode', label: 'DBCode', pillType: 'route' },
+      { key: 'dbName', label: 'DBName', pillType: 'bold' },
+      { key: 'dbType', label: 'DBType' },
+      { key: 'location', label: 'Location' },
+      { key: 'itemNo', label: 'ItemNo', pillType: 'bold' },
+      { key: 'description', label: 'Description', pillType: 'bold' },
+      { key: 'billableStock', label: 'Billable Stock', pillType: 'number' },
+      { key: 'pendingDelivery', label: 'Pending Delivery', pillType: 'number' },
+      { key: 'floorStock', label: 'Floor Stock', pillType: 'number' },
+      { key: 'openingStock', label: 'Opening Stock', pillType: 'number' },
+      { key: 'primaryStock', label: 'Primary Stock', pillType: 'number' },
+      { key: 'orderedQty', label: 'Ordered Qty', pillType: 'number' },
+      { key: 'deliveredSecondary', label: 'Delivered Secondary', pillType: 'number' },
+      { key: 'transit', label: 'Transit', pillType: 'number' },
+      { key: 'doReceivingPending', label: 'DO Receiving Pending', pillType: 'number' },
+      { key: 'billableStockValueDBLanding', label: 'Billable Stock Value in DB Landing', pillType: 'currency' },
+      { key: 'pendingDeliveryValueDBLanding', label: 'Pending Delivery Value in DB Landing', pillType: 'currency' },
+      { key: 'floorStockValueDBLanding', label: 'Floor Stock Value in DB Landing', pillType: 'currency' },
+      { key: 'openingStockValueDBLanding', label: 'Opening Stock Value in DB Landing', pillType: 'currency' },
+      { key: 'primaryStockValueDBLanding', label: 'Primary Stock Value in DB Landing', pillType: 'currency' },
+      { key: 'orderedValueDBLanding', label: 'Ordered Value in DB Landing', pillType: 'currency' },
+      { key: 'deliveredSecondaryValueDBLanding', label: 'Delivered Secondary Value in DB Landing', pillType: 'currency' },
+      { key: 'transitValueDBLanding', label: 'Transit Value in DB Landing', pillType: 'currency' },
+      { key: 'doReceivingPendingValueDBLanding', label: 'DO receiving Pending Value in DB Landing', pillType: 'currency' },
+      { key: 'billableStockValueTradePrice', label: 'Billable Stock Value in Trade price', pillType: 'currency' },
+      { key: 'pendingDeliveryValueTradePrice', label: 'Pending Delivery Value in Trade price', pillType: 'currency' },
+      { key: 'floorStockValueTradePrice', label: 'Floor Stock Value in Trade price', pillType: 'currency' },
+      { key: 'openingStockValueTradePrice', label: 'Opening Stock Value in Trade price', pillType: 'currency' },
+      { key: 'primaryStockValueTradePrice', label: 'Primary Stock Value in Trade price', pillType: 'currency' },
+      { key: 'orderedValueTradePrice', label: 'Ordered Value in Trade price', pillType: 'currency' },
+      { key: 'deliveredSecondaryValueTradePrice', label: 'Delivered Secondary Value Trade price', pillType: 'currency' },
+      { key: 'transitValueTradePrice', label: 'Transit Value Trade price', pillType: 'currency' },
+      { key: 'doReceivingPendingValueTradePrice', label: 'DO receiving Pending Value in Trade Price', pillType: 'currency' },
+      { key: 'dbStatus', label: 'DB Status', pillType: 'success' },
+      { key: 'createDeliveryStock', label: 'Create Delivery Stock', pillType: 'number' },
+      { key: 'createDeliveryValueDBLanding', label: 'Create Delivery Value in DB Landing', pillType: 'currency' },
+      { key: 'createDeliveryValueTradePrice', label: 'Create Delivery Value in Trade Price', pillType: 'currency' },
+    ],
+  },
+  {
     id: 'mt_visit',
     label: 'MT Visit Status',
     icon: Store,
@@ -344,7 +395,7 @@ export default function DashboardPage() {
     const todayStr = formatYMD(now);
     const startOfMonth = formatYMD(new Date(now.getFullYear(), now.getMonth(), 1));
 
-    if (activeTab === 'bwiw') {
+    if (activeTab === 'bwiw' || activeTab === 'stock') {
       if (startDate !== startOfMonth || endDate !== todayStr) {
         setStartDate(startOfMonth);
         setEndDate(todayStr);
@@ -998,6 +1049,82 @@ export default function DashboardPage() {
                   <span className="kpi-subtext">
                     Across {new Set(filteredAndSortedRecords.map(r => r.skuCode)).size} Unique SKUs
                   </span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-amber" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'stock' && (
+            <>
+              <div className="kpi-card-premium kpi-card-blue">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Total Active SKUs</span>
+                  <div className="kpi-icon-pill icon-blue">
+                    <Boxes size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">
+                    {filteredAndSortedRecords.length}
+                  </span>
+                  <span className="kpi-subtext">Distributor SKUs Managed</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-blue" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-green">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Floor Stock Value (TP)</span>
+                  <div className="kpi-icon-pill icon-green">
+                    <DollarSign size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val" style={{ color: '#047857' }}>
+                    ৳ {Math.round(filteredAndSortedRecords.reduce((s, r) => s + (Number(r.floorStockValueTradePrice) || 0), 0)).toLocaleString()}
+                  </span>
+                  <span className="kpi-subtext">In-Hand Warehouse Inventory</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-green" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-purple">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Billable Stock (TP)</span>
+                  <div className="kpi-icon-pill icon-purple">
+                    <TrendingUp size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">
+                    ৳ {Math.round(filteredAndSortedRecords.reduce((s, r) => s + (Number(r.billableStockValueTradePrice) || 0), 0)).toLocaleString()}
+                  </span>
+                  <span className="kpi-subtext">Net Available for Billing</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-purple" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-amber">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Pending Delivery (TP)</span>
+                  <div className="kpi-icon-pill icon-amber">
+                    <Clock size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val" style={{ color: '#b45309' }}>
+                    ৳ {Math.round(filteredAndSortedRecords.reduce((s, r) => s + Math.abs(Number(r.pendingDeliveryValueTradePrice) || 0), 0)).toLocaleString()}
+                  </span>
+                  <span className="kpi-subtext">Orders in Delivery Pipeline</span>
                 </div>
                 <div className="kpi-progress-bar">
                   <div className="kpi-progress-fill fill-amber" style={{ width: '100%' }}></div>
