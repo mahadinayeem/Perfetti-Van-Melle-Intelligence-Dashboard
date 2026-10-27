@@ -776,6 +776,9 @@ export default function DashboardPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-main)' }}>
+      {/* Top Animated Progress Glow Bar */}
+      {loading && <div className="top-loader-bar" />}
+
       {/* 1. App Header */}
       <header className="app-header">
         <div className="header-container">
@@ -1318,28 +1321,34 @@ export default function DashboardPage() {
               <button
                 id="preset-btn-today"
                 type="button"
-                className={`btn-preset ${activePreset === 'today' ? 'active' : ''}`}
+                className={`btn-preset ${activePreset === 'today' ? 'active' : ''} ${loading && activePreset === 'today' ? 'is-loading' : ''}`}
                 onClick={() => applyPreset('today')}
+                disabled={loading}
               >
-                {activeTab === 'live_detail' ? '● Today (Live Only)' : 'Today'}
+                {loading && activePreset === 'today' && <RefreshCw size={11} className="animate-spin" />}
+                <span>{activeTab === 'live_detail' ? '● Today (Live Only)' : 'Today'}</span>
               </button>
               {activeTab !== 'live_detail' && (
                 <>
                   <button
                     id="preset-btn-wtd"
                     type="button"
-                    className={`btn-preset ${activePreset === 'wtd' ? 'active' : ''}`}
+                    className={`btn-preset ${activePreset === 'wtd' ? 'active' : ''} ${loading && activePreset === 'wtd' ? 'is-loading' : ''}`}
                     onClick={() => applyPreset('wtd')}
+                    disabled={loading}
                   >
-                    WTD
+                    {loading && activePreset === 'wtd' && <RefreshCw size={11} className="animate-spin" />}
+                    <span>WTD</span>
                   </button>
                   <button
                     id="preset-btn-mtd"
                     type="button"
-                    className={`btn-preset ${activePreset === 'mtd' ? 'active' : ''}`}
+                    className={`btn-preset ${activePreset === 'mtd' ? 'active' : ''} ${loading && activePreset === 'mtd' ? 'is-loading' : ''}`}
                     onClick={() => applyPreset('mtd')}
+                    disabled={loading}
                   >
-                    MTD
+                    {loading && activePreset === 'mtd' && <RefreshCw size={11} className="animate-spin" />}
+                    <span>{loading && activePreset === 'mtd' ? 'Loading MTD...' : 'MTD'}</span>
                   </button>
                 </>
               )}
@@ -1359,6 +1368,7 @@ export default function DashboardPage() {
                     className="custom-input"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
+                    disabled={loading}
                   />
                 </div>
 
@@ -1372,6 +1382,7 @@ export default function DashboardPage() {
                     className="custom-input"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
+                    disabled={loading}
                   />
                 </div>
               </>
@@ -1404,7 +1415,7 @@ export default function DashboardPage() {
               title="Refresh Data from Sokrio"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              <span>Refresh</span>
+              <span>{loading ? 'Fetching...' : 'Refresh'}</span>
             </button>
           </div>
 
@@ -1529,9 +1540,16 @@ export default function DashboardPage() {
             <div className="table-header-title">
               <FileSpreadsheet size={18} style={{ color: 'var(--excel-green)' }} />
               <span>{activeTabConfig.label}</span>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
-                ({filteredAndSortedRecords.length} records shown)
-              </span>
+              {loading ? (
+                <span className="live-loading-pill">
+                  <RefreshCw size={11} className="animate-spin" />
+                  Generating {activePreset ? activePreset.toUpperCase() : 'Live'} Report...
+                </span>
+              ) : (
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                  ({filteredAndSortedRecords.length} records shown)
+                </span>
+              )}
             </div>
 
             {hasActiveFilters && (
@@ -1768,9 +1786,35 @@ export default function DashboardPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={activeTabConfig.columns.length + 1} style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-muted)' }}>
-                      <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 12px', color: 'var(--primary)' }} />
-                      <div style={{ fontSize: '14px', fontWeight: 600 }}>Loading {activeTabConfig.label} data from Sokrio SFA...</div>
+                    <td
+                      colSpan={activeTabConfig.columns.length + 1}
+                      style={{ padding: 0, border: 'none' }}
+                    >
+                      <div className="table-loading-container">
+                        <div className="loading-card-modern">
+                          <div className="loading-spinner-wrapper">
+                            <div className="spinner-outer-ring"></div>
+                            <RefreshCw size={24} className="spinner-core-icon animate-spin" />
+                          </div>
+                          <div className="loading-title">
+                            Fetching Live {activeTabConfig.label}
+                          </div>
+                          <div className="loading-subtitle">
+                            Please wait while we connect to Sokrio SFA, process market records, and calculate live metrics for{' '}
+                            <strong>
+                              {activePreset
+                                ? activePreset.toUpperCase()
+                                : `${startDate} to ${endDate}`}
+                            </strong>
+                            ...
+                          </div>
+                          <div className="loading-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </div>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ) : paginatedRecords.length === 0 ? (
