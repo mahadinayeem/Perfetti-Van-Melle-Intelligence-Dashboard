@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchWithAuth } from '@/lib/sokrioClient';
+import { fetchWithAuth, getValidToken } from '@/lib/sokrioClient';
 import territoriesMasterData from '@/lib/territoriesMaster.json';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import * as XLSX from 'xlsx';
+import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
 
@@ -514,35 +515,196 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
   return records;
 }
 
+// Fetch live deliveries and orders directly in parallel from Sokrio Export APIs
+async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Promise<BWIWRecord[]> {
+  const token = await getValidToken();
+
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+
+  const start = startDate || startOfMonth;
+  const end = endDate || todayStr;
+
+  const deliveryUrl = `https://pvm.report.sokrio.com/api/v3/delivery-summary-export?range=${start}%2C${end}&territory_id=2&download&type=xlsx`;
+  const orderUrl = `https://pvm.report.sokrio.com/api/v3/order-summary-export?range=${start}%2C${end}&territory_id=1&download&type=xlsx`;
+
+  const [delRes, orderRes] = await Promise.all([
+    axios.get(deliveryUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: 'arraybuffer',
+      timeout: 60000,
+    }),
+    axios.get(orderUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: 'arraybuffer',
+      timeout: 60000,
+    }),
+  ]);
+
+  const wbOrder = XLSX.read(orderRes.data, { type: 'buffer' });
+  const orderRows = XLSX.utils.sheet_to_json<any[]>(wbOrder.Sheets[wbOrder.SheetNames[0]], { header: 1 }) || [];
+  const orderHeader = orderRows[3] || [];
+  const trackIdx = orderHeader.indexOf(' Tracking ID') !== -1 ? orderHeader.indexOf(' Tracking ID') : orderHeader.indexOf('Tracking ID');
+  const dateIdx = orderHeader.indexOf('Order Date');
+  const skuIdx = orderHeader.indexOf('Product SKU');
+  const qtyIdx = orderHeader.indexOf('Order Quantity');
+  const priceIdx = orderHeader.indexOf('Unit Price');
+  const amountIdx = orderHeader.indexOf('Amount');
+
+  const orderMap: Record<string, { orderDate: string; items: Record<string, any> }> = {};
+  for (let i = 4; i < orderRows.length; i++) {
+    const r = orderRows[i];
+    const tid = String(r[trackIdx] || '').trim();
+    const dt = String(r[dateIdx] || '').trim();
+    const sku = String(r[skuIdx] || '').trim();
+    const qty = Number(r[qtyIdx] || 0);
+    const price = Number(r[priceIdx] || 0);
+    const amount = Number(r[amountIdx] || (qty * price));
+
+    if (tid) {
+      if (!orderMap[tid]) {
+        orderMap[tid] = { orderDate: dt, items: {} };
+      }
+      orderMap[tid].items[sku] = { orderDate: dt, orderQty: qty, unitPrice: price, orderValue: amount };
+    }
+  }
+
+  // Parse delivery summary
+  const wbDel = XLSX.read(delRes.data, { type: 'buffer' });
+  const delRows = XLSX.utils.sheet_to_json<any[]>(wbDel.Sheets[wbDel.SheetNames[0]], { header: 1 }) || [];
+  const delHeader = delRows[3] || [];
+  const delTrackIdx = delHeader.indexOf(' Tracking ID') !== -1 ? delHeader.indexOf(' Tracking ID') : delHeader.indexOf('Tracking ID');
+  const delDateIdx = delHeader.indexOf('Delivery Date');
+  const delSkuIdx = delHeader.indexOf('Product SKU');
+  const delQtyIdx = delHeader.indexOf('Delivery Quantity');
+  const delPriceIdx = delHeader.indexOf('Unit Price');
+  const delAmountIdx = delHeader.indexOf('Amount');
+  const delCreatorCodeIdx = delHeader.indexOf('Order Creator Code');
+  const delCreatorNameIdx = delHeader.indexOf('Order Creator Name');
+  const delBuyerCodeIdx = delHeader.indexOf('Buyer Department Code');
+  const delBuyerNameIdx = delHeader.indexOf('Buyer Department Name');
+  const delTerritoryCodeIdx = delHeader.indexOf('Buyer Territory Code');
+  const delTerritoryNameIdx = delHeader.indexOf('Buyer Territory Name');
+  const delCatIdx = delHeader.indexOf('Product Category');
+  const delBrandIdx = delHeader.indexOf('Product Brand');
+  const delNameIdx = delHeader.indexOf('Product Name');
+
+  const records: BWIWRecord[] = [];
+  for (let idx = 0; idx < delRows.length - 4; idx++) {
+    const r = delRows[idx + 4];
+    const trackingId = String(r[delTrackIdx] || '').trim();
+    const skuCode = String(r[delSkuIdx] || '').trim();
+    const custCode = String(r[delBuyerCodeIdx] || '');
+    const rawTerritoryCode = String(r[delTerritoryCodeIdx] || '');
+    const routeName = String(r[delTerritoryNameIdx] || '');
+    const meta = resolveTerritoryMeta(custCode, rawTerritoryCode, routeName, routeName);
+
+    const srCode = String(r[delCreatorCodeIdx] || '');
+    const srMeta = SR_METADATA_MAP[srCode];
+
+    const dbCode = String(srMeta?.dbCode || meta.dbCode || '102267');
+    const dbName = String(srMeta?.dbName || meta.dbName || 'M/S Ahamed Enterprise');
+    const srName = String(r[delCreatorNameIdx] || srMeta?.srName || 'Mostafizur Rahman');
+    const srPositionCode = srMeta?.srPositionCode || meta.srPositionCode || 'DM-057';
+    const territory = srMeta?.territory || meta.territory || 'Jatra Bari';
+    const territoryCode = srMeta?.territoryCode || meta.territoryCode || (rawTerritoryCode ? rawTerritoryCode.substring(0, 3) : 'T16');
+
+    const orderEntry = orderMap[trackingId];
+    const orderItem = orderEntry?.items ? orderEntry.items[skuCode] : null;
+
+    const delDate = toStandardDate(r[delDateIdx]);
+    const orderDate = toStandardDate(orderEntry?.orderDate || delDate);
+    const qty = Number(r[delQtyIdx] || 0);
+    const unitPrice = Number(r[delPriceIdx] || 0);
+    const val = Number(r[delAmountIdx] || (qty * unitPrice));
+    const invNo = trackingId ? `INV-${trackingId}` : `INV-${1000 + idx}`;
+
+    const orderQty = Number(orderItem?.orderQty ?? qty);
+    const orderVal = Number(orderItem?.orderValue ?? val);
+
+    records.push({
+      id: `live-bwiw-${idx + 1}`,
+      orderDate,
+      cluster: 'Central',
+      area: meta.area || 'Central South',
+      territory,
+      territoryCode,
+      town: '',
+      dbCode,
+      dbName,
+      dbType: 'MAIN',
+      srCode,
+      srName,
+      srPositionCode,
+      routeCode: rawTerritoryCode || meta.routeCode || '',
+      routeName: routeName || meta.routeName || '',
+      customerCode: custCode,
+      customerName: String(r[delBuyerNameIdx] || ''),
+      channel: 'Retail',
+      subChannel: 'General & Grocery Store',
+      invoiceNo: invNo,
+      category: ((skuCatalogData as any)[skuCode])?.category || String(r[delCatIdx] || 'Confectionery'),
+      brand: ((skuCatalogData as any)[skuCode])?.brand || String(r[delBrandIdx] || 'Center Fruit'),
+      skuCode,
+      skuName: String(r[delNameIdx] || ''),
+      deliveryUom: ((skuCatalogData as any)[skuCode])?.uom || 'PCS',
+      noofSKUinCTN: 15,
+      weightperSKUgm: 360,
+      skutp: unitPrice,
+      orderQty,
+      orderVol: (orderQty * 0.00036).toFixed(5),
+      orderValue: orderVal,
+      orderCashDiscount: 0,
+      deliveryConfirmationDate: delDate,
+      deliveryDate: delDate,
+      deliveryQty: qty,
+      deliveryVol: (qty * 0.00036).toFixed(5),
+      deliveryValue: val,
+      deliveryCashDiscount: 0,
+      freeQuantity: 0,
+      deliveryValueAfterDiscount: val,
+      wsCashDiscount: 0,
+      motherSkuCode: ((skuCatalogData as any)[skuCode])?.motherSkuCode || 'MSKU0072',
+      createDeliveryDate: delDate,
+    });
+  }
+
+  return records;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const startDate = url.searchParams.get('startDate') || '';
     const endDate = url.searchParams.get('endDate') || '';
+    const forceRefresh = url.searchParams.get('refresh') === 'true';
 
     const cacheKey = `bwiw_${startDate}_${endDate}`;
-    const cached = memoryCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-      return NextResponse.json({
-        success: true,
-        data: cached.records,
-        meta: cached.meta,
-      });
+    if (!forceRefresh) {
+      const cached = memoryCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        return NextResponse.json({
+          success: true,
+          data: cached.records,
+          meta: cached.meta,
+        });
+      }
     }
 
     let records: BWIWRecord[] = [];
-    let source = 'sokrio_delivery_summary';
+    let source = 'live_sokrio_api';
 
-    const deliverySummary = getDeliverySummaryData();
-    if (deliverySummary && deliverySummary.length > 0) {
-      records = deliverySummary;
-      source = 'sokrio_delivery_summary';
-    } else {
-      try {
-        records = await fetchFromSokrio();
-        source = 'live_sokrio_api';
-      } catch (apiErr) {
-        console.warn('[BWIW] Live fetch failed, using sample excel:', (apiErr as any).message);
+    // Prioritize direct live API fetch from Sokrio
+    try {
+      records = await fetchLiveBWIWFromSokrio(startDate, endDate);
+      source = 'live_sokrio_api';
+    } catch (liveErr: any) {
+      console.warn('[BWIW] Live fetch failed, using fallback delivery summary:', liveErr.message);
+      const deliverySummary = getDeliverySummaryData();
+      if (deliverySummary && deliverySummary.length > 0) {
+        records = deliverySummary;
+        source = 'sokrio_delivery_summary';
       }
     }
 
