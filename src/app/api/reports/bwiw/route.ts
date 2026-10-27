@@ -39,16 +39,16 @@ export interface BWIWRecord {
   orderQty: number;
   orderVol?: string | number;
   orderValue: number;
-  orderCashDiscount: number;
+  orderCashDiscount: number | string;
   deliveryConfirmationDate?: string;
   deliveryDate: string;
   deliveryQty: number;
   deliveryVol?: string | number;
   deliveryValue: number;
-  deliveryCashDiscount: number;
-  freeQuantity?: number;
+  deliveryCashDiscount: number | string;
+  freeQuantity?: number | string;
   deliveryValueAfterDiscount: number;
-  wsCashDiscount?: number;
+  wsCashDiscount?: number | string;
   motherSkuCode?: string;
   createDeliveryDate?: string;
 }
@@ -292,30 +292,30 @@ function getDeliverySummaryData(): BWIWRecord[] {
         customerCode: custCode,
         customerName: String(r['Buyer Department Name'] || ''),
         channel: 'Retail',
-        subChannel: 'General & Grocery Store',
+        subChannel: '',
         invoiceNo: invNo,
         category: ((skuCatalogData as any)[skuCode])?.category || String(r['Product Category'] || 'Confectionery'),
         brand: ((skuCatalogData as any)[skuCode])?.brand || String(r['Product Brand'] || 'Center Fruit'),
         skuCode,
         skuName: String(r['Product Name'] || ''),
         deliveryUom: ((skuCatalogData as any)[skuCode])?.uom || 'PCS',
-        noofSKUinCTN: 15,
-        weightperSKUgm: 360,
+        noofSKUinCTN: ((skuCatalogData as any)[skuCode])?.piecesPerCtn || '',
+        weightperSKUgm: ((skuCatalogData as any)[skuCode])?.weightGram || '',
         skutp: unitPrice,
         orderQty,
-        orderVol: (orderQty * 0.00036).toFixed(5),
+        orderVol: ((skuCatalogData as any)[skuCode])?.weightGram ? (orderQty * ((skuCatalogData as any)[skuCode])?.weightGram / 1000000).toFixed(5) : '',
         orderValue: orderVal,
-        orderCashDiscount: 0,
+        orderCashDiscount: '',
         deliveryConfirmationDate: delDate,
         deliveryDate: delDate,
         deliveryQty: qty,
-        deliveryVol: (qty * 0.00036).toFixed(5),
+        deliveryVol: ((skuCatalogData as any)[skuCode])?.weightGram ? (qty * ((skuCatalogData as any)[skuCode])?.weightGram / 1000000).toFixed(5) : '',
         deliveryValue: val,
-        deliveryCashDiscount: 0,
-        freeQuantity: 0,
+        deliveryCashDiscount: '',
+        freeQuantity: '',
         deliveryValueAfterDiscount: val,
-        wsCashDiscount: 0,
-        motherSkuCode: ((skuCatalogData as any)[skuCode])?.motherSkuCode || 'MSKU0072',
+        wsCashDiscount: '',
+        motherSkuCode: ((skuCatalogData as any)[skuCode])?.motherSkuCode || '',
         createDeliveryDate: delDate,
       };
     });
@@ -424,30 +424,30 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
         customerCode: custNo,
         customerName: custName,
         channel: 'Retail',
-        subChannel: 'General Store',
+        subChannel: '',
         invoiceNo,
         category: 'Confectionery',
         brand: 'Perfetti Van Melle',
         skuCode: 'SKU-001',
         skuName: 'PVM Product Line',
         deliveryUom: 'PCS',
-        noofSKUinCTN: 15,
-        weightperSKUgm: 360,
+        noofSKUinCTN: '',
+        weightperSKUgm: '',
         skutp: Number(del.amount || 0),
         orderQty: 1,
-        orderVol: '0.00036',
+        orderVol: '',
         orderValue: Number(del.amount || 0),
-        orderCashDiscount: Number(del.discount || 0),
+        orderCashDiscount: Number(del.discount || 0) > 0 ? Number(del.discount) : '',
         deliveryConfirmationDate: deliveryDate,
         deliveryDate,
         deliveryQty: 1,
-        deliveryVol: '0.00036',
+        deliveryVol: '',
         deliveryValue: Number(del.payable || del.amount || 0),
-        deliveryCashDiscount: Number(del.discount || 0),
-        freeQuantity: 0,
+        deliveryCashDiscount: Number(del.discount || 0) > 0 ? Number(del.discount) : '',
+        freeQuantity: '',
         deliveryValueAfterDiscount: Number(del.payable || del.amount || 0),
-        wsCashDiscount: 0,
-        motherSkuCode: 'MSKU0097',
+        wsCashDiscount: '',
+        motherSkuCode: '',
         createDeliveryDate: deliveryDate,
       });
     } else {
@@ -459,6 +459,8 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
         const lineVal = price * qty;
         const disc = Number(pItem.custom_discount || pItem.promotion_discount || 0);
 
+        const skuCode = String(base.sku || prod.id || `SKU-${pIdx + 1}`);
+        const skuInfo = (skuCatalogData as any)[skuCode] || {};
         const skuName = String(base.usp || base.name || prod.full_name || 'PVM SKU');
         const brandName = (base.product_brand && base.product_brand.name) || resolveBrandName(skuName, base.product_brand_id);
         const catName = (base.product_category && base.product_category.name) || resolveCategoryName(skuName, base.product_category_id);
@@ -482,30 +484,30 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
           customerCode: custNo,
           customerName: custName,
           channel: 'Retail',
-          subChannel: 'General Store',
+          subChannel: '',
           invoiceNo,
           category: catName,
           brand: brandName,
-          skuCode: String(base.sku || prod.id || `SKU-${pIdx + 1}`),
+          skuCode,
           skuName,
-          deliveryUom: 'PCS',
-          noofSKUinCTN: 15,
-          weightperSKUgm: 360,
+          deliveryUom: skuInfo.uom || 'PCS',
+          noofSKUinCTN: skuInfo.piecesPerCtn || '',
+          weightperSKUgm: skuInfo.weightGram || '',
           skutp: price,
           orderQty: qty,
-          orderVol: (qty * 0.00036).toFixed(5),
+          orderVol: skuInfo.weightGram ? (qty * skuInfo.weightGram / 1000000).toFixed(5) : '',
           orderValue: lineVal,
-          orderCashDiscount: disc,
+          orderCashDiscount: disc > 0 ? disc : '',
           deliveryConfirmationDate: deliveryDate,
           deliveryDate,
           deliveryQty: qty,
-          deliveryVol: (qty * 0.00036).toFixed(5),
+          deliveryVol: skuInfo.weightGram ? (qty * skuInfo.weightGram / 1000000).toFixed(5) : '',
           deliveryValue: lineVal,
-          deliveryCashDiscount: disc,
-          freeQuantity: Number(pItem.free_with || 0),
+          deliveryCashDiscount: disc > 0 ? disc : '',
+          freeQuantity: Number(pItem.free_with || 0) > 0 ? Number(pItem.free_with) : '',
           deliveryValueAfterDiscount: Math.max(0, lineVal - disc),
-          wsCashDiscount: 0,
-          motherSkuCode: base.mother_product_id ? `MSKU00${base.mother_product_id}` : 'MSKU0097',
+          wsCashDiscount: '',
+          motherSkuCode: skuInfo.motherSkuCode || (base.mother_product_id ? `MSKU00${base.mother_product_id}` : ''),
           createDeliveryDate: deliveryDate,
         });
       });
@@ -642,30 +644,30 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
       customerCode: custCode,
       customerName: String(r[delBuyerNameIdx] || ''),
       channel: 'Retail',
-      subChannel: 'General & Grocery Store',
+      subChannel: '',
       invoiceNo: invNo,
       category: ((skuCatalogData as any)[skuCode])?.category || String(r[delCatIdx] || 'Confectionery'),
       brand: ((skuCatalogData as any)[skuCode])?.brand || String(r[delBrandIdx] || 'Center Fruit'),
       skuCode,
       skuName: String(r[delNameIdx] || ''),
       deliveryUom: ((skuCatalogData as any)[skuCode])?.uom || 'PCS',
-      noofSKUinCTN: 15,
-      weightperSKUgm: 360,
+      noofSKUinCTN: ((skuCatalogData as any)[skuCode])?.piecesPerCtn || '',
+      weightperSKUgm: ((skuCatalogData as any)[skuCode])?.weightGram || '',
       skutp: unitPrice,
       orderQty,
-      orderVol: (orderQty * 0.00036).toFixed(5),
+      orderVol: ((skuCatalogData as any)[skuCode])?.weightGram ? (orderQty * ((skuCatalogData as any)[skuCode])?.weightGram / 1000000).toFixed(5) : '',
       orderValue: orderVal,
-      orderCashDiscount: 0,
+      orderCashDiscount: '',
       deliveryConfirmationDate: delDate,
       deliveryDate: delDate,
       deliveryQty: qty,
-      deliveryVol: (qty * 0.00036).toFixed(5),
+      deliveryVol: ((skuCatalogData as any)[skuCode])?.weightGram ? (qty * ((skuCatalogData as any)[skuCode])?.weightGram / 1000000).toFixed(5) : '',
       deliveryValue: val,
-      deliveryCashDiscount: 0,
-      freeQuantity: 0,
+      deliveryCashDiscount: '',
+      freeQuantity: '',
       deliveryValueAfterDiscount: val,
-      wsCashDiscount: 0,
-      motherSkuCode: ((skuCatalogData as any)[skuCode])?.motherSkuCode || 'MSKU0072',
+      wsCashDiscount: '',
+      motherSkuCode: ((skuCatalogData as any)[skuCode])?.motherSkuCode || '',
       createDeliveryDate: delDate,
     });
   }

@@ -24,37 +24,37 @@ export interface DailySRRecord {
   routeDay: string;
   routeChannel: string;
   logingStatus: string;
-  retailOutlet: number;
-  wsOutlet: number;
-  totalOutlet: number;
-  retailCall: number;
-  wsCall: number;
-  totalCall: number;
-  retailPC: number;
-  wsPC: number;
-  totalPC: number;
-  retailValue: number;
-  retailValueb4disc: number;
-  wsValue: number;
-  wsValueb4disc: number;
-  totalValue: number;
-  totalValueb4disc: number;
-  lpc: number;
+  retailOutlet: number | string;
+  wsOutlet: number | string;
+  totalOutlet: number | string;
+  retailCall: number | string;
+  wsCall: number | string;
+  totalCall: number | string;
+  retailPC: number | string;
+  wsPC: number | string;
+  totalPC: number | string;
+  retailValue: number | string;
+  retailValueb4disc: number | string;
+  wsValue: number | string;
+  wsValueb4disc: number | string;
+  totalValue: number | string;
+  totalValueb4disc: number | string;
+  lpc: number | string;
   strikeRate: string;
-  retailPCDelivery: number;
-  wsPCDelivery: number;
-  totalPCDelivery: number;
-  retailValueDelivery: number;
-  retailValueDeliveryb4Disc: number;
-  wsValueDelivery: number;
-  wsValueDeliveryb4Disc: number;
-  totalValueDelivery: number;
-  totalValueDeliveryb4Disc: number;
+  retailPCDelivery: number | string;
+  wsPCDelivery: number | string;
+  totalPCDelivery: number | string;
+  retailValueDelivery: number | string;
+  retailValueDeliveryb4Disc: number | string;
+  wsValueDelivery: number | string;
+  wsValueDeliveryb4Disc: number | string;
+  totalValueDelivery: number | string;
+  totalValueDeliveryb4Disc: number | string;
   deliveryRate: string;
-  deliveryLPC: number;
-  dropSize: number;
-  noOfRetailScheme: number;
-  noOfWSScheme: number;
+  deliveryLPC: number | string;
+  dropSize: number | string;
+  noOfRetailScheme: number | string;
+  noOfWSScheme: number | string;
   locationAccuracy: string;
   latitude: string;
   longitude: string;
@@ -64,8 +64,8 @@ export interface DailySRRecord {
   totalTimeinOutlet: string;
   totalTrasitTime: string;
   timePerOutlet: string;
-  twoLPCOrder: number;
-  twoLPCDelivery: number;
+  twoLPCOrder: number | string;
+  twoLPCDelivery: number | string;
 }
 
 interface CacheEntry {
@@ -383,48 +383,66 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
     const orderDate = grp.orderDate;
     const dayOfWeek = new Date(orderDate).toLocaleDateString('en-US', { weekday: 'long' });
 
-    const totalCall = grp.calls || Math.max(grp.orderCustomers.size, 1);
-    const totalOutlet = Math.max(totalCall, 55);
-    const totalPC = grp.orderCustomers.size;
-    const strikeRate = totalCall > 0 ? ((totalPC / totalCall) * 100).toFixed(2) + '%' : (totalPC > 0 ? '100.00%' : '0.00%');
-    const dropSize = totalPC > 0 ? Math.round(grp.orderTotalValue / totalPC) : 0;
-    const lpc = totalPC > 0 ? Number((grp.orderLineCount / totalPC).toFixed(2)) : 0;
+    const totalCall = grp.calls > 0 ? grp.calls : '';
+    const totalPC = grp.orderCustomers.size > 0 ? grp.orderCustomers.size : '';
+    const totalValOrder = grp.orderTotalValue > 0 ? Math.round(grp.orderTotalValue) : '';
 
-    const totalPCDel = grp.delCustomers.size || totalPC;
-    const totalValDel = grp.delTotalValue || grp.orderTotalValue;
-    const deliveryRate = grp.orderTotalValue > 0 ? ((totalValDel / grp.orderTotalValue) * 100).toFixed(2) + '%' : '100.00%';
-    const deliveryLPC = totalPCDel > 0 ? Number((grp.delLineCount / totalPCDel).toFixed(2)) : lpc;
+    // LPC & Drop size
+    const lpc = (typeof totalPC === 'number' && totalPC > 0) ? Number((grp.orderLineCount / totalPC).toFixed(2)) : '';
+    const dropSize = (typeof totalPC === 'number' && totalPC > 0 && typeof totalValOrder === 'number') ? Math.round(totalValOrder / totalPC) : '';
 
-    // 2 LPC counts
-    let twoLpcOrder = 0;
-    grp.orderInvoices.forEach(skus => {
-      if (skus.size >= 2) twoLpcOrder++;
-    });
+    // Strike Rate (only if both calls and productive calls exist)
+    const strikeRate = (typeof totalCall === 'number' && totalCall > 0 && typeof totalPC === 'number')
+      ? ((totalPC / totalCall) * 100).toFixed(2) + '%'
+      : '';
 
-    let twoLpcDel = 0;
-    grp.delInvoices.forEach(skus => {
-      if (skus.size >= 2) twoLpcDel++;
-    });
+    // Delivery metrics: ONLY compute if delivery data actually exists in live delivery export
+    const hasDelivery = grp.delCustomers.size > 0 || grp.delTotalValue > 0;
+    const totalPCDel = hasDelivery && grp.delCustomers.size > 0 ? grp.delCustomers.size : '';
+    const totalValDel = hasDelivery && grp.delTotalValue > 0 ? Math.round(grp.delTotalValue) : '';
+    const deliveryRate = (typeof totalValOrder === 'number' && totalValOrder > 0 && typeof totalValDel === 'number' && totalValDel > 0)
+      ? ((totalValDel / totalValOrder) * 100).toFixed(2) + '%'
+      : '';
+    const deliveryLPC = (typeof totalPCDel === 'number' && totalPCDel > 0)
+      ? Number((grp.delLineCount / totalPCDel).toFixed(2))
+      : '';
 
-    // Time calculations
-    const inHrs = Math.floor(grp.inOutletMinutes / 60);
-    const inMins = Math.round(grp.inOutletMinutes % 60);
-    const totalTimeinOutlet = `${String(inHrs).padStart(2, '0')}:${String(inMins).padStart(2, '0')}`;
+    // 2 LPC counts: distinct SKUs per order/delivery invoice >= 2
+    let twoLpcOrder: number | string = '';
+    if (grp.orderInvoices.size > 0) {
+      let count = 0;
+      grp.orderInvoices.forEach(skus => {
+        if (skus.size >= 2) count++;
+      });
+      twoLpcOrder = count;
+    }
 
-    const firstCall = grp.firstCheckin ? String(grp.firstCheckin).replace(/^.*?\s+/, '') : '09:30:00';
-    const lastCall = grp.lastCheckin ? String(grp.lastCheckin).replace(/^.*?\s+/, '') : '16:45:00';
+    let twoLpcDel: number | string = '';
+    if (hasDelivery && grp.delInvoices.size > 0) {
+      let count = 0;
+      grp.delInvoices.forEach(skus => {
+        if (skus.size >= 2) count++;
+      });
+      twoLpcDel = count;
+    }
 
-    const workedMins = Math.max(grp.inOutletMinutes + 120, 360);
-    const workedHrs = Math.floor(workedMins / 60);
-    const workedRemMins = Math.round(workedMins % 60);
-    const totalTimeWorked = `${String(workedHrs).padStart(2, '0')}:${String(workedRemMins).padStart(2, '0')}`;
+    // Time calculations from live checkin report
+    let firstCall = '';
+    let lastCall = '';
+    let totalTimeinOutlet = '';
+    let timePerOutlet = '';
 
-    const transitMins = Math.max(0, workedMins - grp.inOutletMinutes);
-    const tHrs = Math.floor(transitMins / 60);
-    const tMins = Math.round(transitMins % 60);
-    const totalTrasitTime = `${String(tHrs).padStart(2, '0')}:${String(tMins).padStart(2, '0')}`;
+    if (grp.calls > 0) {
+      if (grp.firstCheckin) firstCall = String(grp.firstCheckin).replace(/^.*?\s+/, '');
+      if (grp.lastCheckin) lastCall = String(grp.lastCheckin).replace(/^.*?\s+/, '');
 
-    const timePerOutlet = totalCall > 0 ? `00:${String(Math.round(grp.inOutletMinutes / totalCall)).padStart(2, '0')}:00` : '00:02:00';
+      if (grp.inOutletMinutes > 0) {
+        const inHrs = Math.floor(grp.inOutletMinutes / 60);
+        const inMins = Math.round(grp.inOutletMinutes % 60);
+        totalTimeinOutlet = `${String(inHrs).padStart(2, '0')}:${String(inMins).padStart(2, '0')}`;
+        timePerOutlet = `00:${String(Math.round(grp.inOutletMinutes / grp.calls)).padStart(2, '0')}:00`;
+      }
+    }
 
     records.push({
       id: `daily-sr-${idx++}`,
@@ -438,51 +456,51 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
       dbType: '',
       srCode: grp.srCode,
       srName: srMeta?.srName || grp.srName,
-      srPositionCode: srMeta?.srPositionCode || meta.srPositionCode || 'DM-057',
-      routeCode: grp.routeCode || meta.routeCode || `T16R00067423245268`,
-      routeName: grp.routeName || 'General Route',
+      srPositionCode: srMeta?.srPositionCode || meta.srPositionCode || '',
+      routeCode: grp.routeCode || '',
+      routeName: grp.routeName || '',
       routeDay: dayOfWeek,
       routeChannel: 'Retail',
-      logingStatus: grp.calls > 0 || totalPC > 0 ? 'Yes' : 'No',
-      retailOutlet: totalOutlet,
-      wsOutlet: 0,
-      totalOutlet,
+      logingStatus: grp.calls > 0 ? 'Yes' : (grp.orderCustomers.size > 0 ? 'Yes' : 'No'),
+      retailOutlet: '',
+      wsOutlet: '',
+      totalOutlet: '',
       retailCall: totalCall,
-      wsCall: 0,
+      wsCall: '',
       totalCall,
       retailPC: totalPC,
-      wsPC: 0,
+      wsPC: '',
       totalPC,
-      retailValue: Math.round(grp.orderTotalValue),
-      retailValueb4disc: Math.round(grp.orderTotalValue),
-      wsValue: 0,
-      wsValueb4disc: 0,
-      totalValue: Math.round(grp.orderTotalValue),
-      totalValueb4disc: Math.round(grp.orderTotalValue),
+      retailValue: totalValOrder,
+      retailValueb4disc: totalValOrder,
+      wsValue: '',
+      wsValueb4disc: '',
+      totalValue: totalValOrder,
+      totalValueb4disc: totalValOrder,
       lpc,
       strikeRate,
       retailPCDelivery: totalPCDel,
-      wsPCDelivery: 0,
+      wsPCDelivery: '',
       totalPCDelivery: totalPCDel,
-      retailValueDelivery: Math.round(totalValDel),
-      retailValueDeliveryb4Disc: Math.round(totalValDel),
-      wsValueDelivery: 0,
-      wsValueDeliveryb4Disc: 0,
-      totalValueDelivery: Math.round(totalValDel),
-      totalValueDeliveryb4Disc: Math.round(totalValDel),
+      retailValueDelivery: totalValDel,
+      retailValueDeliveryb4Disc: totalValDel,
+      wsValueDelivery: '',
+      wsValueDeliveryb4Disc: '',
+      totalValueDelivery: totalValDel,
+      totalValueDeliveryb4Disc: totalValDel,
       deliveryRate,
       deliveryLPC,
       dropSize,
-      noOfRetailScheme: grp.freeQty || 0,
-      noOfWSScheme: 0,
-      locationAccuracy: '100%',
-      latitude: grp.lat,
-      longitude: grp.lng,
+      noOfRetailScheme: '',
+      noOfWSScheme: '',
+      locationAccuracy: '',
+      latitude: grp.lat || '',
+      longitude: grp.lng || '',
       firstCall,
       lastCall,
-      totalTimeWorked,
+      totalTimeWorked: '',
       totalTimeinOutlet,
-      totalTrasitTime,
+      totalTrasitTime: '',
       timePerOutlet,
       twoLPCOrder: twoLpcOrder,
       twoLPCDelivery: twoLpcDel,
@@ -521,9 +539,9 @@ export async function GET(req: NextRequest) {
     }
 
     const totalActiveSRs = new Set(records.map(r => r.srCode)).size;
-    const totalOutletsVisited = records.reduce((s, r) => s + (r.totalCall || 0), 0);
-    const totalProductiveCalls = records.reduce((s, r) => s + (r.totalPC || 0), 0);
-    const totalSalesVal = records.reduce((s, r) => s + (r.totalValue || 0), 0);
+    const totalOutletsVisited = records.reduce((s, r) => s + (Number(r.totalCall) || 0), 0);
+    const totalProductiveCalls = records.reduce((s, r) => s + (Number(r.totalPC) || 0), 0);
+    const totalSalesVal = records.reduce((s, r) => s + (Number(r.totalValue) || 0), 0);
     const avgStrikeRate = records.length > 0
       ? (records.reduce((s, r) => s + parseFloat(r.strikeRate || '0'), 0) / records.length).toFixed(1) + '%'
       : '0%';
