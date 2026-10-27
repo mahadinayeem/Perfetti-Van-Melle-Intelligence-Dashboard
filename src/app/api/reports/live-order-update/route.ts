@@ -199,7 +199,7 @@ async function fetchLiveOrdersFromSokrio(startDate: string, endDate: string): Pr
       territory: srMeta?.territory || 'Jatra Bari',
       dbCode: r['Seller Department Code'] || srMeta?.dbCode || '102267',
       dbName: r['Seller Department Name'] || srMeta?.dbName || 'M/S Ahamed Enterprise',
-      dbType: '',
+      dbType: 'MAIN DB',
       srPosition: srMeta?.srPositionCode || 'DM-057',
       srCode,
       srName: srMeta?.srName || String(r['Order Creator Name'] || r['Employee Name'] || ''),
@@ -251,15 +251,6 @@ export async function GET(req: NextRequest) {
       records = await fetchLiveOrdersFromSokrio(startDate, endDate);
     } catch (err: any) {
       console.warn('[Live Order Update] Live API fetch failed:', err.message);
-    }
-
-    // Fallback to sample excel if API returned 0 records (e.g., historical dates like Oct 11/12)
-    if (!records || records.length === 0) {
-      const sample = getSampleExcelData();
-      if (sample.length > 0) {
-        records = sample;
-        source = 'sample_excel_fallback';
-      }
     }
 
     const totalOrders = new Set(records.map(r => r.orderNo)).size;
