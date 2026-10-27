@@ -1348,7 +1348,7 @@ export default function DashboardPage() {
                     disabled={loading}
                   >
                     {loading && activePreset === 'mtd' && <RefreshCw size={11} className="animate-spin" />}
-                    <span>{loading && activePreset === 'mtd' ? 'Loading MTD...' : 'MTD'}</span>
+                    <span>MTD</span>
                   </button>
                 </>
               )}
