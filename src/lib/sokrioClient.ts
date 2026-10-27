@@ -4,10 +4,8 @@ import axios from 'axios';
 const DEFAULT_BASE_URL = 'https://pvm.core.sokrio.com';
 const DEFAULT_EMAIL = 'super@pvm.com';
 const DEFAULT_PASSWORD = 'Pvm@2026@';
-const INITIAL_TOKEN = '221|v0y8z6YjgH4UK3Et1FiCnWGF8E5SNpAmDdl5fm6pdad807a3';
-
-let activeToken = process.env.SOKRIO_TOKEN || INITIAL_TOKEN;
-let lastTokenTime = Date.now();
+let activeToken = process.env.SOKRIO_TOKEN || '';
+let lastTokenTime = 0;
 
 // Proactively refresh token if older than 4 hours
 const TOKEN_MAX_AGE_MS = 4 * 60 * 60 * 1000;
