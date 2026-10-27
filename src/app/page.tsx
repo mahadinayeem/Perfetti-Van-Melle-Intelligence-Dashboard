@@ -481,10 +481,13 @@ export default function DashboardPage() {
 
       // 2. Column-level Excel Filters
       for (const [colKey, selectedValues] of Object.entries(columnFilters)) {
-        if (selectedValues && selectedValues.size > 0) {
-          const val = String(r[colKey] ?? '').trim();
-          if (!selectedValues.has(val)) {
-            return false;
+        if (selectedValues) {
+          const allVals = uniqueColumnValues[colKey] || [];
+          if (selectedValues.size < allVals.length) {
+            const val = String(r[colKey] ?? '').trim();
+            if (!selectedValues.has(val)) {
+              return false;
+            }
           }
         }
       }
@@ -569,6 +572,15 @@ export default function DashboardPage() {
     });
   };
 
+  // Clear filter for a single column
+  const clearColumnFilter = (colKey: string) => {
+    setColumnFilters((prev) => {
+      const next = { ...prev };
+      delete next[colKey];
+      return next;
+    });
+  };
+
   // Reset all filters
   const resetAllFilters = () => {
     setColumnFilters({});
@@ -577,9 +589,14 @@ export default function DashboardPage() {
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = Object.values(columnFilters).some(
-    (s) => s && s.size > 0 && s.size < (uniqueColumnValues[Object.keys(columnFilters)[0]]?.length || 0)
-  ) || Boolean(globalSearch.trim());
+  const hasActiveFilters = useMemo(() => {
+    if (globalSearch.trim()) return true;
+    for (const [colKey, s] of Object.entries(columnFilters)) {
+      const total = uniqueColumnValues[colKey]?.length || 0;
+      if (s && s.size < total) return true;
+    }
+    return false;
+  }, [columnFilters, uniqueColumnValues, globalSearch]);
 
   // Render Cell Content with Branded Styling
   const renderCell = (col: ColumnDef, val: any) => {
@@ -1442,10 +1459,18 @@ export default function DashboardPage() {
                   <th className="excel-th" style={{ width: '40px', textAlign: 'center' }}>
                     #
                   </th>
-                  {activeTabConfig.columns.map((col) => {
+                  {activeTabConfig.columns.map((col, colIdx) => {
                     const isSorted = sortConfig?.key === col.key;
-                    const hasFilter = columnFilters[col.key] && columnFilters[col.key].size > 0;
+                    const totalVals = uniqueColumnValues[col.key]?.length || 0;
+                    const hasCustomFilter = columnFilters[col.key] !== undefined;
+                    const selectedCount = hasCustomFilter ? columnFilters[col.key].size : totalVals;
+                    const isFiltered = hasCustomFilter && selectedCount < totalVals;
                     const isOpen = openFilterCol === col.key;
+                    const isAlignRight = colIdx > activeTabConfig.columns.length - 4;
+
+                    const matchingVals = (uniqueColumnValues[col.key] || []).filter((val) =>
+                      val.toLowerCase().includes(filterSearch.toLowerCase())
+                    );
 
                     return (
                       <th key={col.key} className="excel-th">
@@ -1460,7 +1485,7 @@ export default function DashboardPage() {
                                 return { key: col.key, direction: 'asc' };
                               });
                             }}
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', flex: 1 }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', flex: 1, minWidth: 0 }}
                             title={`Click to sort by ${col.label}`}
                           >
                             <span className="excel-th-title">{col.label}</span>
@@ -1478,15 +1503,16 @@ export default function DashboardPage() {
                           {/* Excel Dropdown Filter Button */}
                           <button
                             type="button"
-                            className={`excel-filter-trigger ${hasFilter ? 'has-filter' : ''}`}
+                            className={`excel-filter-trigger ${isFiltered ? 'filtered' : ''} ${isOpen ? 'open' : ''}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               setOpenFilterCol(isOpen ? null : col.key);
                               setFilterSearch('');
                             }}
-                            title={`Excel filter for ${col.label}`}
+                            title={`Filter / Sort ${col.label}${isFiltered ? ' (Active filter)' : ''}`}
                           >
                             <Filter size={11} />
+                            {isFiltered && <span className="excel-filter-dot" />}
                           </button>
                         </div>
 
@@ -1495,80 +1521,140 @@ export default function DashboardPage() {
                           <div
                             ref={dropdownRef}
                             onClick={(e) => e.stopPropagation()}
-                            className="excel-filter-modal"
+                            className={`excel-filter-popup ${isAlignRight ? 'align-right' : 'align-left'}`}
                           >
-                            <div className="excel-modal-header">
-                              <span style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-main)' }}>
-                                Filter: {col.label}
-                              </span>
+                            {/* 1. Header */}
+                            <div className="popup-header">
+                              <div className="popup-header-title">
+                                <Filter size={14} className="popup-header-icon" />
+                                <span className="popup-col-name" title={col.label}>
+                                  Filter: {col.label}
+                                </span>
+                              </div>
                               <button
                                 type="button"
+                                className="popup-close-btn"
                                 onClick={() => setOpenFilterCol(null)}
-                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                                title="Close"
                               >
                                 <X size={14} />
                               </button>
                             </div>
 
-                            {/* Search inside filter list */}
-                            <div style={{ position: 'relative', marginBottom: '8px' }}>
-                              <Search size={12} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
+                            {/* 2. Quick Sort Options */}
+                            <div className="popup-sort-section">
+                              <button
+                                type="button"
+                                className={`popup-sort-btn ${isSorted && sortConfig?.direction === 'asc' ? 'active' : ''}`}
+                                onClick={() => {
+                                  setSortConfig({ key: col.key, direction: 'asc' });
+                                }}
+                              >
+                                <ArrowUp size={12} />
+                                <span>Sort A → Z</span>
+                              </button>
+                              <button
+                                type="button"
+                                className={`popup-sort-btn ${isSorted && sortConfig?.direction === 'desc' ? 'active' : ''}`}
+                                onClick={() => {
+                                  setSortConfig({ key: col.key, direction: 'desc' });
+                                }}
+                              >
+                                <ArrowDown size={12} />
+                                <span>Sort Z → A</span>
+                              </button>
+                            </div>
+
+                            {/* 3. Search Bar */}
+                            <div className="popup-search-box">
+                              <Search size={13} className="popup-search-icon" />
                               <input
                                 type="text"
-                                className="custom-input"
-                                placeholder="Search..."
+                                className="popup-search-input"
+                                placeholder={`Search in ${col.label}...`}
                                 value={filterSearch}
                                 onChange={(e) => setFilterSearch(e.target.value)}
-                                style={{ width: '100%', paddingLeft: '26px', fontSize: '11px', padding: '5px 8px 5px 26px' }}
+                                autoFocus
                               />
+                              {filterSearch && (
+                                <button
+                                  type="button"
+                                  className="popup-search-clear"
+                                  onClick={() => setFilterSearch('')}
+                                  title="Clear search"
+                                >
+                                  <X size={12} />
+                                </button>
+                              )}
                             </div>
 
-                            {/* Select All / Clear All */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--border)', fontSize: '11px', marginBottom: '4px' }}>
-                              <button
-                                type="button"
-                                onClick={() => selectAllFilter(col.key, true)}
-                                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600 }}
-                              >
-                                Select All
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => selectAllFilter(col.key, false)}
-                                style={{ background: 'none', border: 'none', color: '#e11d48', cursor: 'pointer', fontWeight: 600 }}
-                              >
-                                Clear All
-                              </button>
+                            {/* 4. Selection Toolbar */}
+                            <div className="popup-selection-toolbar">
+                              <span className="popup-count-badge">
+                                {selectedCount} of {totalVals} selected
+                              </span>
+                              <div className="popup-quick-links">
+                                <button
+                                  type="button"
+                                  onClick={() => selectAllFilter(col.key, true)}
+                                  className="popup-link-action select-all"
+                                >
+                                  Select All
+                                </button>
+                                <span className="popup-link-divider">|</span>
+                                <button
+                                  type="button"
+                                  onClick={() => selectAllFilter(col.key, false)}
+                                  className="popup-link-action clear-all"
+                                >
+                                  Clear All
+                                </button>
+                              </div>
                             </div>
 
-                            {/* Checkbox List */}
-                            <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
-                              {(uniqueColumnValues[col.key] || [])
-                                .filter((val) => val.toLowerCase().includes(filterSearch.toLowerCase()))
-                                .map((val) => {
+                            {/* 5. Scrollable Value List */}
+                            <div className="popup-list-container">
+                              {matchingVals.length === 0 ? (
+                                <div className="popup-empty-state">
+                                  No matching values found
+                                </div>
+                              ) : (
+                                matchingVals.map((val) => {
                                   const isChecked = !columnFilters[col.key] || columnFilters[col.key].has(val);
                                   return (
-                                    <label
-                                      key={val}
-                                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', cursor: 'pointer', fontSize: '12px' }}
-                                    >
+                                    <label key={val} className="popup-list-item">
                                       <input
                                         type="checkbox"
+                                        className="popup-checkbox"
                                         checked={isChecked}
                                         onChange={() => toggleFilterValue(col.key, val)}
                                       />
-                                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{val}</span>
+                                      <span className="popup-item-label" title={val}>
+                                        {val || '(Blank)'}
+                                      </span>
                                     </label>
                                   );
-                                })}
+                                })
+                              )}
                             </div>
 
-                            {/* Apply Button */}
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '8px', marginTop: '6px', borderTop: '1px solid var(--border)' }}>
+                            {/* 6. Footer Actions */}
+                            <div className="popup-footer">
                               <button
                                 type="button"
-                                className="btn btn-primary"
-                                style={{ padding: '4px 12px', fontSize: '11px' }}
+                                className="popup-reset-btn"
+                                onClick={() => {
+                                  clearColumnFilter(col.key);
+                                }}
+                                disabled={!isFiltered}
+                                title={isFiltered ? "Reset filter for this column" : "No active filter"}
+                              >
+                                <RotateCcw size={12} />
+                                <span>Reset</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="popup-apply-btn"
                                 onClick={() => setOpenFilterCol(null)}
                               >
                                 Apply
