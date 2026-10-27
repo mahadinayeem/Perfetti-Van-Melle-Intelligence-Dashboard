@@ -4,188 +4,302 @@
     "motherSkuName": "Alpenliebe Juzt Jelly ST-MN Jar",
     "category": "Jelly",
     "uom": "JAR",
-    "brand": "Alpenliebe Juzt Jelly"
+    "brand": "Alpenliebe Juzt Jelly",
+    "piecesPerCtn": 15,
+    "weightGram": 666
+  },
+  "651060": {
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651091": {
     "motherSkuCode": "MSKU0046",
     "motherSkuName": "Mentos Roll Mint Box",
     "category": "Chewy",
     "uom": "BOX",
-    "brand": "Mentos"
+    "brand": "Mentos",
+    "piecesPerCtn": 32,
+    "weightGram": 275
   },
   "651092": {
     "motherSkuCode": "MSKU0057",
     "motherSkuName": "Mentos Roll Orange Box",
     "category": "Chewy",
     "uom": "BOX",
-    "brand": "Mentos"
+    "brand": "Mentos",
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651135": {
     "motherSkuCode": "MSKU0061",
     "motherSkuName": "Alpenliebe Juzt Jelly ST-Box",
     "category": "Jelly",
     "uom": "BOX",
-    "brand": "Alpenliebe Juzt Jelly"
+    "brand": "Alpenliebe Juzt Jelly",
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651140": {
     "motherSkuCode": "MSKU0075",
     "motherSkuName": "Center Fresh Spearmint Stick Box",
     "category": "Gum",
     "uom": "BOX",
-    "brand": "Center Fresh"
+    "brand": "Center Fresh",
+    "piecesPerCtn": 32,
+    "weightGram": 275
+  },
+  "651163": {
+    "brand": "Center Fruit",
+    "piecesPerCtn": 15,
+    "weightGram": 360
+  },
+  "651164": {
+    "brand": "Center Fruit",
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651170": {
     "motherSkuCode": "MSKU0066",
     "motherSkuName": "Center Fruit Max",
     "category": "Gum",
     "uom": "JAR",
-    "brand": "Center Fruit"
+    "brand": "Center Fruit",
+    "piecesPerCtn": 15,
+    "weightGram": 360
+  },
+  "651176": {
+    "piecesPerCtn": 15,
+    "weightGram": 360
+  },
+  "651177": {
+    "brand": "Center Fresh",
+    "piecesPerCtn": 15,
+    "weightGram": 360
+  },
+  "651212": {
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651232": {
     "motherSkuCode": "MSKU0074",
     "motherSkuName": "Mentos Mint Orange PCH MT",
     "category": "Chewy",
     "uom": "PCH",
-    "brand": "Mentos"
+    "brand": "Mentos",
+    "piecesPerCtn": 15,
+    "weightGram": 360
+  },
+  "651240": {
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651260": {
     "motherSkuCode": "MSKU0020",
     "motherSkuName": "Air Action Mentos Eucamint Jar",
     "category": "Hard Candy",
     "uom": "JAR",
-    "brand": "Air Action Mentos"
+    "brand": "Air Action Mentos",
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651270": {
     "motherSkuCode": "MSKU0078",
     "motherSkuName": "CC ROPE 60PCHx14P",
     "category": "Jelly",
     "uom": "PCH",
-    "brand": "Chupa Chups Rope"
+    "brand": "Chupa Chups Rope",
+    "piecesPerCtn": 15,
+    "weightGram": 360
+  },
+  "651282": {
+    "piecesPerCtn": 15,
+    "weightGram": 360
+  },
+  "651284": {
+    "brand": "Center Fruit",
+    "piecesPerCtn": 15,
+    "weightGram": 360
+  },
+  "651285": {
+    "piecesPerCtn": 15,
+    "weightGram": 360
+  },
+  "651286": {
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651287": {
     "motherSkuCode": "MSKU0079",
     "motherSkuName": "Chupa Chups Bites",
     "category": "Jelly",
     "uom": "HNG",
-    "brand": "Chupa Chups Bites & Tube"
+    "brand": "Chupa Chups Bites & Tube",
+    "piecesPerCtn": 12,
+    "weightGram": 396
   },
   "651288": {
     "motherSkuCode": "MSKU0079",
     "motherSkuName": "Chupa Chups Bites",
     "category": "Jelly",
     "uom": "HNG",
-    "brand": "Chupa Chups Bites & Tube"
+    "brand": "Chupa Chups Bites & Tube",
+    "piecesPerCtn": 24,
+    "weightGram": 360
   },
   "651289": {
     "motherSkuCode": "MSKU0054",
     "motherSkuName": "CC TUBE 24HNGx40P",
     "category": "Jelly",
     "uom": "TUBE",
-    "brand": "Chupa Chups Tube"
+    "brand": "Chupa Chups Tube",
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651293": {
     "motherSkuCode": "MSKU0088",
     "motherSkuName": "Alpenliebe Juzt Jelly ST SAS",
     "category": "Jelly",
     "uom": "JAR",
-    "brand": "Alpenliebe Juzt Jelly"
+    "brand": "Alpenliebe Juzt Jelly",
+    "piecesPerCtn": 15,
+    "weightGram": 550
   },
   "651296": {
     "motherSkuCode": "MSKU0065",
     "motherSkuName": "CC ROPE 24HNGx80P",
     "category": "Jelly",
     "uom": "HNG",
-    "brand": "Chupa Chups Rope"
+    "brand": "Chupa Chups Rope",
+    "piecesPerCtn": 24,
+    "weightGram": 360
   },
   "651300": {
     "motherSkuCode": "MSKU0064",
     "motherSkuName": "Center Fruit Box - 2TK",
     "category": "Gum",
     "uom": "BOX",
-    "brand": "Center Fruit"
+    "brand": "Center Fruit",
+    "piecesPerCtn": 32,
+    "weightGram": 275
+  },
+  "651301": {
+    "motherSkuName": "CTR FRUIT ST 15JARx200P",
+    "brand": "Center Fruit",
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651302": {
     "motherSkuCode": "MSKU0072",
     "motherSkuName": "Center Fruit Jar - 2TK",
     "category": "Gum",
     "uom": "JAR",
-    "brand": "Center Fruit"
+    "brand": "Center Fruit",
+    "piecesPerCtn": 15,
+    "weightGram": 550
   },
   "651303": {
     "motherSkuCode": "MSKU0058",
     "motherSkuName": "Alpenliebe Chewy Hanger",
     "category": "Chewy",
     "uom": "HNG",
-    "brand": "Alpenliebe Chewy"
+    "brand": "Alpenliebe Chewy",
+    "piecesPerCtn": 18,
+    "weightGram": 360
   },
   "651305": {
     "motherSkuCode": "MSKU0086",
     "motherSkuName": "Alpenliebe Chewy Box",
     "category": "Chewy",
     "uom": "BOX",
-    "brand": "Alpenliebe Chewy"
+    "brand": "Alpenliebe Chewy",
+    "piecesPerCtn": 32,
+    "weightGram": 275
   },
   "651306": {
     "motherSkuCode": "MSKU0068",
     "motherSkuName": "Center Fresh Box - 2TK",
     "category": "Gum",
     "uom": "BOX",
-    "brand": "Center Fresh"
+    "brand": "Center Fresh",
+    "piecesPerCtn": 32,
+    "weightGram": 275
   },
   "651311": {
     "motherSkuCode": "MSKU0018",
     "motherSkuName": "Alpenliebe Creamfills Caramel Jar",
     "category": "Hard Candy",
     "uom": "JAR",
-    "brand": "Alpenliebe Creamfills"
+    "brand": "Alpenliebe Creamfills",
+    "piecesPerCtn": 15,
+    "weightGram": 540
   },
   "651314": {
     "motherSkuCode": "MSKU0020",
     "motherSkuName": "Air Action Mentos Eucamint Jar",
     "category": "Hard Candy",
     "uom": "JAR",
-    "brand": "Air Action Mentos"
+    "brand": "Air Action Mentos",
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651315": {
     "motherSkuCode": "MSKU0072",
     "motherSkuName": "Center Fruit Jar - 2TK",
     "category": "Gum",
     "uom": "JAR",
-    "brand": "Center Fruit"
+    "brand": "Center Fruit",
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651316": {
     "motherSkuCode": "MSKU0023",
     "motherSkuName": "Alpenliebe Juzt Jelly ST-MN Jar",
     "category": "Jelly",
     "uom": "JAR",
-    "brand": "Alpenliebe Juzt Jelly"
+    "brand": "Alpenliebe Juzt Jelly",
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651318": {
     "motherSkuCode": "MSKU0071",
     "motherSkuName": "Center Fresh Jar - 2TK",
     "category": "Gum",
     "uom": "JAR",
-    "brand": "Center Fresh"
+    "brand": "Center Fresh",
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651319": {
     "motherSkuCode": "MSKU0071",
     "motherSkuName": "Center Fresh Jar - 2TK",
     "category": "Gum",
     "uom": "JAR",
-    "brand": "Center Fresh"
+    "brand": "Center Fresh",
+    "piecesPerCtn": 15,
+    "weightGram": 550
+  },
+  "651332": {
+    "motherSkuName": "CTR FRESH SP 15JARX200P",
+    "brand": "Center Fresh",
+    "piecesPerCtn": 15,
+    "weightGram": 360
   },
   "651352": {
     "motherSkuCode": "MSKU0079",
     "motherSkuName": "Chupa Chups Bites",
     "category": "Jelly",
     "uom": "HNG",
-    "brand": "Chupa Chups Bites & Tube"
+    "brand": "Chupa Chups Bites & Tube",
+    "piecesPerCtn": 12,
+    "weightGram": 396
   },
   "651373": {
     "motherSkuCode": "MSKU0097",
     "motherSkuName": "Chupa Chups DUO",
     "category": "Gum",
     "uom": "BOX",
-    "brand": "Chupa Chups Duo"
+    "brand": "Chupa Chups Duo",
+    "piecesPerCtn": 15,
+    "weightGram": 360
   }
 }
