@@ -221,12 +221,24 @@ const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; 
   },
 };
 
-// Helper to get all 8,007 records from Sokrio Delivery Summary
+// Helper to get all 8,007 records from Sokrio Delivery Summary combined with Order Summary
 function getDeliverySummaryData(): BWIWRecord[] {
   try {
     const jsonPath = path.join(process.cwd(), 'src', 'data', 'deliverySummary.json');
     if (!fs.existsSync(jsonPath)) return [];
     const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+
+    // Load order summary mapping (Tracking ID -> Order Date, Order Qty, Order Value)
+    let orderMap: Record<string, any> = {};
+    const orderMapPath = path.join(process.cwd(), 'src', 'data', 'orderSummaryMap.json');
+    if (fs.existsSync(orderMapPath)) {
+      try {
+        orderMap = JSON.parse(fs.readFileSync(orderMapPath, 'utf8'));
+      } catch (err) {
+        console.warn('Failed to parse orderSummaryMap.json:', err);
+      }
+    }
+
     return raw.map((r: any, idx: number) => {
       const custCode = String(r['Buyer Department Code'] || '');
       const rawTerritoryCode = String(r['Buyer Territory Code'] || '');
@@ -244,13 +256,21 @@ function getDeliverySummaryData(): BWIWRecord[] {
       const territory = srMeta?.territory || meta.territory || 'Jatra Bari';
       const territoryCode = srMeta?.territoryCode || meta.territoryCode || (rawTerritoryCode ? rawTerritoryCode.substring(0, 3) : 'T16');
 
-      const orderDate = toStandardDate(r['Delivery Date']);
-      const delDate = orderDate;
+      const trackingId = String(r['Tracking ID'] || '');
+      const skuCode = String(r['Product SKU'] || '');
+      const orderEntry = orderMap[trackingId];
+      const orderItem = orderEntry?.items ? orderEntry.items[skuCode] : null;
+
+      // Extract accurate Order Date from Order Summary (matching client's demand: order date must be order date)
+      const orderDate = toStandardDate(orderEntry?.orderDate || r['Delivery Date']);
+      const delDate = toStandardDate(r['Delivery Date']);
       const qty = Number(r['Delivery Quantity'] || 0);
       const unitPrice = Number(r['Unit Price'] || 0);
       const val = Number(r['Amount'] || r['Subtotal'] || (qty * unitPrice));
-      const trackingId = r['Tracking ID'];
       const invNo = trackingId ? `INV-${trackingId}` : `INV-${1000 + idx}`;
+
+      const orderQty = Number(orderItem?.orderQty ?? qty);
+      const orderVal = Number(orderItem?.orderValue ?? val);
 
       return {
         id: `del-sum-${idx + 1}`,
@@ -273,17 +293,17 @@ function getDeliverySummaryData(): BWIWRecord[] {
         channel: 'Retail',
         subChannel: 'General & Grocery Store',
         invoiceNo: invNo,
-        category: ((skuCatalogData as any)[String(r['Product SKU'] || '')])?.category || String(r['Product Category'] || 'Confectionery'),
-        brand: ((skuCatalogData as any)[String(r['Product SKU'] || '')])?.brand || String(r['Product Brand'] || 'Center Fruit'),
-        skuCode: String(r['Product SKU'] || ''),
+        category: ((skuCatalogData as any)[skuCode])?.category || String(r['Product Category'] || 'Confectionery'),
+        brand: ((skuCatalogData as any)[skuCode])?.brand || String(r['Product Brand'] || 'Center Fruit'),
+        skuCode,
         skuName: String(r['Product Name'] || ''),
-        deliveryUom: ((skuCatalogData as any)[String(r['Product SKU'] || '')])?.uom || 'PCS',
+        deliveryUom: ((skuCatalogData as any)[skuCode])?.uom || 'PCS',
         noofSKUinCTN: 15,
         weightperSKUgm: 360,
         skutp: unitPrice,
-        orderQty: qty,
-        orderVol: (qty * 0.00036).toFixed(5),
-        orderValue: val,
+        orderQty,
+        orderVol: (orderQty * 0.00036).toFixed(5),
+        orderValue: orderVal,
         orderCashDiscount: 0,
         deliveryConfirmationDate: delDate,
         deliveryDate: delDate,
@@ -294,7 +314,7 @@ function getDeliverySummaryData(): BWIWRecord[] {
         freeQuantity: 0,
         deliveryValueAfterDiscount: val,
         wsCashDiscount: 0,
-        motherSkuCode: ((skuCatalogData as any)[String(r['Product SKU'] || '')])?.motherSkuCode || 'MSKU0072',
+        motherSkuCode: ((skuCatalogData as any)[skuCode])?.motherSkuCode || 'MSKU0072',
         createDeliveryDate: delDate,
       };
     });
