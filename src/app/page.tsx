@@ -2546,7 +2546,7 @@ export default function DashboardPage() {
               title="Refresh Data from Sokrio"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              <span>{loading ? 'Fetching...' : 'Refresh'}</span>
+              <span>Refresh</span>
             </button>
           </div>
 
@@ -2672,9 +2672,8 @@ export default function DashboardPage() {
               <FileSpreadsheet size={18} style={{ color: 'var(--excel-green)' }} />
               <span>{activeTabConfig.label}</span>
               {loading ? (
-                <span className="live-loading-pill">
-                  <RefreshCw size={11} className="animate-spin" />
-                  Generating {activePreset ? activePreset.toUpperCase() : 'Live'} Report...
+                <span className="live-loading-pill" title="Loading...">
+                  <RefreshCw size={12} className="animate-spin" />
                 </span>
               ) : (
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
@@ -2919,32 +2918,10 @@ export default function DashboardPage() {
                   <tr>
                     <td
                       colSpan={activeTabConfig.columns.length + 1}
-                      style={{ padding: 0, border: 'none' }}
+                      style={{ textAlign: 'center', padding: '64px 24px', border: 'none' }}
                     >
-                      <div className="table-loading-container">
-                        <div className="loading-card-modern">
-                          <div className="loading-spinner-wrapper">
-                            <div className="spinner-outer-ring"></div>
-                            <RefreshCw size={24} className="spinner-core-icon animate-spin" />
-                          </div>
-                          <div className="loading-title">
-                            Fetching Live {activeTabConfig.label}
-                          </div>
-                          <div className="loading-subtitle">
-                            Please wait while we connect to Sokrio SFA, process market records, and calculate live metrics for{' '}
-                            <strong>
-                              {activePreset
-                                ? activePreset.toUpperCase()
-                                : `${startDate} to ${endDate}`}
-                            </strong>
-                            ...
-                          </div>
-                          <div className="loading-dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </div>
-                        </div>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <RefreshCw size={28} className="animate-spin" style={{ color: 'var(--primary)' }} />
                       </div>
                     </td>
                   </tr>
