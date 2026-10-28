@@ -471,7 +471,7 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
 
       const inHrs = Math.floor(grp.inOutletMinutes / 60);
       const inMins = Math.round(grp.inOutletMinutes % 60);
-      totalTimeinOutlet = `${String(inHrs).padStart(2, '0')}:${String(inMins).padStart(2, '0')}`;
+      totalTimeinOutlet = grp.inOutletMinutes > 0 ? `${inHrs} hr${inHrs !== 1 ? 's' : ''} ${inMins} min${inMins !== 1 ? 's' : ''}` : '-';
 
       const t1 = parseTimeToMinutes(firstCall);
       const t2 = parseTimeToMinutes(lastCall);
@@ -485,12 +485,12 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
       if (workedMins > 0) {
         const wHrs = Math.floor(workedMins / 60);
         const wMins = Math.round(workedMins % 60);
-        totalTimeWorked = `${String(wHrs).padStart(2, '0')}:${String(wMins).padStart(2, '0')}`;
+        totalTimeWorked = `${wHrs} hr${wHrs !== 1 ? 's' : ''} ${wMins} min${wMins !== 1 ? 's' : ''}`;
 
         const transitMins = Math.max(0, workedMins - grp.inOutletMinutes);
         const trHrs = Math.floor(transitMins / 60);
         const trMins = Math.round(transitMins % 60);
-        totalTrasitTime = `${String(trHrs).padStart(2, '0')}:${String(trMins).padStart(2, '0')}`;
+        totalTrasitTime = transitMins > 0 ? `${trHrs} hr${trHrs !== 1 ? 's' : ''} ${trMins} min${trMins !== 1 ? 's' : ''}` : '-';
       }
 
       const avgMins = Math.round(grp.inOutletMinutes / totalCall);

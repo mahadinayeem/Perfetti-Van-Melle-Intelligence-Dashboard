@@ -115,10 +115,31 @@ function parseTime(val: any): string {
   return str;
 }
 
-function formatMinutes(mins: number): string {
+function formatMinutes(minsOrStr: number | string | null | undefined): string {
+  if (!minsOrStr && minsOrStr !== 0) return '-';
+  const str = String(minsOrStr).trim();
+  if (str === '-' || str === 'null' || str === 'undefined') return '-';
+
+  if (str.includes(':')) {
+    const parts = str.split(':').map((p) => parseInt(p, 10));
+    const h = parts[0] || 0;
+    const m = parts[1] || 0;
+    if (h === 0 && m === 0) return '0 hr 0 min';
+    return `${h} hr${h !== 1 ? 's' : ''} ${m} min${m !== 1 ? 's' : ''}`;
+  }
+
+  const mins = typeof minsOrStr === 'number' ? minsOrStr : parseFloat(str) || 0;
+  if (mins <= 0) return '0 hr 0 min';
   const h = Math.floor(mins / 60);
   const m = Math.round(mins % 60);
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  return `${h} hr${h !== 1 ? 's' : ''} ${m} min${m !== 1 ? 's' : ''}`;
+}
+
+function formatDurationWithDash(mins: number): string {
+  if (!mins || isNaN(mins) || mins <= 0) return '-';
+  const h = Math.floor(mins / 60);
+  const m = Math.round(mins % 60);
+  return `${h} hr${h !== 1 ? 's' : ''} ${m} min${m !== 1 ? 's' : ''}`;
 }
 
 function timeDiffMinutes(t1: string | null, t2: string | null): number {
@@ -404,19 +425,20 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
     const startWorkTime = att?.dayIn || firstCallTime || '08:30:00';
     const endWorkTime = att?.dayOut || '';
 
-    const totalWorkingHours = att?.workingHours ||
-      (startWorkTime && endWorkTime
+    const totalWorkingHours = att?.workingHours
+      ? formatMinutes(att.workingHours)
+      : (startWorkTime && endWorkTime
         ? formatMinutes(Math.max(0, Math.round((parseDateToMs(`27/10/2026 ${endWorkTime}`) - parseDateToMs(`27/10/2026 ${startWorkTime}`)) / 60000)))
-        : (d.minCheckinMs && d.maxCheckinMs ? formatMinutes(Math.max(0, Math.round((d.maxCheckinMs - d.minCheckinMs) / 60000))) : ''));
+        : (d.minCheckinMs && d.maxCheckinMs ? formatMinutes(Math.max(0, Math.round((d.maxCheckinMs - d.minCheckinMs) / 60000))) : '-'));
 
     const marketWorkMins = (d.minCheckinMs && d.maxCheckinMs)
       ? Math.max(0, Math.round((d.maxCheckinMs - d.minCheckinMs) / 60000))
       : 0;
 
-    const totalMarketWork = formatMinutes(marketWorkMins);
-    const totalSpendTimeOrderTaking = formatMinutes(d.inOutletMinutes);
+    const totalMarketWork = d.minCheckinMs && d.maxCheckinMs ? formatDurationWithDash(marketWorkMins) : '-';
+    const totalSpendTimeOrderTaking = d.inOutletMinutes > 0 ? formatDurationWithDash(d.inOutletMinutes) : '-';
     const transitMins = Math.max(0, marketWorkMins - d.inOutletMinutes);
-    const transitTime = formatMinutes(transitMins);
+    const transitTime = transitMins > 0 ? formatDurationWithDash(transitMins) : '-';
 
     records.push({
       id: `live-detail-${idx++}`,
