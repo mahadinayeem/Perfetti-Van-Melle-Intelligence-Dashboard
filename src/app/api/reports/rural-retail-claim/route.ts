@@ -62,31 +62,34 @@ export async function GET(request: NextRequest) {
 
     for (const d of deliveries) {
       const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : todayStr;
-      const orderDateStr = d.created_at ? String(d.created_at).split('T')[0] : delDateStr;
+      const orderDateStr = d.order?.order_date ? String(d.order.order_date).split(' ')[0] : delDateStr;
+      const outletName = d.order?.buyer_name || '';
+      const territoryName = d.order?.buyer_territory_name || '';
       const prods = Array.isArray(d.products) && d.products.length > 0 ? d.products : [null];
 
       for (const p of prods) {
         count++;
-        const skuCode = p?.product?.base_product?.sku || '650961';
-        const qty = p ? parseFloat(p.qty) || 1 : 1;
+        const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '');
+        const qty = p ? parseFloat(p.qty) || 0 : 0;
+        const tp = p ? parseFloat(p.price) || 0 : 0;
 
         records.push({
           id: `rr-claim-${count}`,
-          cluster: 'Central',
-          area: 'Central North',
-          territory: 'Tangail',
-          dbCode: 'SD0302',
-          dbName: 'M/S Jakir Enterprise',
-          promoId: 'ADMPP01797',
-          promoName: 'Rural Retail Promo - Discount (>=700)',
-          outletCode: `T28-2000${d.buyer_id || '3517919'}`,
-          outletName: 'Jewel Store',
-          invoiceNo: `INV210015${String(d.id || '').padStart(6, '0')}`,
-          deliveryDate: `${delDateStr} 17:35:47 PM`,
+          cluster: '',
+          area: '',
+          territory: territoryName,
+          dbCode: d.seller_id ? String(d.seller_id) : '',
+          dbName: '',
+          promoId: '',
+          promoName: '',
+          outletCode: d.buyer_id ? String(d.buyer_id) : '',
+          outletName,
+          invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV${d.id}` : ''),
+          deliveryDate: delDateStr,
           orderDate: orderDateStr,
           skuCode,
           qty,
-          amount: 3.75,
+          amount: Math.round(qty * tp),
         });
       }
     }

@@ -63,25 +63,27 @@ export async function GET(request: NextRequest) {
     for (const d of deliveries) {
       count++;
       const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : todayStr;
-      const amount = parseFloat(d.amount) || 2820;
-      const discount = parseFloat(d.discount) || (amount * 0.03);
+      const outletName = d.order?.buyer_name || '';
+      const territoryName = d.order?.buyer_territory_name || '';
+      const amount = parseFloat(d.amount) || 0;
+      const discount = parseFloat(d.discount) || 0;
 
       records.push({
         id: `rws-claim-${count}`,
-        cluster: 'Cluster-1',
-        area: 'North',
-        territory: 'Pabna',
-        dbCode: 'SD0006',
-        dbName: 'Molla Shopping Center',
-        promoId: 'ADMPP01803',
-        promoName: 'ALP CREAMFILLS Box get-3% discount',
-        disPer: 3,
-        outletCode: `T57-2000${d.buyer_id || '3341211'}`,
-        outletName: 'Khaled Store',
-        invoiceNo: `INV210016${String(d.id || '').padStart(6, '0')}`,
+        cluster: '',
+        area: '',
+        territory: territoryName,
+        dbCode: d.seller_id ? String(d.seller_id) : '',
+        dbName: '',
+        promoId: '',
+        promoName: '',
+        disPer: '',
+        outletCode: d.buyer_id ? String(d.buyer_id) : '',
+        outletName,
+        invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV${d.id}` : ''),
         deliveryDate: delDateStr,
-        totalInvoiceDiscount: Math.round(discount * 100) / 100,
-        percentageDiscount: Math.round(discount * 100) / 100,
+        totalInvoiceDiscount: discount,
+        percentageDiscount: '',
         totalInvoiceAmount: amount,
       });
     }

@@ -63,31 +63,34 @@ export async function GET(request: NextRequest) {
 
     for (const d of deliveries) {
       const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : todayStr;
+      const outletName = d.order?.buyer_name || '';
+      const territoryName = d.order?.buyer_territory_name || '';
+      const srName = d.order?.creator_name || '';
       const prods = Array.isArray(d.products) && d.products.length > 0 ? d.products : [null];
 
       for (const p of prods) {
         count++;
-        const skuCode = p?.product?.base_product?.sku || '651240';
-        const qty = p ? parseFloat(p.qty) || 24 : 24;
+        const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '');
+        const qty = p ? parseFloat(p.qty) || 0 : 0;
 
         records.push({
           id: `ws-claim-${count}`,
-          cluster: 'Cluster-1',
-          area: 'East',
-          territory: 'Cumilla',
-          dbCode: '101159',
-          dbName: 'M/S Kismat Enterprise',
-          promoId: 'ADMPP01735',
-          promoName: 'CC Rope B24 HNG G100tk off -UR WS',
-          outletCode: `T37-2000${d.buyer_id || '3382741'}`,
-          outletName: 'Razib Store',
-          srName: 'Md. Murad Hossain',
-          srPositionCode: 'CTG-016',
-          invoiceNo: `INV210015${String(d.id || '').padStart(6, '0')}`,
-          deliveryDate: `${delDateStr} 21:54:20 PM`,
+          cluster: '',
+          area: '',
+          territory: territoryName,
+          dbCode: d.seller_id ? String(d.seller_id) : '',
+          dbName: '',
+          promoId: '',
+          promoName: '',
+          outletCode: d.buyer_id ? String(d.buyer_id) : '',
+          outletName,
+          srName,
+          srPositionCode: '',
+          invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV${d.id}` : ''),
+          deliveryDate: delDateStr,
           skuCode,
           qty,
-          claimAmount: 100,
+          claimAmount: '',
         });
       }
     }

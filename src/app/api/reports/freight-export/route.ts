@@ -72,19 +72,19 @@ export async function GET(request: NextRequest) {
         records.push({
           id: `fe-${count}`,
           date: delDateStr,
-          dbCode: '101983',
-          dbName: 'M/S Islam Traders',
-          subDbCode: 'SD0164',
-          subDbName: 'M/S Sabera Traders',
+          dbCode: d.seller_id ? String(d.seller_id) : '',
+          dbName: '',
+          subDbCode: '',
+          subDbName: '',
           skuCode,
           skuName,
-          invoiceNo: `INV210018${String(d.id || '').padStart(6, '0')}`,
+          invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV${d.id}` : ''),
           deliveryDate: delDateStr,
           salesqtyloose: qty,
           salesQtyInCtn: Math.max(1, Math.floor(qty / 15)),
-          amount: d.payable || d.amount || 32,
-          isconfirmed: 'Yes',
-          pono: `PO10_${delDateStr.replace(/-/g, '')}_0004`,
+          amount: d.payable || d.amount || 0,
+          isconfirmed: '',
+          pono: d.order?.code || (d.order_id ? `PB${d.order_id}` : ''),
         });
       }
     }

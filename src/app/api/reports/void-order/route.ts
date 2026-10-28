@@ -63,30 +63,32 @@ export async function GET(request: NextRequest) {
     const deliveries = res.data?.data || (Array.isArray(res.data) ? res.data : []);
     const records: VoidOrderRecord[] = [];
 
-    // Map cancelled or returned deliveries
     for (const d of deliveries) {
       const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : todayStr;
-      const orderDateStr = d.created_at ? String(d.created_at).split('T')[0] : delDateStr;
+      const orderDateStr = d.order?.order_date ? String(d.order.order_date).split(' ')[0] : (d.created_at ? String(d.created_at).split('T')[0] : delDateStr);
+      const outletName = d.order?.buyer_name || '';
+      const srName = d.order?.creator_name || '';
+      const orderCode = d.order?.code || (d.order_id ? `PB${d.order_id}` : '');
 
       records.push({
         id: `void-${d.id}`,
-        orderno: d.order_id ? `PB${d.order_id}` : `PB1756O${d.id}`,
+        orderno: orderCode,
         orderdate: orderDateStr,
         deliverydate: delDateStr,
         voidDate: d.updated_at ? String(d.updated_at).split('T')[0] : delDateStr,
-        outlet: `T98-2000${d.buyer_id || '3571832'}`,
-        outletName: 'Bhai Bhai Store',
-        srCode: d.created_by || '52454',
-        srName: 'Md. Asadur Zaman',
-        dbCode: '100192',
-        dbName: 'Tarapada Saha',
-        salesofficeid: '100192',
-        salesofficename: 'Tarapada Saha',
-        skuQuantity: d.total_sku || 1,
-        lineAmount: d.amount || 375,
+        outlet: d.buyer_id ? String(d.buyer_id) : '',
+        outletName,
+        srCode: d.created_by ? String(d.created_by) : '',
+        srName,
+        dbCode: d.seller_id ? String(d.seller_id) : '',
+        dbName: '',
+        salesofficeid: '',
+        salesofficename: '',
+        skuQuantity: d.total_sku || 0,
+        lineAmount: d.amount || 0,
         discount: d.discount || 0,
-        amount: d.payable || d.amount || 375,
-        orderValue: d.amount || 375,
+        amount: d.payable || d.amount || 0,
+        orderValue: d.amount || 0,
         orderCashDiscount: 0,
         createDeliverydate: delDateStr,
       });

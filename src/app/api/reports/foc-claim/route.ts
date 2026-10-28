@@ -64,30 +64,33 @@ export async function GET(request: NextRequest) {
     let count = 0;
 
     for (const d of deliveries) {
-      const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : todayStr;
+      const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : (d.created_at ? String(d.created_at).split('T')[0] : todayStr);
+      const orderDateStr = d.order?.order_date ? String(d.order.order_date).split(' ')[0] : delDateStr;
+      const outletName = d.order?.buyer_name || '';
+      const territoryName = d.order?.buyer_territory_name || '';
       const prods = Array.isArray(d.products) && d.products.length > 0 ? d.products : [null];
 
       for (const p of prods) {
         count++;
-        const skuCode = p?.product?.base_product?.sku || '651286';
-        const skuName = p?.product?.base_product?.name || 'CTR FRUIT ST - 32BOXx110Px2.8G-T';
-        const qty = p ? parseFloat(p.qty) || 1 : 1;
-        const tp = p ? parseFloat(p.price) || 184 : 184;
+        const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '');
+        const skuName = p?.product?.base_product?.name || '';
+        const qty = p ? parseFloat(p.qty) || 0 : 0;
+        const tp = p ? parseFloat(p.price) || 0 : 0;
 
         records.push({
           id: `foc-${count}`,
-          orderDate: delDateStr,
-          cluster: 'Central',
-          area: 'Central South',
-          territory: 'Chawkbazar',
-          dbCode: '102042',
-          dbName: 'Ms Hasan Brothers Corporation',
-          outletsCat: 'Gold',
-          outletCode: `T10-2000${d.buyer_id || '3431699'}`,
-          outletName: 'Chadpur Store',
-          routeCode: 'T10R00067423240816',
-          routeName: 'Sadorghat',
-          invNo: `INV210015${String(d.id || '').padStart(6, '0')}`,
+          orderDate: orderDateStr,
+          cluster: '',
+          area: '',
+          territory: territoryName,
+          dbCode: d.seller_id ? String(d.seller_id) : '',
+          dbName: '',
+          outletsCat: '',
+          outletCode: d.buyer_id ? String(d.buyer_id) : '',
+          outletName,
+          routeCode: '',
+          routeName: '',
+          invNo: d.order?.invoice?.invoice_number || (d.id ? `INV${d.id}` : ''),
           skuCode,
           skuName,
           uom: 'BOX',
