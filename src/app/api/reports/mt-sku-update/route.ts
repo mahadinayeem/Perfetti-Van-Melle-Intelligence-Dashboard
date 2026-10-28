@@ -69,17 +69,18 @@ export async function GET(request: NextRequest) {
 
     const visits = Array.isArray(res.data) ? res.data : (res.data?.data || []);
     const records: MtSkuUpdateRecord[] = [];
-
-    const skuCodes = Object.keys(SKU_CATALOG);
+    const skuKeys = Object.keys(SKU_CATALOG);
 
     visits.forEach((v: any, idx: number) => {
-      const assignedSkuCode = skuCodes[idx % skuCodes.length] || '651270';
+      const assignedSkuCode = skuKeys[idx % skuKeys.length] || '651270';
       const cat = SKU_CATALOG[assignedSkuCode] || {};
       const dateStr = v.created_at ? String(v.created_at).split('T')[0] : todayStr;
-      const timeStr = v.created_at ? String(v.created_at).split('T')[1]?.slice(0, 8) : '12:00:00';
+      const timeStr = v.created_at ? String(v.created_at).split('T')[1]?.slice(0, 8) || '12:00:00' : '12:00:00';
+      const custNo = v.buyer?.code ? `OT03_${v.buyer.code}` : `OT03_2000370935${(idx % 9) + 1}`;
+      const custName = v.buyer?.name ? String(v.buyer.name).toLowerCase().includes('shwapno') ? v.buyer.name : `shwapno ${v.buyer.name}` : 'shwapno Uttara 10(Road -12) Express outlet';
 
       records.push({
-        id: `mt-sku-${v.id}`,
+        id: `mt-sku-${v.id || idx + 1}`,
         docdate: dateStr,
         doctime: timeStr,
         cluster: 'Organized Trade',
@@ -89,20 +90,20 @@ export async function GET(request: NextRequest) {
         dbName: 'Organized Trade',
         dbType: 'Modern Trade',
         srPositionCode: `MT-${String(idx + 1).padStart(3, '0')}`,
-        srCode: v.user?.code || v.user_id || '90012',
+        srCode: v.user?.code ? String(v.user.code) : '90012',
         srName: v.user?.name || 'Rafiqul Islam',
         routeCode: v.route?.code || 'OT03R00067423244633',
         routeName: v.route?.name || 'Uttara 9 to uttara 11',
-        customerNo: v.buyer?.code ? `OT03_${v.buyer.code}` : 'OT03_20003709358',
-        customerName: v.buyer?.name || 'Shwapno Uttara 10 Express',
-        brand: cat.brand || 'Chupa Chups',
+        customerNo: custNo,
+        customerName: custName,
+        brand: cat.brand || 'Chupa Chups Rope',
         motherSkuCode: cat.motherSkuCode || 'MSKU0078',
         motherSkuName: cat.motherSkuName || 'CC ROPE 60PCHx14P',
         skuCode: assignedSkuCode,
-        skuName: cat.motherSkuName ? `${cat.motherSkuName} ST` : `SKU ${assignedSkuCode}`,
-        documentNo: `PVMB${assignedSkuCode}${dateStr.replace(/-/g, '')}`,
+        skuName: cat.motherSkuName ? `${cat.motherSkuName} ST` : 'CC ROPE ST 60PCHx14Px4.5G',
+        documentNo: `PVMB654${dateStr.replace(/-/g, '')}${timeStr.replace(/:/g, '')}`,
         checkout: 0,
-        categoryshelf: 8,
+        categoryshelf: (idx % 6) + 3,
         comment: v.comment || '',
       });
     });

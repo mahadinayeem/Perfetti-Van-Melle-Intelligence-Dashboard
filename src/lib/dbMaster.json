@@ -1,0 +1,1770 @@
+{
+  "dbs": {
+    "100001": {
+      "dbCode": "100001",
+      "dbName": "Organized Trade",
+      "area": "Organized Trade",
+      "territory": "Organized Trade",
+      "cluster": "Organized Trade",
+      "srPositionCode": "DM-001"
+    },
+    "100117": {
+      "dbCode": "100117",
+      "dbName": "M/S Sagor & Brothers",
+      "area": "Central South",
+      "territory": "Narayanganj",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "100192": {
+      "dbCode": "100192",
+      "dbName": "Tarapada Saha",
+      "area": "Central North",
+      "territory": "Tangail",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "100199": {
+      "dbCode": "100199",
+      "dbName": "M/S Bhawal Traders",
+      "area": "Central North",
+      "territory": "Gazipur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "100257": {
+      "dbCode": "100257",
+      "dbName": "SR Brothers",
+      "area": "East",
+      "territory": "Noakhali",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "100266": {
+      "dbCode": "100266",
+      "dbName": "Laksam Store",
+      "area": "East",
+      "territory": "Noakhali",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "100411": {
+      "dbCode": "100411",
+      "dbName": "Priya Enterprize",
+      "area": "Sylhet",
+      "territory": "Moulovibazar",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "100448": {
+      "dbCode": "100448",
+      "dbName": "Ananna Food Products",
+      "area": "South",
+      "territory": "Jhenaidah",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "100469": {
+      "dbCode": "100469",
+      "dbName": "Sikder Traders",
+      "area": "South",
+      "territory": "Faridpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "100477": {
+      "dbCode": "100477",
+      "dbName": "Azim Enterprise",
+      "area": "South",
+      "territory": "Jashore",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "100573": {
+      "dbCode": "100573",
+      "dbName": "KS Rahman & Brothers Medical Store",
+      "area": "North",
+      "territory": "Bogura",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "100630": {
+      "dbCode": "100630",
+      "dbName": "M/S Anjaly Traders",
+      "area": "Central North",
+      "territory": "Savar",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "100783": {
+      "dbCode": "100783",
+      "dbName": "M/S Shokot Traders",
+      "area": "North",
+      "territory": "Rajshahi",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "100863": {
+      "dbCode": "100863",
+      "dbName": "M/S Hazi Abdul Hamid Enterprise",
+      "area": "South",
+      "territory": "Kushtia",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "100953": {
+      "dbCode": "100953",
+      "dbName": "Boishakhi Enterprise",
+      "area": "South",
+      "territory": "Jashore",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101159": {
+      "dbCode": "101159",
+      "dbName": "M/S Kismat Enterprise",
+      "area": "East",
+      "territory": "Cumilla",
+      "cluster": "Cluster-1",
+      "srPositionCode": "CTG-016"
+    },
+    "101273": {
+      "dbCode": "101273",
+      "dbName": "M/S Sabuj Traders",
+      "area": "North",
+      "territory": "Joypurhat",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101299": {
+      "dbCode": "101299",
+      "dbName": "M/S Sonjoy Brothers",
+      "area": "North",
+      "territory": "Pabna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101302": {
+      "dbCode": "101302",
+      "dbName": "Pinki Distribution",
+      "area": "Central North",
+      "territory": "Mymensingh",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "101328": {
+      "dbCode": "101328",
+      "dbName": "M/S Mahi Enterprise",
+      "area": "South",
+      "territory": "Barishal",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101334": {
+      "dbCode": "101334",
+      "dbName": "M/S Jalalabadh Trading",
+      "area": "Central North",
+      "territory": "Jamalpur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "101451": {
+      "dbCode": "101451",
+      "dbName": "Fahim Enterprise",
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "101463": {
+      "dbCode": "101463",
+      "dbName": "M/S Khandoker Enterprise",
+      "area": "Central North",
+      "territory": "Savar",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "101511": {
+      "dbCode": "101511",
+      "dbName": "Lamim Enterprise",
+      "area": "Central North",
+      "territory": "Konabari",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "101600": {
+      "dbCode": "101600",
+      "dbName": "M M Traders",
+      "area": "South",
+      "territory": "Jashore",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101620": {
+      "dbCode": "101620",
+      "dbName": "Sabuj Telecom",
+      "area": "South",
+      "territory": "Madaripur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101686": {
+      "dbCode": "101686",
+      "dbName": "M/S Obaydul Hoq Store",
+      "area": "East",
+      "territory": "Noakhali",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101698": {
+      "dbCode": "101698",
+      "dbName": "Hadi enterprise",
+      "area": "Central North",
+      "territory": "Konabari",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "101740": {
+      "dbCode": "101740",
+      "dbName": "Toha Distribution",
+      "area": "Central South",
+      "territory": "Mirpur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "101741": {
+      "dbCode": "101741",
+      "dbName": "M/S. Sohel Traders",
+      "area": "North",
+      "territory": "Dinajpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101762": {
+      "dbCode": "101762",
+      "dbName": "M/S Tajul Store",
+      "area": "East",
+      "territory": "Feni",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101791": {
+      "dbCode": "101791",
+      "dbName": "M/S Joy Enterprise",
+      "area": "East",
+      "territory": "Cumilla",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101820": {
+      "dbCode": "101820",
+      "dbName": "Sara Enterprise",
+      "area": "Central South",
+      "territory": "Gulshan",
+      "cluster": "Central",
+      "srPositionCode": "DM-030"
+    },
+    "101822": {
+      "dbCode": "101822",
+      "dbName": "M/S Faruk & Brothers",
+      "area": "North",
+      "territory": "Joypurhat",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101828": {
+      "dbCode": "101828",
+      "dbName": "G.M Traders",
+      "area": "East",
+      "territory": "Cumilla",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101902": {
+      "dbCode": "101902",
+      "dbName": "M/S Rahat Trading",
+      "area": "North",
+      "territory": "Joypurhat",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101916": {
+      "dbCode": "101916",
+      "dbName": "YRC Trading",
+      "area": "East",
+      "territory": "Chattogram Metro - 1",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101931": {
+      "dbCode": "101931",
+      "dbName": "M/s. Shuveccha Enterprise",
+      "area": "Sylhet",
+      "territory": "Moulovibazar",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101951": {
+      "dbCode": "101951",
+      "dbName": "M/S Raisha Traders",
+      "area": "North",
+      "territory": "Dinajpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101960": {
+      "dbCode": "101960",
+      "dbName": "Jalal Store",
+      "area": "East",
+      "territory": "Cox's Bazar",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101961": {
+      "dbCode": "101961",
+      "dbName": "Jahan Enterprise",
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "101972": {
+      "dbCode": "101972",
+      "dbName": "Fiha Store",
+      "area": "Central North",
+      "territory": "Gazipur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "101981": {
+      "dbCode": "101981",
+      "dbName": "Kazi Builders",
+      "area": "East",
+      "territory": "Chattogram Outer",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101982": {
+      "dbCode": "101982",
+      "dbName": "M/S Siam Enterprise",
+      "area": "South",
+      "territory": "Madaripur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101983": {
+      "dbCode": "101983",
+      "dbName": "M/S Islam Traders",
+      "area": "North",
+      "territory": "Dinajpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101985": {
+      "dbCode": "101985",
+      "dbName": "G. H. Enterprise",
+      "area": "South",
+      "territory": "Kushtia",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101991": {
+      "dbCode": "101991",
+      "dbName": "Jakir & Brothers",
+      "area": "Sylhet",
+      "territory": "Narsingdi",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101992": {
+      "dbCode": "101992",
+      "dbName": "M/s. Joynul Enterprise",
+      "area": "East",
+      "territory": "Cox's Bazar",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101994": {
+      "dbCode": "101994",
+      "dbName": "Shahida Traders",
+      "area": "North",
+      "territory": "Bogura",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101997": {
+      "dbCode": "101997",
+      "dbName": "Kaji Enterprise",
+      "area": "Sylhet",
+      "territory": "B.Baria",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "101999": {
+      "dbCode": "101999",
+      "dbName": "Nusaifa Enterprise",
+      "area": "East",
+      "territory": "Cox's Bazar",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102000": {
+      "dbCode": "102000",
+      "dbName": "Ocean Trading House",
+      "area": "South",
+      "territory": "Jhenaidah",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102003": {
+      "dbCode": "102003",
+      "dbName": "M/s. Maa Enterprise",
+      "area": "East",
+      "territory": "Noakhali",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102005": {
+      "dbCode": "102005",
+      "dbName": "M/S Take & Pay",
+      "area": "Sylhet",
+      "territory": "Moulovibazar",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102011": {
+      "dbCode": "102011",
+      "dbName": "M/S Gausia Enterprize",
+      "area": "East",
+      "territory": "Chattogram Outer",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102012": {
+      "dbCode": "102012",
+      "dbName": "M/S Sourav Bitan",
+      "area": "East",
+      "territory": "Noakhali",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102015": {
+      "dbCode": "102015",
+      "dbName": "M/S Ahon Enterprise",
+      "area": "South",
+      "territory": "Khulna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102021": {
+      "dbCode": "102021",
+      "dbName": "M/S Jibon Enterprise",
+      "area": "South",
+      "territory": "Madaripur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102025": {
+      "dbCode": "102025",
+      "dbName": "M/S Araddho Traders",
+      "area": "North",
+      "territory": "Rangpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102027": {
+      "dbCode": "102027",
+      "dbName": "M/S Sarder Traders",
+      "area": "South",
+      "territory": "Madaripur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102029": {
+      "dbCode": "102029",
+      "dbName": "M/S Maa Enterprise",
+      "area": "East",
+      "territory": "Chandpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102030": {
+      "dbCode": "102030",
+      "dbName": "M/S MD Nihad Enterprise",
+      "area": "Central South",
+      "territory": "Narayanganj",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102031": {
+      "dbCode": "102031",
+      "dbName": "S.R.M Dashgumbuj Enterprise",
+      "area": "South",
+      "territory": "Khulna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102032": {
+      "dbCode": "102032",
+      "dbName": "M/S Sarwar Variety Store",
+      "area": "North",
+      "territory": "Bogura",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102034": {
+      "dbCode": "102034",
+      "dbName": "M/S Ahid Traders",
+      "area": "North",
+      "territory": "Rajshahi",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102040": {
+      "dbCode": "102040",
+      "dbName": "M/S Oliulla Enterprise",
+      "area": "Central South",
+      "territory": "Narayanganj",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102041": {
+      "dbCode": "102041",
+      "dbName": "M/S Hazi Enterprise",
+      "area": "East",
+      "territory": "Cumilla",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102042": {
+      "dbCode": "102042",
+      "dbName": "Ms Hasan Brothers corporation",
+      "area": "Central South",
+      "territory": "Chawkbazar",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102044": {
+      "dbCode": "102044",
+      "dbName": "Hyperion Corporation",
+      "area": "Central South",
+      "territory": "Mirpur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102051": {
+      "dbCode": "102051",
+      "dbName": "Oikko Traders",
+      "area": "North",
+      "territory": "Bogura",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102078": {
+      "dbCode": "102078",
+      "dbName": "Bismillah Enterprise",
+      "area": "Sylhet",
+      "territory": "Narsingdi",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102079": {
+      "dbCode": "102079",
+      "dbName": "M/S Shanto Enterprise",
+      "area": "East",
+      "territory": "Cumilla",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102091": {
+      "dbCode": "102091",
+      "dbName": "Tahiya Enterprise",
+      "area": "East",
+      "territory": "Cumilla",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102092": {
+      "dbCode": "102092",
+      "dbName": "Swapan Traders",
+      "area": "North",
+      "territory": "Rangpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102094": {
+      "dbCode": "102094",
+      "dbName": "B M Enterprise",
+      "area": "North",
+      "territory": "Rangpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102095": {
+      "dbCode": "102095",
+      "dbName": "Khan Enterprise",
+      "area": "South",
+      "territory": "Madaripur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102100": {
+      "dbCode": "102100",
+      "dbName": "M/S Bandhon Enterprise",
+      "area": "South",
+      "territory": "Faridpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102105": {
+      "dbCode": "102105",
+      "dbName": "M A Trading",
+      "area": "North",
+      "territory": "Dinajpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102116": {
+      "dbCode": "102116",
+      "dbName": "Mahfuz Enterprise",
+      "area": "Sylhet",
+      "territory": "Sylhet Metro",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102120": {
+      "dbCode": "102120",
+      "dbName": "M/S Kazim Uddin and Sons",
+      "area": "North",
+      "territory": "Pabna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102121": {
+      "dbCode": "102121",
+      "dbName": "Khondokar Traders",
+      "area": "North",
+      "territory": "Pabna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102123": {
+      "dbCode": "102123",
+      "dbName": "M/S Shuvro Traders",
+      "area": "North",
+      "territory": "Pabna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102128": {
+      "dbCode": "102128",
+      "dbName": "Sarkar Cosmetics",
+      "area": "Central North",
+      "territory": "Gazipur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102139": {
+      "dbCode": "102139",
+      "dbName": "S S Shohan Traders",
+      "area": "North",
+      "territory": "Pabna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102141": {
+      "dbCode": "102141",
+      "dbName": "M/S Maa Enterprise",
+      "area": "Central North",
+      "territory": "Savar",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102154": {
+      "dbCode": "102154",
+      "dbName": "Farid Store",
+      "area": "Central North",
+      "territory": "Konabari",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102163": {
+      "dbCode": "102163",
+      "dbName": "M/S. Farzana Store",
+      "area": "Sylhet",
+      "territory": "Kishoreganj",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102165": {
+      "dbCode": "102165",
+      "dbName": "M/S AYAAN TRADERS",
+      "area": "Sylhet",
+      "territory": "Narsingdi",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102190": {
+      "dbCode": "102190",
+      "dbName": "M/S. Sumon Enterprise",
+      "area": "South",
+      "territory": "Jashore",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102191": {
+      "dbCode": "102191",
+      "dbName": "Sulov Traders",
+      "area": "North",
+      "territory": "Pabna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102193": {
+      "dbCode": "102193",
+      "dbName": "M/S Sifat Enterprise",
+      "area": "Sylhet",
+      "territory": "Kishoreganj",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102209": {
+      "dbCode": "102209",
+      "dbName": "Bangla Business",
+      "area": "Sylhet",
+      "territory": "Narsingdi",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102213": {
+      "dbCode": "102213",
+      "dbName": "Labiba Enterprise",
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102216": {
+      "dbCode": "102216",
+      "dbName": "Saifa Enterprise",
+      "area": "Central South",
+      "territory": "Narayanganj",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102217": {
+      "dbCode": "102217",
+      "dbName": "Maa Varities Store",
+      "area": "Sylhet",
+      "territory": "Sylhet Outer",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102227": {
+      "dbCode": "102227",
+      "dbName": "Rashidul Enterprise",
+      "area": "Central North",
+      "territory": "Savar",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102231": {
+      "dbCode": "102231",
+      "dbName": "M/S Taha Enterprise",
+      "area": "East",
+      "territory": "Chandpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102235": {
+      "dbCode": "102235",
+      "dbName": "M/S Upoma Centre",
+      "area": "North",
+      "territory": "Joypurhat",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102238": {
+      "dbCode": "102238",
+      "dbName": "M/S M.K Traders",
+      "area": "North",
+      "territory": "Rangpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102239": {
+      "dbCode": "102239",
+      "dbName": "Soroz Store",
+      "area": "Central North",
+      "territory": "Mymensingh",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102240": {
+      "dbCode": "102240",
+      "dbName": "M/S Mawastha Traders",
+      "area": "North",
+      "territory": "Pabna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102245": {
+      "dbCode": "102245",
+      "dbName": "M/S R F Enterprise",
+      "area": "Sylhet",
+      "territory": "Narsingdi",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102250": {
+      "dbCode": "102250",
+      "dbName": "S A Tamim Enterprise",
+      "area": "North",
+      "territory": "Rajshahi",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102252": {
+      "dbCode": "102252",
+      "dbName": "Macaw Distributions",
+      "area": "Central South",
+      "territory": "Mirpur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102253": {
+      "dbCode": "102253",
+      "dbName": "Poly Trade Zone",
+      "area": "South",
+      "territory": "Kushtia",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102256": {
+      "dbCode": "102256",
+      "dbName": "Bhai Bhai Traders",
+      "area": "East",
+      "territory": "Noakhali",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102257": {
+      "dbCode": "102257",
+      "dbName": "Maruf Store",
+      "area": "South",
+      "territory": "Kushtia",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102258": {
+      "dbCode": "102258",
+      "dbName": "Salam Trading",
+      "area": "Central North",
+      "territory": "Savar",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102259": {
+      "dbCode": "102259",
+      "dbName": "M/S Fatiha Traders",
+      "area": "Sylhet",
+      "territory": "B.Baria",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102267": {
+      "dbCode": "102267",
+      "dbName": "M/S Ahamed Enterprise",
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "cluster": "Central",
+      "srPositionCode": "DM-217"
+    },
+    "102268": {
+      "dbCode": "102268",
+      "dbName": "M/S Sufia Enterprise",
+      "area": "Central North",
+      "territory": "Konabari",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102271": {
+      "dbCode": "102271",
+      "dbName": "Sanuar Enterprise",
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102272": {
+      "dbCode": "102272",
+      "dbName": "Al Modina Fish Feed",
+      "area": "East",
+      "territory": "Cox's Bazar",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102276": {
+      "dbCode": "102276",
+      "dbName": "M.R. Enterprise",
+      "area": "East",
+      "territory": "Chattogram Outer",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102279": {
+      "dbCode": "102279",
+      "dbName": "Utshob International",
+      "area": "Central South",
+      "territory": "Keraniganj",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102288": {
+      "dbCode": "102288",
+      "dbName": "Zikra Enterprise",
+      "area": "Sylhet",
+      "territory": "Narsingdi",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102289": {
+      "dbCode": "102289",
+      "dbName": "M.R Traders",
+      "area": "North",
+      "territory": "Joypurhat",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102292": {
+      "dbCode": "102292",
+      "dbName": "Yamani Enterprise",
+      "area": "South",
+      "territory": "Barishal",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102293": {
+      "dbCode": "102293",
+      "dbName": "M/S Mishan Store",
+      "area": "East",
+      "territory": "Feni",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102296": {
+      "dbCode": "102296",
+      "dbName": "Mehra International",
+      "area": "South",
+      "territory": "Jashore",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102297": {
+      "dbCode": "102297",
+      "dbName": "P.M Traders",
+      "area": "East",
+      "territory": "Chattogram Metro - 2",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102298": {
+      "dbCode": "102298",
+      "dbName": "M/S Sabiha Enterprise",
+      "area": "Central North",
+      "territory": "Gazipur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102300": {
+      "dbCode": "102300",
+      "dbName": "Haaat & Co",
+      "area": "Sylhet",
+      "territory": "Sylhet Outer",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102301": {
+      "dbCode": "102301",
+      "dbName": "Great Trading House",
+      "area": "South",
+      "territory": "Jhenaidah",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102306": {
+      "dbCode": "102306",
+      "dbName": "M/S Ma Baba Traders",
+      "area": "East",
+      "territory": "Cumilla",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102307": {
+      "dbCode": "102307",
+      "dbName": "Abul Hossain Traders",
+      "area": "Central South",
+      "territory": "Keraniganj",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102308": {
+      "dbCode": "102308",
+      "dbName": "M/S. Suresh Chandra Saha",
+      "area": "East",
+      "territory": "Chandpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102310": {
+      "dbCode": "102310",
+      "dbName": "Hamza Traders",
+      "area": "North",
+      "territory": "Pabna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102312": {
+      "dbCode": "102312",
+      "dbName": "Nirob Enterprise",
+      "area": "South",
+      "territory": "Faridpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102316": {
+      "dbCode": "102316",
+      "dbName": "M/S Ma Enterprise",
+      "area": "Central North",
+      "territory": "Jamalpur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102320": {
+      "dbCode": "102320",
+      "dbName": "M/S Maayer Doa Enterprise",
+      "area": "East",
+      "territory": "Chattogram Metro - 2",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102321": {
+      "dbCode": "102321",
+      "dbName": "M/S Sharon Enterprise",
+      "area": "South",
+      "territory": "Jhenaidah",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102325": {
+      "dbCode": "102325",
+      "dbName": "M/S. Shahjalal Enterprise",
+      "area": "East",
+      "territory": "Cox's Bazar",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102330": {
+      "dbCode": "102330",
+      "dbName": "M/S Sajib And Brothers",
+      "area": "North",
+      "territory": "Pabna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102331": {
+      "dbCode": "102331",
+      "dbName": "M/S Aksa Traders",
+      "area": "Sylhet",
+      "territory": "Narsingdi",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102332": {
+      "dbCode": "102332",
+      "dbName": "Karik Enterprise",
+      "area": "Central South",
+      "territory": "Narayanganj",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102335": {
+      "dbCode": "102335",
+      "dbName": "M/S L.M. Enterprise",
+      "area": "Central South",
+      "territory": "Narayanganj",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102337": {
+      "dbCode": "102337",
+      "dbName": "Maliyat House",
+      "area": "South",
+      "territory": "Khulna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102339": {
+      "dbCode": "102339",
+      "dbName": "M/S Arman Traders",
+      "area": "East",
+      "territory": "Feni",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102340": {
+      "dbCode": "102340",
+      "dbName": "M/S Ashim Store",
+      "area": "South",
+      "territory": "Barishal",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102347": {
+      "dbCode": "102347",
+      "dbName": "M/S Abdullah Enterprise",
+      "area": "Central North",
+      "territory": "Gazipur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102348": {
+      "dbCode": "102348",
+      "dbName": "Deenara Enterprise",
+      "area": "Sylhet",
+      "territory": "Sylhet Metro",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102349": {
+      "dbCode": "102349",
+      "dbName": "M/S Monir Store",
+      "area": "Sylhet",
+      "territory": "Sylhet Outer",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102350": {
+      "dbCode": "102350",
+      "dbName": "Tanzim Enterprise",
+      "area": "Central North",
+      "territory": "Savar",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102355": {
+      "dbCode": "102355",
+      "dbName": "Mayer Dowa General Store",
+      "area": "Central South",
+      "territory": "Mirpur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102358": {
+      "dbCode": "102358",
+      "dbName": "Mashrafi Enterprise",
+      "area": "Central South",
+      "territory": "Keraniganj",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102360": {
+      "dbCode": "102360",
+      "dbName": "Bhai Bhai Enterprise",
+      "area": "Central South",
+      "territory": "Keraniganj",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102362": {
+      "dbCode": "102362",
+      "dbName": "Anaiza Enterprise",
+      "area": "East",
+      "territory": "Chattogram Metro - 1",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102370": {
+      "dbCode": "102370",
+      "dbName": "M/S Alim Traders",
+      "area": "Sylhet",
+      "territory": "B.Baria",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102371": {
+      "dbCode": "102371",
+      "dbName": "Mayer Doya Shari Palace",
+      "area": "North",
+      "territory": "Bogura",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102372": {
+      "dbCode": "102372",
+      "dbName": "R S Trade Nest",
+      "area": "South",
+      "territory": "Khulna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102373": {
+      "dbCode": "102373",
+      "dbName": "M/S Saiful Enterprise",
+      "area": "South",
+      "territory": "Barishal",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102381": {
+      "dbCode": "102381",
+      "dbName": "M/S Keya Enterprise",
+      "area": "Central North",
+      "territory": "Tangail",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102382": {
+      "dbCode": "102382",
+      "dbName": "M/S Ma Enterprise",
+      "area": "Central North",
+      "territory": "Tangail",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102386": {
+      "dbCode": "102386",
+      "dbName": "Pathan Traders",
+      "area": "Central North",
+      "territory": "Mymensingh",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102391": {
+      "dbCode": "102391",
+      "dbName": "Bhai Bhai Distribution",
+      "area": "South",
+      "territory": "Faridpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102396": {
+      "dbCode": "102396",
+      "dbName": "M/S Gopal Modok & Brothers",
+      "area": "Central North",
+      "territory": "Jamalpur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102397": {
+      "dbCode": "102397",
+      "dbName": "Emon Enterprise",
+      "area": "North",
+      "territory": "Rajshahi",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102399": {
+      "dbCode": "102399",
+      "dbName": "Kamal Akram Traders",
+      "area": "Central South",
+      "territory": "Mirpur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102400": {
+      "dbCode": "102400",
+      "dbName": "Maa Varieties Store And Telecom Center",
+      "area": "Sylhet",
+      "territory": "Kishoreganj",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102405": {
+      "dbCode": "102405",
+      "dbName": "M/S Rajib Enterprise",
+      "area": "East",
+      "territory": "Cox's Bazar",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102407": {
+      "dbCode": "102407",
+      "dbName": "M/S. Masud Enterprise",
+      "area": "East",
+      "territory": "Feni",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102410": {
+      "dbCode": "102410",
+      "dbName": "M/S Khan Enterprise",
+      "area": "South",
+      "territory": "Madaripur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102411": {
+      "dbCode": "102411",
+      "dbName": "M/S Hai & Brothers",
+      "area": "East",
+      "territory": "Chandpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102412": {
+      "dbCode": "102412",
+      "dbName": "M/S A. TRADING CORPORATION",
+      "area": "North",
+      "territory": "Rangpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102413": {
+      "dbCode": "102413",
+      "dbName": "H.S Business Point",
+      "area": "Sylhet",
+      "territory": "Kishoreganj",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102414": {
+      "dbCode": "102414",
+      "dbName": "M/S Novin Enterprise",
+      "area": "Sylhet",
+      "territory": "Sylhet Outer",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102415": {
+      "dbCode": "102415",
+      "dbName": "M/S Jamuna Traders",
+      "area": "East",
+      "territory": "Cumilla",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102416": {
+      "dbCode": "102416",
+      "dbName": "Bhai Bhai Store",
+      "area": "East",
+      "territory": "Feni",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102417": {
+      "dbCode": "102417",
+      "dbName": "MS Amania Traders",
+      "area": "East",
+      "territory": "Noakhali",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102418": {
+      "dbCode": "102418",
+      "dbName": "MS Hamida Traders",
+      "area": "North",
+      "territory": "Dinajpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102419": {
+      "dbCode": "102419",
+      "dbName": "Sree Joye Enterprise",
+      "area": "Central South",
+      "territory": "Jatra Bari",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102420": {
+      "dbCode": "102420",
+      "dbName": "Mahabub Enterprise",
+      "area": "South",
+      "territory": "Kushtia",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102425": {
+      "dbCode": "102425",
+      "dbName": "Ma Varieties Store",
+      "area": "Sylhet",
+      "territory": "Moulovibazar",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102426": {
+      "dbCode": "102426",
+      "dbName": "M/S SABIHA ENTERPRISE",
+      "area": "East",
+      "territory": "Feni",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102430": {
+      "dbCode": "102430",
+      "dbName": "ICON SOLUTION BD",
+      "area": "Central North",
+      "territory": "Gazipur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102431": {
+      "dbCode": "102431",
+      "dbName": "Pabna Trading",
+      "area": "North",
+      "territory": "Pabna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102432": {
+      "dbCode": "102432",
+      "dbName": "Quality Enterprise",
+      "area": "East",
+      "territory": "Chattogram Metro - 2",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102436": {
+      "dbCode": "102436",
+      "dbName": "Brothers Marketing",
+      "area": "South",
+      "territory": "Khulna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102441": {
+      "dbCode": "102441",
+      "dbName": "An-Nur Distribution",
+      "area": "East",
+      "territory": "Chattogram Outer",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102442": {
+      "dbCode": "102442",
+      "dbName": "R N Z Trading",
+      "area": "East",
+      "territory": "Chattogram Metro - 1",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102445": {
+      "dbCode": "102445",
+      "dbName": "M/S Hasan Brothers Corporation",
+      "area": "Central South",
+      "territory": "Gulshan",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102446": {
+      "dbCode": "102446",
+      "dbName": "Mahfuz Enterprise",
+      "area": "South",
+      "territory": "Jashore",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102447": {
+      "dbCode": "102447",
+      "dbName": "M/S Rakibul Traders",
+      "area": "Central North",
+      "territory": "Konabari",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102448": {
+      "dbCode": "102448",
+      "dbName": "M/S Mouhini Enterprise",
+      "area": "East",
+      "territory": "Cox's Bazar",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102449": {
+      "dbCode": "102449",
+      "dbName": "M/S Abu Shiddique Enterprise",
+      "area": "East",
+      "territory": "Cox's Bazar",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102455": {
+      "dbCode": "102455",
+      "dbName": "ARC Trading",
+      "area": "Organized Trade",
+      "territory": "Organized Trade",
+      "cluster": "Organized Trade",
+      "srPositionCode": "DM-001"
+    },
+    "102460": {
+      "dbCode": "102460",
+      "dbName": "M/S Asif Enterprise",
+      "area": "South",
+      "territory": "Jashore",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102462": {
+      "dbCode": "102462",
+      "dbName": "M/S Macca Madina Rice Agency",
+      "area": "Central South",
+      "territory": "Narayanganj",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102463": {
+      "dbCode": "102463",
+      "dbName": "M/S Fahmida Traders",
+      "area": "Central North",
+      "territory": "Konabari",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102464": {
+      "dbCode": "102464",
+      "dbName": "Ababil Traders",
+      "area": "East",
+      "territory": "Noakhali",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102465": {
+      "dbCode": "102465",
+      "dbName": "Farid Store",
+      "area": "East",
+      "territory": "Cumilla",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102466": {
+      "dbCode": "102466",
+      "dbName": "M/S Ayman Variety Store",
+      "area": "East",
+      "territory": "Feni",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102467": {
+      "dbCode": "102467",
+      "dbName": "Tanvir Store",
+      "area": "North",
+      "territory": "Dinajpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102470": {
+      "dbCode": "102470",
+      "dbName": "Faisal Traders",
+      "area": "East",
+      "territory": "Chandpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102471": {
+      "dbCode": "102471",
+      "dbName": "M/S Adisha Adiba Enterprise",
+      "area": "East",
+      "territory": "Cox's Bazar",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102472": {
+      "dbCode": "102472",
+      "dbName": "Hannan Store",
+      "area": "East",
+      "territory": "Chandpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102473": {
+      "dbCode": "102473",
+      "dbName": "Allahr Dan Traders",
+      "area": "East",
+      "territory": "Noakhali",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102474": {
+      "dbCode": "102474",
+      "dbName": "Riad Store",
+      "area": "East",
+      "territory": "Noakhali",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102475": {
+      "dbCode": "102475",
+      "dbName": "Seba Thai Aluminium & Glass House",
+      "area": "East",
+      "territory": "Chandpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102476": {
+      "dbCode": "102476",
+      "dbName": "M/S Fine Traders",
+      "area": "North",
+      "territory": "Bogura",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102477": {
+      "dbCode": "102477",
+      "dbName": "M/S Patoare Traders",
+      "area": "North",
+      "territory": "Rangpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102480": {
+      "dbCode": "102480",
+      "dbName": "Tasnim Traders",
+      "area": "Central South",
+      "territory": "Mirpur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102481": {
+      "dbCode": "102481",
+      "dbName": "M/S Azad Traders",
+      "area": "Sylhet",
+      "territory": "Sylhet Metro",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102482": {
+      "dbCode": "102482",
+      "dbName": "M/S Anannya Trading",
+      "area": "Central South",
+      "territory": "Gulshan",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102484": {
+      "dbCode": "102484",
+      "dbName": "M/S Saiful Traders",
+      "area": "Central South",
+      "territory": "Mirpur",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "102485": {
+      "dbCode": "102485",
+      "dbName": "Maa Enterprise",
+      "area": "Sylhet",
+      "territory": "Sylhet Outer",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102490": {
+      "dbCode": "102490",
+      "dbName": "M/S Zarif Enterprise",
+      "area": "South",
+      "territory": "Khulna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102491": {
+      "dbCode": "102491",
+      "dbName": "Mukta Enterprize",
+      "area": "North",
+      "territory": "Dinajpur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "102492": {
+      "dbCode": "102492",
+      "dbName": "Arisha Asfi Traders",
+      "area": "Central South",
+      "territory": "Narayanganj",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "SD0302": {
+      "dbCode": "SD0302",
+      "dbName": "M/S Jakir Enterprise",
+      "area": "Central North",
+      "territory": "Tangail",
+      "cluster": "Central",
+      "srPositionCode": "DM-001"
+    },
+    "SD0006": {
+      "dbCode": "SD0006",
+      "dbName": "Molla Shoping center",
+      "area": "North",
+      "territory": "Pabna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "DM-001"
+    },
+    "ST1051": {
+      "dbCode": "ST1051",
+      "dbName": "M/S N S Store",
+      "area": "North",
+      "territory": "Pabna",
+      "cluster": "Cluster-1",
+      "srPositionCode": "BOG-383"
+    },
+    "ST1076": {
+      "dbCode": "ST1076",
+      "dbName": "T&T Enterprise",
+      "area": "South",
+      "territory": "Madaripur",
+      "cluster": "Cluster-1",
+      "srPositionCode": "BOG-221"
+    },
+    "ST1012": {
+      "dbCode": "ST1012",
+      "dbName": "MS Maa Baba Doua Enterprise",
+      "area": "North",
+      "territory": "Bogura",
+      "cluster": "Cluster-1",
+      "srPositionCode": "BOG-377"
+    }
+  },
+  "promos": [
+    {
+      "id": "ADMPP01735",
+      "name": "CC Rope B24 HNG G100tk off -UR WS"
+    },
+    {
+      "id": "ADMPP01789",
+      "name": "C Fruit Jar 220-UR WS- B1ctn G75tk off"
+    },
+    {
+      "id": "ADMPP01795",
+      "name": "C Fresh Jar 220-UR WS- B1ctn G75tk off"
+    },
+    {
+      "id": "ADMPP01732",
+      "name": "AJJ Jar B15 G90tk off -UR WS"
+    },
+    {
+      "id": "ADMPP01784",
+      "name": "Any Jar 2/Any 2 Hng - 10tk off (Urban RT)"
+    },
+    {
+      "id": "ADMPP01797",
+      "name": "Rural Retail Promo - Discount (>=700) - (Jar/HNG)"
+    },
+    {
+      "id": "ADMPP01803",
+      "name": "ALP CREAMFILLS Box (Min Ord Qty 15pcs) get-3% discount"
+    },
+    {
+      "id": "ADMPP01804",
+      "name": "C Fresh Box (Min Ord Qty 16pcs) get-3% discount"
+    },
+    {
+      "id": "ADMPP01805",
+      "name": "ALP JUZT JELLY (Min Ord Qty 8pcs) get-1% discount"
+    },
+    {
+      "id": "ADMPP01807",
+      "name": "ALP CREAMFILLS Jar (Min Ord Qty 8pcs) get-1% discount"
+    },
+    {
+      "id": "ADMPP01808",
+      "name": "C Fruit Jar (Min Ord Qty 8pcs) get-1% discount"
+    }
+  ]
+}

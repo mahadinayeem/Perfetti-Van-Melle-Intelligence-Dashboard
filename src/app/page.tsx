@@ -1396,13 +1396,60 @@ export default function DashboardPage() {
     return null;
   }, [startDate, endDate]);
 
+  const getRecordVal = (record: any, key: string): any => {
+    if (!record || typeof record !== 'object') return '';
+    if (record[key] !== undefined && record[key] !== null && record[key] !== '') return record[key];
+
+    const lower = key.toLowerCase();
+    if (record[lower] !== undefined && record[lower] !== null && record[lower] !== '') return record[lower];
+
+    const keyAliases: Record<string, string[]> = {
+      dbcode: ['dbcode', 'dbsubdbcode', 'distributorid', 'seller_id', 'distributor_id'],
+      dbname: ['dbname', 'dbsubdbname', 'distributorname', 'seller_name'],
+      dbtype: ['dbtype', 'db_type'],
+      skucode: ['skucode', 'sku_code', 'product_id', 'sku'],
+      skuname: ['skuname', 'sku_name', 'product_name'],
+      srcode: ['srcode', 'sreccode', 'sr_code', 'user_id', 'created_by'],
+      srname: ['srname', 'sr_name', 'user_name'],
+      srpositioncode: ['srpositioncode', 'srpostioncode', 'sr_position_code', 'srposition', 'distributorposition'],
+      orderno: ['orderno', 'order_no', 'order_code', 'code'],
+      orderdate: ['orderdate', 'order_date', 'created_at'],
+      deliverydate: ['deliverydate', 'delivery_date', 'deliver_date'],
+      invoiceno: ['invoiceno', 'invoice_no', 'invno'],
+      promoid: ['promoid', 'promo_id'],
+      promoname: ['promoname', 'promo_name'],
+      motherskucode: ['motherskucode', 'mother_sku_code'],
+      motherskuname: ['motherskuname', 'mother_sku_name'],
+      salesofficeid: ['salesofficeid', 'sales_office_id'],
+      salesofficename: ['salesofficename', 'sales_office_name'],
+      totalorderqty: ['totalorderqty', 'orderqty', 'total_qty'],
+      totalordervalue: ['totalordervalue', 'ordervalue', 'amount'],
+      deliveredqty: ['deliveredqty', 'deliveryqty'],
+      deliveredvalue: ['deliveredvalue', 'deliveryvalue', 'payable'],
+    };
+
+    const aliases = keyAliases[lower];
+    if (aliases) {
+      for (const a of aliases) {
+        if (record[a] !== undefined && record[a] !== null && record[a] !== '') return record[a];
+        const match = Object.keys(record).find((k) => k.toLowerCase() === a);
+        if (match && record[match] !== undefined && record[match] !== null && record[match] !== '') return record[match];
+      }
+    }
+
+    const found = Object.keys(record).find((k) => k.toLowerCase() === lower);
+    if (found && record[found] !== undefined && record[found] !== null && record[found] !== '') return record[found];
+
+    return '';
+  };
+
   // Unique values for each column based on raw records
   const uniqueColumnValues = useMemo(() => {
     const map: Record<string, string[]> = {};
     activeTabConfig.columns.forEach(({ key }) => {
       const distinct = new Set<string>();
       records.forEach((r) => {
-        const val = String(r[key] ?? '').trim();
+        const val = String(getRecordVal(r, key) ?? '').trim();
         if (val) distinct.add(val);
       });
       map[key] = Array.from(distinct).sort();
@@ -1417,7 +1464,7 @@ export default function DashboardPage() {
       if (globalSearch.trim()) {
         const q = globalSearch.toLowerCase();
         const matchesGlobal = activeTabConfig.columns.some(({ key }) =>
-          String(r[key] ?? '').toLowerCase().includes(q)
+          String(getRecordVal(r, key) ?? '').toLowerCase().includes(q)
         );
         if (!matchesGlobal) return false;
       }
@@ -1427,7 +1474,7 @@ export default function DashboardPage() {
         if (selectedValues) {
           const allVals = uniqueColumnValues[colKey] || [];
           if (selectedValues.size < allVals.length) {
-            const val = String(r[colKey] ?? '').trim();
+            const val = String(getRecordVal(r, colKey) ?? '').trim();
             if (!selectedValues.has(val)) {
               return false;
             }
@@ -1442,8 +1489,8 @@ export default function DashboardPage() {
     if (sortConfig) {
       const { key, direction } = sortConfig;
       result = [...result].sort((a, b) => {
-        const valA = String(a[key] ?? '');
-        const valB = String(b[key] ?? '');
+        const valA = String(getRecordVal(a, key) ?? '');
+        const valB = String(getRecordVal(b, key) ?? '');
         const numA = Number(valA);
         const numB = Number(valB);
         if (!isNaN(numA) && !isNaN(numB)) {
@@ -1455,7 +1502,7 @@ export default function DashboardPage() {
     }
 
     return result;
-  }, [records, globalSearch, columnFilters, sortConfig, activeTabConfig]);
+  }, [records, globalSearch, columnFilters, sortConfig, activeTabConfig, uniqueColumnValues]);
 
   // Pagination calculation
   const totalRecords = filteredAndSortedRecords.length;
@@ -1470,7 +1517,7 @@ export default function DashboardPage() {
     const exportRows = filteredAndSortedRecords.map((r) => {
       const row: Record<string, any> = {};
       activeTabConfig.columns.forEach((col) => {
-        row[col.label] = r[col.key] ?? '';
+        row[col.label] = getRecordVal(r, col.key) ?? '';
       });
       return row;
     });
@@ -2482,7 +2529,7 @@ export default function DashboardPage() {
                         </td>
                         {activeTabConfig.columns.map((col) => (
                           <td key={col.key} className="excel-td">
-                            {renderCell(col, r[col.key])}
+                            {renderCell(col, getRecordVal(r, col.key))}
                           </td>
                         ))}
                       </tr>

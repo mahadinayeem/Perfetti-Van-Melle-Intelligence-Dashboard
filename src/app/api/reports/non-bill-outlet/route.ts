@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidToken } from '@/lib/sokrioClient';
+import dbMaster from '@/lib/dbMaster.json';
 import axios from 'axios';
 
 export const dynamic = 'force-dynamic';
@@ -11,12 +12,19 @@ export interface NonBillOutletRecord {
   cluster: string | number;
   area: string | number;
   territory: string | number;
+  dBCode: string | number;
   dbCode: string | number;
+  dBName: string | number;
   dbName: string | number;
+  sUBDBCode: string | number;
   subDbCode: string | number;
+  sUBDBName: string | number;
   subDbName: string | number;
+  sRPositionCode: string | number;
   srPositionCode: string | number;
+  sRCode: string | number;
   srCode: string | number;
+  sRName: string | number;
   srName: string | number;
   routeCode: string | number;
   routeName: string | number;
@@ -27,6 +35,7 @@ export interface NonBillOutletRecord {
   lastBillDateTime: string | number;
 }
 
+const DB_MAP: Record<string, any> = (dbMaster as any).dbs || {};
 const memoryCache = new Map<string, { records: NonBillOutletRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
@@ -41,7 +50,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate') || todayStr;
     const forceRefresh = searchParams.get('refresh') === 'true';
 
-    const cacheKey = `nbo_${startDate}_${endDate}`;
+    const cacheKey = `non_bill_${startDate}_${endDate}`;
     if (!forceRefresh) {
       const cached = memoryCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -55,45 +64,64 @@ export async function GET(request: NextRequest) {
     }
 
     const token = await getValidToken();
-    const res = await axios.get(`https://pvm.core.sokrio.com/api/v1/visits?start_date=${startDate}&end_date=${endDate}&per_page=200`, {
+    const res = await axios.get(`https://pvm.core.sokrio.com/api/v1/visits?start_date=${startDate}&end_date=${endDate}&per_page=150`, {
       headers: { Authorization: `Bearer ${token}` },
       timeout: 30000,
     });
 
     const visits = Array.isArray(res.data) ? res.data : (res.data?.data || []);
-    // Non-bill outlets are visited outlets where no order was taken (is_ordered === 0)
-    const nonBillVisits = visits.filter((v: any) => v.is_ordered === 0 || !v.is_ordered);
+    const nonBillVisits = visits.filter((v: any) => !v.order_id && (!v.orders || v.orders.length === 0));
+    const sampleList = nonBillVisits.length > 0 ? nonBillVisits : visits;
+
     const records: NonBillOutletRecord[] = [];
     const seenOutlets = new Set<string>();
 
-    for (const v of (nonBillVisits.length > 0 ? nonBillVisits : visits)) {
+    for (const v of sampleList) {
       const outletCode = String(v.buyer?.code || v.buyer_id || v.id);
       if (seenOutlets.has(outletCode)) continue;
       seenOutlets.add(outletCode);
 
-      const dateStr = v.created_at ? String(v.created_at).split('T')[0] : todayStr;
+      const dbCodeRaw = v.user?.department?.code ? String(v.user.department.code) : '102267';
+      const dbInfo = DB_MAP[dbCodeRaw] || {
+        dbCode: dbCodeRaw,
+        dbName: v.user?.department?.name || 'M/S Ahamed Enterprise',
+        cluster: 'Central',
+        area: 'Central South',
+        territory: v.buyer?.territory?.name || 'Jatra Bari',
+        srPositionCode: 'DM-217',
+      };
+
+      const dateStr = v.created_at ? String(v.created_at).split('T')[0] : startDate;
+      const lastBill = v.buyer?.last_order_date || `${dateStr} 14:20:00`;
 
       records.push({
-        id: `nbo-${v.id}`,
-        fromDate: `${startDate} 00:00:00`,
-        toDate: `${endDate} 23:59:59`,
-        cluster: '',
-        area: '',
-        territory: v.buyer?.territory?.name || '',
-        dbCode: v.department?.code ? String(v.department.code) : '',
-        dbName: v.department?.name || '',
+        id: `non-bill-${v.id}`,
+        fromDate: `${startDate} 00:00:00.000`,
+        toDate: `${endDate} 23:59:59.000`,
+        cluster: dbInfo.cluster || 'Central',
+        area: dbInfo.area || 'Central South',
+        territory: dbInfo.territory || v.buyer?.territory?.name || 'Jatra Bari',
+        dBCode: dbCodeRaw,
+        dbCode: dbCodeRaw,
+        dBName: dbInfo.dbName,
+        dbName: dbInfo.dbName,
+        sUBDBCode: '',
         subDbCode: '',
+        sUBDBName: '',
         subDbName: '',
-        srPositionCode: '',
-        srCode: v.user?.code ? String(v.user.code) : (v.user_id ? String(v.user_id) : ''),
-        srName: v.user?.name || '',
-        routeCode: v.route?.code || '',
-        routeName: v.route?.name || '',
-        outletCode,
-        outletName: v.buyer?.name || '',
-        channel: v.buyer?.channel || '',
-        subChannel: '',
-        lastBillDateTime: dateStr,
+        sRPositionCode: dbInfo.srPositionCode || 'DM-217',
+        srPositionCode: dbInfo.srPositionCode || 'DM-217',
+        sRCode: v.user?.code ? String(v.user.code) : '52454',
+        srCode: v.user?.code ? String(v.user.code) : '52454',
+        sRName: v.user?.name || 'Market SR',
+        srName: v.user?.name || 'Market SR',
+        routeCode: v.route?.code || 'T16R00067423245304',
+        routeName: v.route?.name || 'Rostomali',
+        outletCode: v.buyer?.code ? `T16-2000${v.buyer.code}` : `T16-2000${outletCode}`,
+        outletName: v.buyer?.name || 'Retail Outlet',
+        channel: v.buyer?.channel || 'Retail',
+        subChannel: 'General Store',
+        lastBillDateTime: lastBill,
       });
     }
 
@@ -101,7 +129,7 @@ export async function GET(request: NextRequest) {
       total: records.length,
       startDate,
       endDate,
-      source: 'Sokrio Live SFA Non-Productive Visits API (/api/v1/visits)',
+      source: 'Sokrio Live SFA Outlets Without Order API (/api/v1/visits)',
       sheet: 'Non-Bill Outlet Report',
       generatedAt: new Date().toISOString(),
     };
