@@ -199,7 +199,7 @@ async function fetchLiveOrdersFromSokrio(startDate: string, endDate: string): Pr
       territory: srMeta?.territory || 'Jatra Bari',
       dbCode: r['Seller Department Code'] || srMeta?.dbCode || '102267',
       dbName: r['Seller Department Name'] || srMeta?.dbName || 'M/S Ahamed Enterprise',
-      dbType: 'MAIN DB',
+      dbType: '',
       srPosition: srMeta?.srPositionCode || 'DM-057',
       srCode,
       srName: srMeta?.srName || String(r['Order Creator Name'] || r['Employee Name'] || ''),

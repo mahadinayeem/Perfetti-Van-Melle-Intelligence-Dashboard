@@ -288,7 +288,7 @@ async function fetchLiveDetailFromSokrio(targetDate: string): Promise<{ records:
       territory: srMeta.territory,
       dbCode: srMeta.dbCode,
       dbName: srMeta.dbName,
-      dbType: 'Main DB',
+      dbType: '',
       srPositionCode: srMeta.srPositionCode,
       srCode,
       srName: srMeta.srName || d.srName,

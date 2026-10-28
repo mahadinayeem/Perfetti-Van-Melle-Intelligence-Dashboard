@@ -179,7 +179,7 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
     const territory = 'Jatra Bari';
     const dbCode = dept.code || 102267;
     const dbName = dept.name || 'M/S Ahamed Enterprise';
-    const dbType = dept.type || 'MAIN';
+    const dbType = '';
     const location = dept.code || 102267;
     const dbStatus = dept.status ? (dept.status.charAt(0).toUpperCase() + dept.status.slice(1)) : 'Active';
 
@@ -251,7 +251,7 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
         territory: 'Jatra Bari',
         dbCode: 102267,
         dbName: 'M/S Ahamed Enterprise',
-        dbType: 'MAIN',
+        dbType: '',
         location: 102267,
         itemNo: Number(skuCode) || skuCode,
         description,

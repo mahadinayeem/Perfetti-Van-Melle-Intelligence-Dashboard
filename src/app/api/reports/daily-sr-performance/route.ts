@@ -499,7 +499,7 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
 
     const territory = srMeta?.territory || meta.territory || 'Jatra Bari';
     const town = territory;
-    const dbType = 'DB';
+    const dbType = '';
 
     records.push({
       id: `daily-sr-${idx++}`,
