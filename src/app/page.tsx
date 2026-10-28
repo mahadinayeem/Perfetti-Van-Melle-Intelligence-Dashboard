@@ -37,6 +37,11 @@ import {
   LogIn,
   Printer,
   FileText,
+  UserCheck,
+  MapPin,
+  Receipt,
+  PackageCheck,
+  FileBarChart,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -52,7 +57,12 @@ export type ActiveTab =
   | 'po_crs'
   | 'sr_login'
   | 'memo_print'
-  | 'summary_print';
+  | 'summary_print'
+  | 'te_attendance'
+  | 'te_visit'
+  | 'super_sub_stock'
+  | 'stockist_secondary'
+  | 'invoice_list';
 
 export interface ColumnDef {
   key: string;
@@ -502,6 +512,175 @@ const TAB_CONFIGS: {
       { key: 'orderDate', label: 'Order Date' },
       { key: 'printingDate', label: 'Printing Date', pillType: 'bold' },
       { key: 'printingTime', label: 'Printing Time' },
+    ],
+  },
+  {
+    id: 'te_attendance',
+    label: 'TE Attandance Report',
+    icon: UserCheck,
+    endpoint: '/api/reports/te-attendance',
+    badge: 'TM GPS',
+    desc: 'Territory Manager (TE/TM) Field Attendance, Start Time, GPS Coordinates & DB Distance',
+    columns: [
+      { key: 'cluster', label: 'Cluster' },
+      { key: 'areaName', label: 'AreaName' },
+      { key: 'territoryName', label: 'TerritoryName' },
+      { key: 'teCode', label: 'TE Code', pillType: 'bold' },
+      { key: 'teName', label: 'TE Name', pillType: 'bold' },
+      { key: 'visitType', label: 'Visit Type' },
+      { key: 'startWorkDate', label: 'Start Work Date', pillType: 'bold' },
+      { key: 'startWorkTime', label: 'Start Work Time', pillType: 'timeIn' },
+      { key: 'distanceFromDbLocation', label: 'DistanceFromDBLocation', pillType: 'number' },
+      { key: 'startWorkLatitude', label: 'StartWorkLatitude' },
+      { key: 'startWorkLongitude', label: 'StartWorkLongitude' },
+    ],
+  },
+  {
+    id: 'te_visit',
+    label: 'TE Visit Report',
+    icon: MapPin,
+    endpoint: '/api/reports/te-visit',
+    badge: 'TM Field',
+    desc: 'Territory Executive / TM Field Market Supervision, Route Execution & Outlet Metrics',
+    columns: [
+      { key: 'cluster', label: 'Cluster' },
+      { key: 'areaName', label: 'Area Name' },
+      { key: 'areaCode', label: 'Area Code' },
+      { key: 'territoryName', label: 'Territory Name' },
+      { key: 'territoryCode', label: 'Territory Code' },
+      { key: 'teTsoName', label: 'TE / TSO Name', pillType: 'bold' },
+      { key: 'teTsoCode', label: 'TE / TSO Code' },
+      { key: 'type', label: 'Type' },
+      { key: 'mainSuperDistributorPositionCode', label: 'Main/Super Distributor Position Code' },
+      { key: 'mainSuperDistributorPositionName', label: 'Main/Super Distributor Position Name' },
+      { key: 'distributorId', label: 'Distributor ID', pillType: 'route' },
+      { key: 'distributorName', label: 'Distributor Name' },
+      { key: 'dbType', label: 'DBType' },
+      { key: 'subDistributorPositionCode', label: 'SUB Distributor Position Code' },
+      { key: 'subDistributorPositionName', label: 'SUB Distributor Position Name' },
+      { key: 'subDbName', label: 'Sub DB Name' },
+      { key: 'subDbCode', label: 'Sub DB Code' },
+      { key: 'srPostion', label: 'SRPostion', pillType: 'sr' },
+      { key: 'srCode', label: 'SRCode', pillType: 'bold' },
+      { key: 'srName', label: 'SRName', pillType: 'bold' },
+      { key: 'pjpRouteCode', label: 'PJP Route Code' },
+      { key: 'pjpRouteName2', label: 'PJP Route Name2' },
+      { key: 'visitedRouteCode', label: 'Visited Route Code' },
+      { key: 'visitedRouteName', label: 'Visited Route Name' },
+      { key: 'visitDate', label: 'Visit Date', pillType: 'bold' },
+      { key: 'sc', label: 'SC', pillType: 'number' },
+      { key: 'visitedOl', label: 'Visited OL', pillType: 'number' },
+      { key: 'pending', label: 'Pending', pillType: 'number' },
+      { key: 'visitPct', label: 'Visit%', pillType: 'success' },
+      { key: 'startWorkTime', label: 'Start WorkTime', pillType: 'timeIn' },
+      { key: 'firstOutletVisitTime', label: 'First Outlet Visit Time' },
+      { key: 'lastOutletVisitTime', label: 'Last Outlet Visit Time' },
+      { key: 'duration', label: 'Duration' },
+      { key: 'dayEnd', label: 'Day End', pillType: 'success' },
+      { key: 'endWorkTime', label: 'End Work Time', pillType: 'timeOut' },
+      { key: 'startWorkTimeWithSr', label: 'Start Work Time with SR' },
+      { key: 'endWorkTimeWithSr', label: 'End Work Time with SR' },
+      { key: 'durationWithSr', label: 'Duration' },
+      { key: 'distributorPositionCode', label: 'Distributor Position Code' },
+      { key: 'distributorPositionName', label: 'Distributor Position Name' },
+      { key: 'visitType', label: 'Visit Type' },
+      { key: 'locationType', label: 'Location Type' },
+      { key: 'ta', label: 'TA' },
+      { key: 'da', label: 'DA' },
+      { key: 'visitReason', label: 'Visit Reason' },
+    ],
+  },
+  {
+    id: 'super_sub_stock',
+    label: 'Stock Report Super to SUB DB CT',
+    icon: PackageCheck,
+    endpoint: '/api/reports/super-sub-stock',
+    badge: 'Inter DB',
+    desc: 'Super DB to Sub DB Cartons & Primary Transfer Stock Ledger',
+    columns: [
+      { key: 'orderDate', label: 'OrderDate', pillType: 'bold' },
+      { key: 'cluster', label: 'Cluster' },
+      { key: 'area', label: 'Area' },
+      { key: 'territory', label: 'Territory' },
+      { key: 'town', label: 'Town' },
+      { key: 'distributorId', label: 'DistributorID', pillType: 'route' },
+      { key: 'distributorName', label: 'DistributorName' },
+      { key: 'uniq', label: 'Uniq' },
+      { key: 'subDistributorId', label: 'SubDistributorID' },
+      { key: 'subDistributorName', label: 'SubDistributorName' },
+      { key: 'skuCode', label: 'SKUCode', pillType: 'bold' },
+      { key: 'skuName', label: 'SKUName' },
+      { key: 'uom', label: 'UOM' },
+      { key: 'primarySkuCtn', label: 'PrimarySKUCTN', pillType: 'number' },
+      { key: 'primarySkuVolume', label: 'PrimarySKUVolume', pillType: 'number' },
+      { key: 'primarySkuValue', label: 'PrimarySKUValue', pillType: 'currency' },
+      { key: 'primarySkuQty', label: 'Primary SKU Qty', pillType: 'number' },
+      { key: 'uom2', label: 'UOM2' },
+      { key: 'brand', label: 'Brand', pillType: 'bold' },
+      { key: 'superDbUniqueLocationCode', label: 'Super DB Unique Location Code (Base Corrected)' },
+      { key: 'superDbLocationName', label: 'Super DB Location Name' },
+      { key: 'tsoPositionCode', label: 'TSO Position Code', pillType: 'sr' },
+      { key: 'tsoCode', label: 'TSO Code' },
+      { key: 'tsoName', label: 'TSO Name' },
+      { key: 'primarySkuQtyInTons', label: 'PrimarySKUQty in Tons', pillType: 'number' },
+      { key: 'isConfirmed', label: 'IsConfirmed', pillType: 'success' },
+      { key: 'poNo', label: 'PoNo' },
+    ],
+  },
+  {
+    id: 'stockist_secondary',
+    label: 'Stockist Secondary Report',
+    icon: FileBarChart,
+    endpoint: '/api/reports/stockist-secondary',
+    badge: 'Sales & Stock',
+    desc: 'Distributor Point Opening/Closing Stock, Secondary Sales & Tonnage',
+    columns: [
+      { key: 'date', label: 'Date', pillType: 'bold' },
+      { key: 'cluster', label: 'Cluster' },
+      { key: 'area', label: 'Area' },
+      { key: 'territory', label: 'Territory' },
+      { key: 'teTsoName', label: 'TE/TSO Name', pillType: 'bold' },
+      { key: 'teTsoCode', label: 'TE/TSO Code' },
+      { key: 'type', label: 'Type' },
+      { key: 'superDbCode', label: 'Super DB Code' },
+      { key: 'superDbName', label: 'Super DB Name' },
+      { key: 'stockiestPositionCode', label: 'Stockiest Position Code' },
+      { key: 'stockiestPositionName', label: 'Stockiest Position Name' },
+      { key: 'stockiestDbCode', label: 'Stockiest DB Code', pillType: 'route' },
+      { key: 'stockiestDbName', label: 'Stockiest DB Name' },
+      { key: 'brand', label: 'Brand', pillType: 'bold' },
+      { key: 'skuCode', label: 'SKU Code', pillType: 'bold' },
+      { key: 'skuName', label: 'SKU Name' },
+      { key: 'uom', label: 'UOM' },
+      { key: 'openingStock', label: 'Opening Stock', pillType: 'number' },
+      { key: 'closingStock', label: 'Closing Stock', pillType: 'number' },
+      { key: 'secondarySales', label: 'Secondary Sales', pillType: 'number' },
+      { key: 'secondarySalesValue', label: 'Secondary Sales Value', pillType: 'currency' },
+      { key: 'secondarySalesTon', label: 'Secondary Sales Ton', pillType: 'number' },
+    ],
+  },
+  {
+    id: 'invoice_list',
+    label: 'Invoice List',
+    icon: Receipt,
+    endpoint: '/api/reports/invoice-list',
+    badge: '2.4K Invoices',
+    desc: 'Real-Time Sales Memos, Invoices, Outlets, SKU Line Items & Quantities',
+    columns: [
+      { key: 'invoiceNo', label: 'InvoiceNo', pillType: 'bold' },
+      { key: 'custNo', label: 'CustNo', pillType: 'cust' },
+      { key: 'invoiceDate', label: 'InvoiceDate', pillType: 'bold' },
+      { key: 'custReferenceNo', label: 'CustReferenceNo', pillType: 'route' },
+      { key: 'poDate', label: 'PODate' },
+      { key: 'externalDocNo', label: 'ExternalDocNo' },
+      { key: 'docType', label: 'DocType' },
+      { key: 'receivingDt', label: 'ReceivingDt' },
+      { key: 'lineNo', label: 'LineNo', pillType: 'number' },
+      { key: 'itemNo', label: 'ItemNo', pillType: 'bold' },
+      { key: 'quantity', label: 'Quantity', pillType: 'number' },
+      { key: 'netPrice', label: 'NetPrice', pillType: 'currency' },
+      { key: 'totalAmt', label: 'TotalAmt', pillType: 'currency' },
+      { key: 'uom', label: 'UOM' },
     ],
   },
 ];
@@ -1910,6 +2089,378 @@ export default function DashboardPage() {
                     Verified
                   </span>
                   <span className="kpi-subtext">Daily Dispatch Audit</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-amber" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'te_attendance' && (
+            <>
+              <div className="kpi-card-premium kpi-card-blue">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">TM Check-ins</span>
+                  <div className="kpi-icon-pill icon-blue">
+                    <UserCheck size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">{filteredAndSortedRecords.length}</span>
+                  <span className="kpi-subtext">Verified TM Attendances</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-blue" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-green">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Active TM</span>
+                  <div className="kpi-icon-pill icon-green">
+                    <Users size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val" style={{ fontSize: '18px' }}>
+                    Palash Chandra
+                  </span>
+                  <span className="kpi-subtext">Code: 5104 (Jatra Bari)</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-green" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-purple">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Territory</span>
+                  <div className="kpi-icon-pill icon-purple">
+                    <Target size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">Jatra Bari</span>
+                  <span className="kpi-subtext">Central South Area</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-purple" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-amber">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Visit Type</span>
+                  <div className="kpi-icon-pill icon-amber">
+                    <MapPin size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val" style={{ fontSize: '18px', color: '#047857' }}>
+                    Stockiest Visit
+                  </span>
+                  <span className="kpi-subtext">Distributor Point Supervision</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-amber" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'te_visit' && (
+            <>
+              <div className="kpi-card-premium kpi-card-blue">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Supervised Routes</span>
+                  <div className="kpi-icon-pill icon-blue">
+                    <MapPin size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">{filteredAndSortedRecords.length}</span>
+                  <span className="kpi-subtext">Field Work Shifts</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-blue" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-green">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Visited Outlets</span>
+                  <div className="kpi-icon-pill icon-green">
+                    <Store size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">
+                    {filteredAndSortedRecords.reduce((s, r) => s + (Number(r.visitedOl) || 0), 0)}
+                  </span>
+                  <span className="kpi-subtext">
+                    of {filteredAndSortedRecords.reduce((s, r) => s + (Number(r.sc) || 0), 0)} Scheduled
+                  </span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-green" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-purple">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Supervised SRs</span>
+                  <div className="kpi-icon-pill icon-purple">
+                    <Users size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">
+                    {new Set(filteredAndSortedRecords.map(r => r.srCode)).size}
+                  </span>
+                  <span className="kpi-subtext">Sales Representatives</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-purple" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-amber">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Coverage Rate</span>
+                  <div className="kpi-icon-pill icon-amber">
+                    <Target size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val" style={{ color: '#047857' }}>
+                    {(() => {
+                      const totalSc = filteredAndSortedRecords.reduce((s, r) => s + (Number(r.sc) || 0), 0);
+                      const totalVis = filteredAndSortedRecords.reduce((s, r) => s + (Number(r.visitedOl) || 0), 0);
+                      return totalSc > 0 ? `${Math.round((totalVis / totalSc) * 100)}%` : '0%';
+                    })()}
+                  </span>
+                  <span className="kpi-subtext">Average Route Execution</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-amber" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'super_sub_stock' && (
+            <>
+              <div className="kpi-card-premium kpi-card-blue">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Total Transfer SKUs</span>
+                  <div className="kpi-icon-pill icon-blue">
+                    <PackageCheck size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">{filteredAndSortedRecords.length}</span>
+                  <span className="kpi-subtext">Catalog SKUs Tracked</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-blue" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-green">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Distributor</span>
+                  <div className="kpi-icon-pill icon-green">
+                    <Store size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">102267</span>
+                  <span className="kpi-subtext">M/S Ahamed Enterprise</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-green" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-purple">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">DB Category</span>
+                  <div className="kpi-icon-pill icon-purple">
+                    <Boxes size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val" style={{ fontSize: '18px' }}>
+                    Direct Main DB
+                  </span>
+                  <span className="kpi-subtext">Factory DO Recipient</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-purple" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-amber">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Sub DB Transfer</span>
+                  <div className="kpi-icon-pill icon-amber">
+                    <Activity size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val" style={{ fontSize: '18px', color: '#b45309' }}>
+                    Non-Sub Territory
+                  </span>
+                  <span className="kpi-subtext">Urban Direct Sales Model</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-amber" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'stockist_secondary' && (
+            <>
+              <div className="kpi-card-premium kpi-card-blue">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Total Active SKUs</span>
+                  <div className="kpi-icon-pill icon-blue">
+                    <Boxes size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">{filteredAndSortedRecords.length}</span>
+                  <span className="kpi-subtext">Catalog Items Managed</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-blue" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-green">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Secondary Sales</span>
+                  <div className="kpi-icon-pill icon-green">
+                    <DollarSign size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val" style={{ color: '#047857' }}>
+                    ৳ {Math.round(filteredAndSortedRecords.reduce((s, r) => s + (Number(r.secondarySalesValue) || 0), 0)).toLocaleString()}
+                  </span>
+                  <span className="kpi-subtext">
+                    {filteredAndSortedRecords.reduce((s, r) => s + (Number(r.secondarySales) || 0), 0)} Units Sold
+                  </span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-green" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-purple">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Closing Stock</span>
+                  <div className="kpi-icon-pill icon-purple">
+                    <Boxes size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">
+                    {filteredAndSortedRecords.reduce((s, r) => s + (Number(r.closingStock) || 0), 0).toLocaleString()}
+                  </span>
+                  <span className="kpi-subtext">Units in Stock</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-purple" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-amber">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Sales Tonnage</span>
+                  <div className="kpi-icon-pill icon-amber">
+                    <TrendingUp size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">
+                    {filteredAndSortedRecords.reduce((s, r) => s + (Number(r.secondarySalesTon) || 0), 0).toFixed(3)} Ton
+                  </span>
+                  <span className="kpi-subtext">Dispatched Volume</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-amber" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'invoice_list' && (
+            <>
+              <div className="kpi-card-premium kpi-card-blue">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Total Invoices</span>
+                  <div className="kpi-icon-pill icon-blue">
+                    <Receipt size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">{filteredAndSortedRecords.length}</span>
+                  <span className="kpi-subtext">Distinct Invoiced Items</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-blue" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-green">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Total Invoiced Value</span>
+                  <div className="kpi-icon-pill icon-green">
+                    <DollarSign size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val" style={{ color: '#047857' }}>
+                    ৳ {Math.round(filteredAndSortedRecords.reduce((s, r) => s + (Number(r.totalAmt) || 0), 0)).toLocaleString()}
+                  </span>
+                  <span className="kpi-subtext">Net Billed Revenue</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-green" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-purple">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Outlets Invoiced</span>
+                  <div className="kpi-icon-pill icon-purple">
+                    <Store size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">
+                    {new Set(filteredAndSortedRecords.map(r => r.custNo)).size}
+                  </span>
+                  <span className="kpi-subtext">Distinct Retailers</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-purple" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-amber">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Distributor Point</span>
+                  <div className="kpi-icon-pill icon-amber">
+                    <CheckCircle2 size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">102267</span>
+                  <span className="kpi-subtext">M/S Ahamed Enterprise</span>
                 </div>
                 <div className="kpi-progress-bar">
                   <div className="kpi-progress-fill fill-amber" style={{ width: '100%' }}></div>
