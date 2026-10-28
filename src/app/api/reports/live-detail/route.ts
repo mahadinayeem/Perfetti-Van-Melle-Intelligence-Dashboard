@@ -62,7 +62,27 @@ const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; 
   '53995': { srPositionCode: 'DM-057', srName: 'Chaon Khandker', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
   '54233': { srPositionCode: 'DM-059', srName: 'Md. Asebur Rahman Ashik', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
   '51639': { srPositionCode: 'DM-217', srName: 'Md. Shawkat Hossen', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
+  '54801': { srPositionCode: 'DM-058', srName: 'Mohammed Khaled Mahmud', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
+  '20637': { srPositionCode: 'DM-061', srName: 'Md. Ripon Uddin', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
 };
+
+function parseTime(val: any): string {
+  if (!val || val === '-' || val === 'null' || val === 'undefined') return '';
+  const str = String(val).trim();
+  const ampmMatch = str.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)/i);
+  if (ampmMatch) {
+    let [_, hStr, mStr, sStr, ampm] = ampmMatch;
+    let h = parseInt(hStr, 10);
+    let m = mStr;
+    let s = sStr || '00';
+    if (ampm.toLowerCase() === 'pm' && h < 12) h += 12;
+    if (ampm.toLowerCase() === 'am' && h === 12) h = 0;
+    return `${String(h).padStart(2, '0')}:${m}:${s}`;
+  }
+  const isoMatch = str.match(/\b(\d{1,2}:\d{2}(?::\d{2})?)\b/);
+  if (isoMatch) return isoMatch[1];
+  return str;
+}
 
 function formatMinutes(mins: number): string {
   const h = Math.floor(mins / 60);
@@ -100,23 +120,70 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
   const makeRequests = async (authToken: string) => {
     const checkinUrl = `https://pvm.report.sokrio.com/api/v1/checkin-report?range=${startDate}%2C${endDate}&territory_id=1&roles=&type=xlsx&download`;
     const orderUrl = `https://pvm.report.sokrio.com/api/v3/order-summary-export?range=${startDate}%2C${endDate}&territory_id=1&download&type=xlsx`;
+    const attendanceUrl = `https://pvm.report.sokrio.com/api/v3/daily-attendance?range=${startDate}%2C${endDate}&territory_id=1&roles=7%2C6%2C5%2C4%2C3%2C2%2C1&download`;
 
     return await Promise.all([
       axios.get(checkinUrl, { headers: { Authorization: `Bearer ${authToken}` }, responseType: 'arraybuffer', timeout: 45000 }),
       axios.get(orderUrl, { headers: { Authorization: `Bearer ${authToken}` }, responseType: 'arraybuffer', timeout: 45000 }),
+      axios.get(attendanceUrl, { headers: { Authorization: `Bearer ${authToken}` }, responseType: 'arraybuffer', timeout: 45000 }).catch((err) => {
+        console.warn('[Live Detail] Attendance API request failed:', err.message);
+        return null;
+      }),
     ]);
   };
 
   let checkinRes: any;
   let orderRes: any;
+  let attendanceRes: any;
   try {
-    [checkinRes, orderRes] = await makeRequests(token);
+    [checkinRes, orderRes, attendanceRes] = await makeRequests(token);
   } catch (err: any) {
     if (err?.response?.status === 401 || err?.response?.status === 403) {
       token = await getValidToken(true);
-      [checkinRes, orderRes] = await makeRequests(token);
+      [checkinRes, orderRes, attendanceRes] = await makeRequests(token);
     } else {
       throw err;
+    }
+  }
+
+  // Parse attendance report for Day in Time & Day Out Time
+  const attendanceMap = new Map<string, {
+    name: string;
+    dayIn: string;
+    dayOut: string;
+    workingHours: string;
+  }>();
+
+  if (attendanceRes && attendanceRes.data) {
+    try {
+      const wbAtt = XLSX.read(attendanceRes.data, { type: 'buffer' });
+      const wsAtt = wbAtt.Sheets[wbAtt.SheetNames[0]];
+      const attRows: any[][] = XLSX.utils.sheet_to_json(wsAtt, { header: 1 }) || [];
+      if (attRows.length > 3) {
+        const headers = (attRows[3] || []).map((h: any) => String(h || '').trim().toLowerCase());
+        const empCodeIdx = headers.findIndex((h: string) => h.includes('employee code') || h.includes('emp code') || h.includes('user code'));
+        const dayInIdx = headers.findIndex((h: string) => h.includes('day in time') || h.includes('day-in') || h.includes('day in'));
+        const dayOutIdx = headers.findIndex((h: string) => h.includes('day out time') || h.includes('day-out') || h.includes('day out'));
+        const workHoursIdx = headers.findIndex((h: string) => h.includes('working hours') || h.includes('working hour'));
+        const nameIdx = headers.findIndex((h: string) => h.includes('name'));
+
+        attRows.slice(4).forEach((r) => {
+          const code = String(r[empCodeIdx >= 0 ? empCodeIdx : 3] || '').trim();
+          if (!code) return;
+          const rawDayIn = r[dayInIdx >= 0 ? dayInIdx : 4];
+          const rawDayOut = r[dayOutIdx >= 0 ? dayOutIdx : 8];
+          const rawWorkHours = r[workHoursIdx >= 0 ? workHoursIdx : 11];
+
+          attendanceMap.set(code, {
+            name: String(r[nameIdx >= 0 ? nameIdx : 2] || '').trim(),
+            dayIn: parseTime(rawDayIn),
+            dayOut: parseTime(rawDayOut),
+            workingHours: rawWorkHours && String(rawWorkHours).trim() !== '-' ? String(rawWorkHours).trim() : '',
+          });
+        });
+      }
+    } catch (attErr) {
+      console.error('[Live Detail] Error parsing attendance workbook:', attErr);
     }
   }
 
@@ -243,6 +310,29 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
     }
   });
 
+  // Ensure every SR present in the attendance map is captured in the report
+  for (const [code, att] of attendanceMap.entries()) {
+    if (!srMap.has(code)) {
+      srMap.set(code, {
+        srCode: code,
+        srName: att.name || 'Field SR',
+        route: '',
+        routeCode: '',
+        calls: 0,
+        inOutletMinutes: 0,
+        firstCheckin: null,
+        lastCheckin: null,
+        invoices: new Map(),
+        tls: 0,
+        retailVal: 0,
+        wsVal: 0,
+        jarQty: 0,
+        brands: new Set(),
+        lastSyncTime: null,
+      });
+    }
+  }
+
   const records: LiveDetailRecord[] = [];
   let idx = 1;
 
@@ -269,14 +359,23 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
       if (lineCount >= 2) twoLpcCount++;
     }
 
-    const firstCallTime = extractTimeOnly(d.firstCheckin, '08:30:00');
-    const lastCallTime = extractTimeOnly(d.lastCheckin, '16:30:00');
-    const startWorkTime = firstCallTime;
-    const endWorkTime = lastCallTime;
+    const att = attendanceMap.get(srCode);
+    const firstCallTime = extractTimeOnly(d.firstCheckin, '');
+    const lastCallTime = extractTimeOnly(d.lastCheckin, '');
+
+    // Client Requirement:
+    // Start Work time shown based on Day in Time
+    // End work time shown based on Day-out time
+    const startWorkTime = att?.dayIn || firstCallTime || '08:30:00';
+    const endWorkTime = att?.dayOut || (att ? '' : (lastCallTime || ''));
+
+    const totalWorkingHours = att?.workingHours ||
+      (startWorkTime && endWorkTime
+        ? formatMinutes(timeDiffMinutes(startWorkTime, endWorkTime))
+        : (firstCallTime && lastCallTime ? formatMinutes(timeDiffMinutes(firstCallTime, lastCallTime)) : ''));
 
     const marketWorkMins = timeDiffMinutes(firstCallTime, lastCallTime);
     const totalMarketWork = formatMinutes(marketWorkMins);
-    const totalWorkingHours = totalMarketWork;
     const totalSpendTimeOrderTaking = formatMinutes(d.inOutletMinutes);
     const transitMins = Math.max(0, marketWorkMins - d.inOutletMinutes);
     const transitTime = formatMinutes(transitMins);
