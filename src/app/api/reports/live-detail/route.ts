@@ -66,8 +66,39 @@ const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; 
   '20637': { srPositionCode: 'DM-061', srName: 'Md. Ripon Uddin', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
 };
 
+function parseDateToMs(dateStr: any): number {
+  if (!dateStr) return 0;
+  const str = String(dateStr).trim();
+  const dmyMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (dmyMatch) {
+    let [_, d, m, y, hStr, minStr, sStr, ampm] = dmyMatch;
+    let h = parseInt(hStr, 10);
+    if (ampm) {
+      if (ampm.toLowerCase() === 'pm' && h < 12) h += 12;
+      if (ampm.toLowerCase() === 'am' && h === 12) h = 0;
+    }
+    return new Date(parseInt(y), parseInt(m) - 1, parseInt(d), h, parseInt(minStr), parseInt(sStr || '0')).getTime();
+  }
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (isoMatch) {
+    let [_, y, m, d, h, min, s] = isoMatch;
+    return new Date(parseInt(y), parseInt(m) - 1, parseInt(d), parseInt(h), parseInt(min), parseInt(s || '0')).getTime();
+  }
+  const t = Date.parse(str);
+  return isNaN(t) ? 0 : t;
+}
+
+function format24hFromMs(ms: number): string {
+  if (!ms || isNaN(ms)) return '';
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+}
+
 function parseTime(val: any): string {
   if (!val || val === '-' || val === 'null' || val === 'undefined') return '';
+  const ms = parseDateToMs(val);
+  if (ms > 0) return format24hFromMs(ms);
+
   const str = String(val).trim();
   const ampmMatch = str.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)/i);
   if (ampmMatch) {
@@ -110,8 +141,10 @@ function timeDiffMinutes(t1: string | null, t2: string | null): number {
 
 function extractTimeOnly(dateTimeStr: string | null, fallback: string): string {
   if (!dateTimeStr) return fallback;
+  const ms = parseDateToMs(dateTimeStr);
+  if (ms > 0) return format24hFromMs(ms);
   const match = dateTimeStr.match(/(\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?)/i);
-  return match ? match[1] : fallback;
+  return match ? parseTime(match[1]) : fallback;
 }
 
 async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Promise<{ records: LiveDetailRecord[]; meta: any }> {
@@ -208,15 +241,15 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
     routeCode: string;
     calls: number;
     inOutletMinutes: number;
-    firstCheckin: string | null;
-    lastCheckin: string | null;
+    minCheckinMs: number | null;
+    maxCheckinMs: number | null;
     invoices: Map<string, number>; // invoice -> line count
     tls: number;
     retailVal: number;
     wsVal: number;
     jarQty: number;
     brands: Set<string>;
-    lastSyncTime: string | null;
+    lastSyncMs: number | null;
   }>();
 
   checkinRows.forEach(c => {
@@ -230,25 +263,25 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
         routeCode: '',
         calls: 0,
         inOutletMinutes: 0,
-        firstCheckin: null,
-        lastCheckin: null,
+        minCheckinMs: null,
+        maxCheckinMs: null,
         invoices: new Map(),
         tls: 0,
         retailVal: 0,
         wsVal: 0,
         jarQty: 0,
         brands: new Set(),
-        lastSyncTime: null,
+        lastSyncMs: null,
       });
     }
     const item = srMap.get(code)!;
     item.calls++;
     const checkTime = c['Check in Time '] || c['Time'];
-    if (checkTime) {
-      const timeStr = String(checkTime).trim();
-      if (!item.firstCheckin || timeStr < item.firstCheckin) item.firstCheckin = timeStr;
-      if (!item.lastCheckin || timeStr > item.lastCheckin) item.lastCheckin = timeStr;
-      if (!item.lastSyncTime || timeStr > item.lastSyncTime) item.lastSyncTime = timeStr;
+    const ms = parseDateToMs(checkTime);
+    if (ms > 0) {
+      if (!item.minCheckinMs || ms < item.minCheckinMs) item.minCheckinMs = ms;
+      if (!item.maxCheckinMs || ms > item.maxCheckinMs) item.maxCheckinMs = ms;
+      if (!item.lastSyncMs || ms > item.lastSyncMs) item.lastSyncMs = ms;
     }
     const mins = parseFloat(c['Time spent(minutes)']) || 0;
     item.inOutletMinutes += mins;
@@ -265,15 +298,15 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
         routeCode: String(o['Buyer Territory Code'] || '').trim(),
         calls: 0,
         inOutletMinutes: 0,
-        firstCheckin: null,
-        lastCheckin: null,
+        minCheckinMs: null,
+        maxCheckinMs: null,
         invoices: new Map(),
         tls: 0,
         retailVal: 0,
         wsVal: 0,
         jarQty: 0,
         brands: new Set(),
-        lastSyncTime: null,
+        lastSyncMs: null,
       });
     }
     const item = srMap.get(code)!;
@@ -305,8 +338,9 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
     }
 
     const orderDate = o['Order Date'];
-    if (orderDate && (!item.lastSyncTime || String(orderDate) > item.lastSyncTime)) {
-      item.lastSyncTime = String(orderDate);
+    const orderMs = parseDateToMs(orderDate);
+    if (orderMs > 0 && (!item.lastSyncMs || orderMs > item.lastSyncMs)) {
+      item.lastSyncMs = orderMs;
     }
   });
 
@@ -320,15 +354,15 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
         routeCode: '',
         calls: 0,
         inOutletMinutes: 0,
-        firstCheckin: null,
-        lastCheckin: null,
+        minCheckinMs: null,
+        maxCheckinMs: null,
         invoices: new Map(),
         tls: 0,
         retailVal: 0,
         wsVal: 0,
         jarQty: 0,
         brands: new Set(),
-        lastSyncTime: null,
+        lastSyncMs: null,
       });
     }
   }
@@ -360,21 +394,25 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
     }
 
     const att = attendanceMap.get(srCode);
-    const firstCallTime = extractTimeOnly(d.firstCheckin, '');
-    const lastCallTime = extractTimeOnly(d.lastCheckin, '');
+    const firstCallTime = d.minCheckinMs ? format24hFromMs(d.minCheckinMs) : '';
+    const lastCallTime = d.maxCheckinMs ? format24hFromMs(d.maxCheckinMs) : '';
+    const lastSyncTime = d.lastSyncMs ? format24hFromMs(d.lastSyncMs) : lastCallTime;
 
     // Client Requirement:
     // Start Work time shown based on Day in Time
     // End work time shown based on Day-out time
     const startWorkTime = att?.dayIn || firstCallTime || '08:30:00';
-    const endWorkTime = att?.dayOut || (att ? '' : (lastCallTime || ''));
+    const endWorkTime = att?.dayOut || '';
 
     const totalWorkingHours = att?.workingHours ||
       (startWorkTime && endWorkTime
-        ? formatMinutes(timeDiffMinutes(startWorkTime, endWorkTime))
-        : (firstCallTime && lastCallTime ? formatMinutes(timeDiffMinutes(firstCallTime, lastCallTime)) : ''));
+        ? formatMinutes(Math.max(0, Math.round((parseDateToMs(`27/10/2026 ${endWorkTime}`) - parseDateToMs(`27/10/2026 ${startWorkTime}`)) / 60000)))
+        : (d.minCheckinMs && d.maxCheckinMs ? formatMinutes(Math.max(0, Math.round((d.maxCheckinMs - d.minCheckinMs) / 60000))) : ''));
 
-    const marketWorkMins = timeDiffMinutes(firstCallTime, lastCallTime);
+    const marketWorkMins = (d.minCheckinMs && d.maxCheckinMs)
+      ? Math.max(0, Math.round((d.maxCheckinMs - d.minCheckinMs) / 60000))
+      : 0;
+
     const totalMarketWork = formatMinutes(marketWorkMins);
     const totalSpendTimeOrderTaking = formatMinutes(d.inOutletMinutes);
     const transitMins = Math.max(0, marketWorkMins - d.inOutletMinutes);
@@ -408,7 +446,7 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
       tls: d.tls,
       lpc: prodCall > 0 ? Number((d.tls / prodCall).toFixed(2)) : 0,
       brandHandle: prodCall > 0 ? Number((d.brands.size / prodCall).toFixed(2)) : d.brands.size,
-      lastSyncTime: extractTimeOnly(d.lastSyncTime, lastCallTime),
+      lastSyncTime,
       startWorkTime,
       endWorkTime,
       totalWorkingHours,

@@ -1715,7 +1715,20 @@ export default function DashboardPage() {
           { title: 'Visited Outlets', val: Math.round(records.reduce((s, r) => s + (Number(r.visitedOutlet) || 0), 0)).toLocaleString(), sub: "Today's Field Execution", color: 'blue', icon: Store },
           { title: 'Productive Calls', val: Math.round(records.reduce((s, r) => s + (Number(r.productiveCall) || 0), 0)).toLocaleString(), sub: 'Successful Orders', color: 'green', icon: CheckCircle2 },
           { title: 'Live Order Value', val: `৳ ${Math.round(records.reduce((s, r) => s + (Number(r.orderValue) || 0), 0)).toLocaleString()}`, sub: 'Real-Time Market Sales', color: 'purple', icon: DollarSign },
-          { title: 'Avg Strike Rate', val: `${records.length > 0 ? (records.reduce((s, r) => s + (parseFloat(String(r.strikeRate).replace('%', '')) || 0), 0) / records.length).toFixed(1) : '0.0'}%`, sub: 'Market Productivity %', color: 'amber', icon: Target },
+          {
+            title: 'Avg Strike Rate',
+            val: (() => {
+              if (records.length === 0) return '0.0%';
+              const avg = records.reduce((s, r) => {
+                const v = parseFloat(String(r.strikeRate ?? 0).replace('%', '')) || 0;
+                return s + (v <= 1 && v > 0 ? v * 100 : v);
+              }, 0) / records.length;
+              return `${avg.toFixed(1)}%`;
+            })(),
+            sub: 'Market Productivity %',
+            color: 'amber',
+            icon: Target,
+          },
         ];
       case 'live_order_update':
         return [
