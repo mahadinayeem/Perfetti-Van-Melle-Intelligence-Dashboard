@@ -83,7 +83,7 @@ async function fetchLiveDoReceivingFromSokrio(startDate: string, endDate: string
       territory: 'Jatra Bari',
       dbCode,
       dbName,
-      dbType: 'Main DB',
+      dbType: '',
       poDateTime: '',
       poNumber: '',
       invoiceNo: '',
