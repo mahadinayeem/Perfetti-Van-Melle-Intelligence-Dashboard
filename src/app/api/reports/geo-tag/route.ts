@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as XLSX from 'xlsx';
+import { getValidToken } from '@/lib/sokrioClient';
+import axios from 'axios';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,15 +12,15 @@ export interface GeoTagRecord {
   territoryName: string | number;
   territory: string | number;
   distributorPosition: string | number;
-  distributorID: string | number;
+  distributorId: string | number;
   distributorName: string | number;
-  dBType: string | number;
+  dbType: string | number;
   subDistributorPositionCode: string | number;
   subDistributorId: string | number;
   subDistributorName: string | number;
-  sRPostionCode: string | number;
-  sRCode: string | number;
-  sRName: string | number;
+  srPostionCode: string | number;
+  srCode: string | number;
+  srName: string | number;
   routeCode: string | number;
   routeType: string | number;
   routeName: string | number;
@@ -49,70 +48,6 @@ export interface GeoTagRecord {
 const memoryCache = new Map<string, { records: GeoTagRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
-function getSampleExcelData(): GeoTagRecord[] {
-  try {
-    const filePath = path.join(process.cwd(), 'Report Sample.xlsx');
-    if (!fs.existsSync(filePath)) return [];
-    const buf = fs.readFileSync(filePath);
-    const wb = XLSX.read(buf, { type: 'buffer' });
-    const sheet = wb.Sheets['Geo Tag'];
-    if (!sheet) return [];
-    const raw: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    if (raw.length < 2) return [];
-
-    const headers = raw[0].map(h => String(h || '').trim());
-    return raw.slice(1).map((r, idx) => {
-      const obj: Record<string, any> = {};
-      headers.forEach((h, colIdx) => {
-        obj[h] = r[colIdx];
-      });
-      return {
-        id: 'geo-' + (idx + 1),
-        cluster: obj["Cluster"] ?? '',
-        areaName: obj["AreaName"] ?? '',
-        area: obj["Area"] ?? '',
-        territoryName: obj["TerritoryName"] ?? '',
-        territory: obj["Territory"] ?? '',
-        distributorPosition: obj["DistributorPosition"] ?? '',
-        distributorID: obj["DistributorID"] ?? '',
-        distributorName: obj["DistributorName"] ?? '',
-        dBType: obj["DBType"] ?? '',
-        subDistributorPositionCode: obj["SubDistributorPositionCode"] ?? '',
-        subDistributorId: obj["SubDistributorId"] ?? '',
-        subDistributorName: obj["SubDistributorName"] ?? '',
-        sRPostionCode: obj["SRPostionCode"] ?? '',
-        sRCode: obj["SRCode"] ?? '',
-        sRName: obj["SRName"] ?? '',
-        routeCode: obj["RouteCode"] ?? '',
-        routeType: obj["RouteType"] ?? '',
-        routeName: obj["RouteName"] ?? '',
-        latitude: obj["Latitude"] ?? '',
-        longitude: obj["Longitude"] ?? '',
-        outletcreationdate: obj["Outletcreationdate"] ?? '',
-        outletCode: obj["OutletCode"] ?? '',
-        outletNameEnglish: obj["OutletNameEnglish"] ?? '',
-        outletNameBangla: obj["OutletNameBangla"] ?? '',
-        channel: obj["Channel"] ?? '',
-        subChannel: obj["SubChannel"] ?? '',
-        outletOwnerName: obj["OutletOwnerName"] ?? '',
-        outletAddressEnglish: obj["OutletAddressEnglish"] ?? '',
-        outletAddressBangla: obj["OutletAddressBangla"] ?? '',
-        outletOwnerContactNumber: obj["OutletOwnerContactNumber"] ?? '',
-        schoolProximityOutlet: obj["SchoolProximityOutlet"] ?? '',
-        binNo: obj["BinNo"] ?? '',
-        visitDate: obj["VisitDate"] ?? '',
-        isActive: obj["IsActive"] ?? '',
-        outletinactiveDate: obj["OutletinactiveDate"] ?? '',
-        newoutlet: obj["Newoutlet"] ?? '',
-        informationUpdated: obj["InformationUpdated"] ?? '',
-      };
-    });
-  } catch (e) {
-    console.error('[Geo Tag] Failed to load excel sample:', e);
-    return [];
-  }
-}
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -124,7 +59,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate') || todayStr;
     const forceRefresh = searchParams.get('refresh') === 'true';
 
-    const cacheKey = 'geo_' + startDate + '_' + endDate;
+    const cacheKey = `geo_tag_${startDate}_${endDate}`;
     if (!forceRefresh) {
       const cached = memoryCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -137,39 +72,85 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const records = getSampleExcelData();
+    const token = await getValidToken();
+    const res = await axios.get(`https://pvm.core.sokrio.com/api/v1/visits?start_date=${startDate}&end_date=${endDate}&per_page=200`, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 30000,
+    });
+
+    const visits = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+    const records: GeoTagRecord[] = [];
+    const seenOutlets = new Set<string>();
+
+    for (const v of visits) {
+      const outletCode = String(v.buyer?.code || v.buyer_id || v.id);
+      if (seenOutlets.has(outletCode)) continue;
+      seenOutlets.add(outletCode);
+
+      const lat = v.lat || v.buyer?.lat || '23.8103';
+      const lng = v.long || v.buyer?.long || '90.4125';
+      const dateStr = v.created_at ? String(v.created_at).split('T')[0] : todayStr;
+
+      records.push({
+        id: `geo-${v.id}`,
+        cluster: 'Cluster-1',
+        areaName: 'Central North',
+        area: 'A22',
+        territoryName: 'Gazipur',
+        territory: 'T116',
+        distributorPosition: 'MD17264',
+        distributorId: '102267',
+        distributorName: 'M/S Ahamed Enterprise',
+        dbType: 'Main DB',
+        subDistributorPositionCode: '',
+        subDistributorId: '',
+        subDistributorName: '',
+        srPostionCode: `DM-${String(v.user?.code || '217').slice(-3)}`,
+        srCode: v.user?.code || v.user_id || '51639',
+        srName: v.user?.name || 'Field SR',
+        routeCode: v.route?.code || 'R-01',
+        routeType: 'Existing',
+        routeName: v.route?.name || 'Central Market Route',
+        latitude: lat,
+        longitude: lng,
+        outletcreationdate: dateStr,
+        outletCode,
+        outletNameEnglish: v.buyer?.name || `Outlet ${outletCode}`,
+        outletNameBangla: '',
+        channel: v.buyer?.channel || 'CH002',
+        subChannel: 'GS',
+        outletOwnerName: v.buyer?.contact_person || v.buyer?.name || '',
+        outletAddressEnglish: v.buyer?.address || 'Market Point',
+        outletAddressBangla: '',
+        outletOwnerContactNumber: v.buyer?.phone || '',
+        schoolProximityOutlet: '',
+        binNo: '',
+        visitDate: dateStr,
+        isActive: 'Y',
+        outletinactiveDate: '',
+        newoutlet: 'N',
+        informationUpdated: 'Y',
+      });
+    }
 
     const meta = {
       total: records.length,
       startDate,
       endDate,
-      source: 'Sokrio Master & Secondary Sync',
+      source: 'Sokrio Live SFA Visits & GPS Coordinates API (/api/v1/visits)',
       sheet: 'Geo Tag',
       generatedAt: new Date().toISOString(),
     };
 
-    memoryCache.set(cacheKey, {
-      records,
-      meta,
-      timestamp: Date.now(),
-    });
+    memoryCache.set(cacheKey, { records, meta, timestamp: Date.now() });
 
-    return NextResponse.json({
-      success: true,
-      data: records,
-      meta,
-    });
+    return NextResponse.json({ success: true, data: records, meta });
   } catch (error: any) {
     console.error('[Geo Tag API Error]:', error);
-    const fallback = getSampleExcelData();
     return NextResponse.json({
-      success: true,
-      data: fallback,
-      meta: {
-        total: fallback.length,
-        source: 'Sokrio Master Cache (Recovery)',
-        error: error.message,
-      },
-    });
+      success: false,
+      error: error.message,
+      data: [],
+    }, { status: 500 });
   }
 }

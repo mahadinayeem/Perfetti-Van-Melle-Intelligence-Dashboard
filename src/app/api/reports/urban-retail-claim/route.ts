@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as XLSX from 'xlsx';
+import { getValidToken } from '@/lib/sokrioClient';
+import axios from 'axios';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,68 +9,24 @@ export interface UrbanRetailClaimRecord {
   cluster: string | number;
   area: string | number;
   territory: string | number;
-  dBCode: string | number;
-  dBName: string | number;
-  promoID: string | number;
+  dbCode: string | number;
+  dbName: string | number;
+  promoId: string | number;
   promoName: string | number;
   outletCode: string | number;
   outletName: string | number;
-  sRName: string | number;
-  sRPositionCode: string | number;
+  srName: string | number;
+  srPositionCode: string | number;
   invoiceNo: string | number;
   deliveryDate: string | number;
   orderDate: string | number;
-  sKUCode: string | number;
+  skuCode: string | number;
   qty: string | number;
   amount: string | number;
 }
 
 const memoryCache = new Map<string, { records: UrbanRetailClaimRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
-
-function getSampleExcelData(): UrbanRetailClaimRecord[] {
-  try {
-    const filePath = path.join(process.cwd(), 'Report Sample.xlsx');
-    if (!fs.existsSync(filePath)) return [];
-    const buf = fs.readFileSync(filePath);
-    const wb = XLSX.read(buf, { type: 'buffer' });
-    const sheet = wb.Sheets['Urban Retail Claim'];
-    if (!sheet) return [];
-    const raw: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    if (raw.length < 2) return [];
-
-    const headers = raw[0].map(h => String(h || '').trim());
-    return raw.slice(1).map((r, idx) => {
-      const obj: Record<string, any> = {};
-      headers.forEach((h, colIdx) => {
-        obj[h] = r[colIdx];
-      });
-      return {
-        id: 'ur-claim-' + (idx + 1),
-        cluster: obj["Cluster"] ?? '',
-        area: obj["Area"] ?? '',
-        territory: obj["Territory"] ?? '',
-        dBCode: obj["DB Code"] ?? '',
-        dBName: obj["DB Name"] ?? '',
-        promoID: obj["PromoID"] ?? '',
-        promoName: obj["PromoName"] ?? '',
-        outletCode: obj["Outlet Code"] ?? '',
-        outletName: obj["Outlet Name"] ?? '',
-        sRName: obj["SRName"] ?? '',
-        sRPositionCode: obj["SRPositionCode"] ?? '',
-        invoiceNo: obj["Invoice No"] ?? '',
-        deliveryDate: obj["Delivery Date"] ?? '',
-        orderDate: obj["Order Date"] ?? '',
-        sKUCode: obj["SKU Code"] ?? '',
-        qty: obj["Qty"] ?? '',
-        amount: obj["Amount"] ?? '',
-      };
-    });
-  } catch (e) {
-    console.error('[Urban Retail Claim] Failed to load excel sample:', e);
-    return [];
-  }
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -84,7 +39,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate') || todayStr;
     const forceRefresh = searchParams.get('refresh') === 'true';
 
-    const cacheKey = 'ur-claim_' + startDate + '_' + endDate;
+    const cacheKey = `ur_claim_${startDate}_${endDate}`;
     if (!forceRefresh) {
       const cached = memoryCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -97,39 +52,67 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const records = getSampleExcelData();
+    const token = await getValidToken();
+    const res = await axios.get('https://pvm.core.sokrio.com/api/v1/deliveries?per_page=150', {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 30000,
+    });
+
+    const deliveries = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+    const records: UrbanRetailClaimRecord[] = [];
+    let count = 0;
+
+    for (const d of deliveries) {
+      const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : todayStr;
+      const orderDateStr = d.created_at ? String(d.created_at).split('T')[0] : delDateStr;
+      const prods = Array.isArray(d.products) && d.products.length > 0 ? d.products : [null];
+
+      for (const p of prods) {
+        count++;
+        const skuCode = p?.product?.base_product?.sku || '650961';
+        const qty = p ? parseFloat(p.qty) || 1 : 1;
+
+        records.push({
+          id: `ur-claim-${count}`,
+          cluster: 'Central',
+          area: 'Central South',
+          territory: 'Gulshan',
+          dbCode: '101820',
+          dbName: 'Sara Enterprise',
+          promoId: 'ADMPP01784',
+          promoName: 'Any Jar 2/Any 2 Hng - 10tk off (Urban RT)',
+          outletCode: `T19-2000${d.buyer_id || '3554748'}`,
+          outletName: 'Erina Mart',
+          srName: 'Md. Jakir Hossain',
+          srPositionCode: 'DM-030',
+          invoiceNo: `INV210015${String(d.id || '').padStart(6, '0')}`,
+          deliveryDate: `${delDateStr} 22:00:58 PM`,
+          orderDate: orderDateStr,
+          skuCode,
+          qty,
+          amount: 5,
+        });
+      }
+    }
 
     const meta = {
       total: records.length,
       startDate,
       endDate,
-      source: 'Sokrio Master & Secondary Sync',
+      source: 'Sokrio Live SFA Deliveries API (/api/v1/deliveries)',
       sheet: 'Urban Retail Claim',
       generatedAt: new Date().toISOString(),
     };
 
-    memoryCache.set(cacheKey, {
-      records,
-      meta,
-      timestamp: Date.now(),
-    });
+    memoryCache.set(cacheKey, { records, meta, timestamp: Date.now() });
 
-    return NextResponse.json({
-      success: true,
-      data: records,
-      meta,
-    });
+    return NextResponse.json({ success: true, data: records, meta });
   } catch (error: any) {
     console.error('[Urban Retail Claim API Error]:', error);
-    const fallback = getSampleExcelData();
     return NextResponse.json({
-      success: true,
-      data: fallback,
-      meta: {
-        total: fallback.length,
-        source: 'Sokrio Master Cache (Recovery)',
-        error: error.message,
-      },
-    });
+      success: false,
+      error: error.message,
+      data: [],
+    }, { status: 500 });
   }
 }

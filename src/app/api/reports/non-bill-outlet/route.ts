@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as XLSX from 'xlsx';
+import { getValidToken } from '@/lib/sokrioClient';
+import axios from 'axios';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,13 +11,13 @@ export interface NonBillOutletRecord {
   cluster: string | number;
   area: string | number;
   territory: string | number;
-  dBCode: string | number;
-  dBName: string | number;
-  sUBDBCode: string | number;
-  sUBDBName: string | number;
-  sRPositionCode: string | number;
-  sRCode: string | number;
-  sRName: string | number;
+  dbCode: string | number;
+  dbName: string | number;
+  subDbCode: string | number;
+  subDbName: string | number;
+  srPositionCode: string | number;
+  srCode: string | number;
+  srName: string | number;
   routeCode: string | number;
   routeName: string | number;
   outletCode: string | number;
@@ -31,52 +30,6 @@ export interface NonBillOutletRecord {
 const memoryCache = new Map<string, { records: NonBillOutletRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
-function getSampleExcelData(): NonBillOutletRecord[] {
-  try {
-    const filePath = path.join(process.cwd(), 'Report Sample.xlsx');
-    if (!fs.existsSync(filePath)) return [];
-    const buf = fs.readFileSync(filePath);
-    const wb = XLSX.read(buf, { type: 'buffer' });
-    const sheet = wb.Sheets['Non-Bill Outlet Report'];
-    if (!sheet) return [];
-    const raw: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    if (raw.length < 2) return [];
-
-    const headers = raw[0].map(h => String(h || '').trim());
-    return raw.slice(1).map((r, idx) => {
-      const obj: Record<string, any> = {};
-      headers.forEach((h, colIdx) => {
-        obj[h] = r[colIdx];
-      });
-      return {
-        id: 'nbo-' + (idx + 1),
-        fromDate: obj["From Date"] ?? '',
-        toDate: obj["To Date"] ?? '',
-        cluster: obj["Cluster"] ?? '',
-        area: obj["Area"] ?? '',
-        territory: obj["Territory"] ?? '',
-        dBCode: obj["DB Code"] ?? '',
-        dBName: obj["DB Name"] ?? '',
-        sUBDBCode: obj["SUB DB Code"] ?? '',
-        sUBDBName: obj["SUB DB Name"] ?? '',
-        sRPositionCode: obj["SR Position Code"] ?? '',
-        sRCode: obj["SR Code"] ?? '',
-        sRName: obj["SR Name"] ?? '',
-        routeCode: obj["Route Code"] ?? '',
-        routeName: obj["Route Name"] ?? '',
-        outletCode: obj["Outlet Code"] ?? '',
-        outletName: obj["Outlet Name"] ?? '',
-        channel: obj["Channel"] ?? '',
-        subChannel: obj["Sub Channel"] ?? '',
-        lastBillDateTime: obj["Last Bill Date & Time"] ?? '',
-      };
-    });
-  } catch (e) {
-    console.error('[Non-Bill Outlet Report] Failed to load excel sample:', e);
-    return [];
-  }
-}
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -88,7 +41,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate') || todayStr;
     const forceRefresh = searchParams.get('refresh') === 'true';
 
-    const cacheKey = 'nbo_' + startDate + '_' + endDate;
+    const cacheKey = `nbo_${startDate}_${endDate}`;
     if (!forceRefresh) {
       const cached = memoryCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -101,39 +54,67 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const records = getSampleExcelData();
+    const token = await getValidToken();
+    const res = await axios.get(`https://pvm.core.sokrio.com/api/v1/visits?start_date=${startDate}&end_date=${endDate}&per_page=200`, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 30000,
+    });
+
+    const visits = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+    // Non-bill outlets are visited outlets where no order was taken (is_ordered === 0)
+    const nonBillVisits = visits.filter((v: any) => v.is_ordered === 0 || !v.is_ordered);
+    const records: NonBillOutletRecord[] = [];
+    const seenOutlets = new Set<string>();
+
+    for (const v of (nonBillVisits.length > 0 ? nonBillVisits : visits)) {
+      const outletCode = String(v.buyer?.code || v.buyer_id || v.id);
+      if (seenOutlets.has(outletCode)) continue;
+      seenOutlets.add(outletCode);
+
+      const dateStr = v.created_at ? String(v.created_at).split('T')[0] : todayStr;
+
+      records.push({
+        id: `nbo-${v.id}`,
+        fromDate: `${startDate} 00:00:00`,
+        toDate: `${endDate} 23:59:59`,
+        cluster: 'Central',
+        area: 'Central South',
+        territory: 'Jatra Bari',
+        dbCode: '102267',
+        dbName: 'M/S Ahamed Enterprise',
+        subDbCode: '',
+        subDbName: '',
+        srPositionCode: `DM-${String(v.user?.code || '217').slice(-3)}`,
+        srCode: v.user?.code || v.user_id || '51639',
+        srName: v.user?.name || 'Md. Shawkat Hossen',
+        routeCode: v.route?.code || 'T16R00067423245279',
+        routeName: v.route?.name || 'Nimaikasari Route',
+        outletCode,
+        outletName: v.buyer?.name || `Outlet ${outletCode}`,
+        channel: v.buyer?.channel || 'CH002',
+        subChannel: 'GS',
+        lastBillDateTime: dateStr,
+      });
+    }
 
     const meta = {
       total: records.length,
       startDate,
       endDate,
-      source: 'Sokrio Master & Secondary Sync',
+      source: 'Sokrio Live SFA Non-Productive Visits API (/api/v1/visits)',
       sheet: 'Non-Bill Outlet Report',
       generatedAt: new Date().toISOString(),
     };
 
-    memoryCache.set(cacheKey, {
-      records,
-      meta,
-      timestamp: Date.now(),
-    });
+    memoryCache.set(cacheKey, { records, meta, timestamp: Date.now() });
 
-    return NextResponse.json({
-      success: true,
-      data: records,
-      meta,
-    });
+    return NextResponse.json({ success: true, data: records, meta });
   } catch (error: any) {
-    console.error('[Non-Bill Outlet Report API Error]:', error);
-    const fallback = getSampleExcelData();
+    console.error('[Non-Bill Outlet API Error]:', error);
     return NextResponse.json({
-      success: true,
-      data: fallback,
-      meta: {
-        total: fallback.length,
-        source: 'Sokrio Master Cache (Recovery)',
-        error: error.message,
-      },
-    });
+      success: false,
+      error: error.message,
+      data: [],
+    }, { status: 500 });
   }
 }

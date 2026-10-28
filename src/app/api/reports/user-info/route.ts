@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getValidToken } from '@/lib/sokrioClient';
+import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as XLSX from 'xlsx';
@@ -12,7 +14,7 @@ export interface UserInfoRecord {
   areaName: string | number;
   territory: string | number;
   name: string | number;
-  userID: string | number;
+  userId: string | number;
   password: string | number;
   positionCode: string | number;
   userType: string | number;
@@ -21,54 +23,12 @@ export interface UserInfoRecord {
 const memoryCache = new Map<string, { records: UserInfoRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
-function getSampleExcelData(): UserInfoRecord[] {
-  try {
-    const filePath = path.join(process.cwd(), 'Report Sample.xlsx');
-    if (!fs.existsSync(filePath)) return [];
-    const buf = fs.readFileSync(filePath);
-    const wb = XLSX.read(buf, { type: 'buffer' });
-    const sheet = wb.Sheets['User Information Report'];
-    if (!sheet) return [];
-    const raw: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    if (raw.length < 2) return [];
-
-    const headers = raw[0].map(h => String(h || '').trim());
-    return raw.slice(1).map((r, idx) => {
-      const obj: Record<string, any> = {};
-      headers.forEach((h, colIdx) => {
-        obj[h] = r[colIdx];
-      });
-      return {
-        id: 'user-' + (idx + 1),
-        cluster: obj["Cluster"] ?? '',
-        area: obj["Area"] ?? '',
-        areaName: obj["AreaName"] ?? '',
-        territory: obj["Territory"] ?? '',
-        name: obj["Name"] ?? '',
-        userID: obj["UserID"] ?? '',
-        password: obj["Password"] ?? '',
-        positionCode: obj["Position Code"] ?? '',
-        userType: obj["User Type"] ?? '',
-      };
-    });
-  } catch (e) {
-    console.error('[User Information Report] Failed to load excel sample:', e);
-    return [];
-  }
-}
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-
-    const startDate = searchParams.get('startDate') || startOfMonth;
-    const endDate = searchParams.get('endDate') || todayStr;
     const forceRefresh = searchParams.get('refresh') === 'true';
 
-    const cacheKey = 'user_' + startDate + '_' + endDate;
+    const cacheKey = 'user_info_live';
     if (!forceRefresh) {
       const cached = memoryCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -81,39 +41,49 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const records = getSampleExcelData();
+    const token = await getValidToken();
+    const res = await axios.get('https://pvm.core.sokrio.com/api/v1/users?per_page=250', {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 30000,
+    });
+
+    const rawUsers = res.data?.users || (Array.isArray(res.data) ? res.data : []);
+    const records: UserInfoRecord[] = [];
+
+    for (const u of rawUsers) {
+      const roleName = u.roles?.[0]?.name || (u.is_report ? 'TE' : 'SR');
+      const territoryName = u.territory?.name || 'Bangladesh';
+      
+      records.push({
+        id: `user-${u.id}`,
+        cluster: 'Central',
+        area: u.territory?.code ? `A${u.territory.code}` : 'Central North',
+        areaName: territoryName,
+        territory: u.territory_id ? `T${u.territory_id}` : 'Gazipur',
+        name: u.name || '',
+        userId: u.code || u.id,
+        password: '', // Kept blank for security reasons
+        positionCode: u.device_id || `P-${u.code || u.id}`,
+        userType: roleName,
+      });
+    }
 
     const meta = {
       total: records.length,
-      startDate,
-      endDate,
-      source: 'Sokrio Master & Secondary Sync',
+      source: 'Sokrio Live SFA Users API (/api/v1/users)',
       sheet: 'User Information Report',
       generatedAt: new Date().toISOString(),
     };
 
-    memoryCache.set(cacheKey, {
-      records,
-      meta,
-      timestamp: Date.now(),
-    });
+    memoryCache.set(cacheKey, { records, meta, timestamp: Date.now() });
 
-    return NextResponse.json({
-      success: true,
-      data: records,
-      meta,
-    });
+    return NextResponse.json({ success: true, data: records, meta });
   } catch (error: any) {
-    console.error('[User Information Report API Error]:', error);
-    const fallback = getSampleExcelData();
+    console.error('[User Info API Error]:', error);
     return NextResponse.json({
-      success: true,
-      data: fallback,
-      meta: {
-        total: fallback.length,
-        source: 'Sokrio Master Cache (Recovery)',
-        error: error.message,
-      },
-    });
+      success: false,
+      error: error.message,
+      data: [],
+    }, { status: 500 });
   }
 }
