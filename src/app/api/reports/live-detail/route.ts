@@ -94,12 +94,12 @@ function extractTimeOnly(dateTimeStr: string | null, fallback: string): string {
   return match ? match[1] : fallback;
 }
 
-async function fetchLiveDetailFromSokrio(targetDate: string): Promise<{ records: LiveDetailRecord[]; meta: any }> {
+async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Promise<{ records: LiveDetailRecord[]; meta: any }> {
   let token = await getValidToken();
 
   const makeRequests = async (authToken: string) => {
-    const checkinUrl = `https://pvm.report.sokrio.com/api/v1/checkin-report?range=${targetDate}%2C${targetDate}&territory_id=1&roles=&type=xlsx&download`;
-    const orderUrl = `https://pvm.report.sokrio.com/api/v3/order-summary-export?range=${targetDate}%2C${targetDate}&territory_id=1&download&type=xlsx`;
+    const checkinUrl = `https://pvm.report.sokrio.com/api/v1/checkin-report?range=${startDate}%2C${endDate}&territory_id=1&roles=&type=xlsx&download`;
+    const orderUrl = `https://pvm.report.sokrio.com/api/v3/order-summary-export?range=${startDate}%2C${endDate}&territory_id=1&download&type=xlsx`;
 
     return await Promise.all([
       axios.get(checkinUrl, { headers: { Authorization: `Bearer ${authToken}` }, responseType: 'arraybuffer', timeout: 45000 }),
@@ -341,7 +341,8 @@ async function fetchLiveDetailFromSokrio(targetDate: string): Promise<{ records:
     totalOrderVal,
     avgProductivity,
     source: 'live_sokrio_api',
-    targetDate,
+    startDate,
+    endDate,
   };
 
   return { records, meta };
@@ -349,12 +350,15 @@ async function fetchLiveDetailFromSokrio(targetDate: string): Promise<{ records:
 
 export async function GET(req: NextRequest) {
   try {
-    const targetDate = req.nextUrl.searchParams.get('startDate') ||
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const startDate = req.nextUrl.searchParams.get('startDate') ||
       req.nextUrl.searchParams.get('date') ||
-      '2026-10-26';
+      todayStr;
+    const endDate = req.nextUrl.searchParams.get('endDate') || startDate;
     const forceRefresh = req.nextUrl.searchParams.get('refresh') === 'true';
 
-    const cacheKey = `live_detail_${targetDate}`;
+    const cacheKey = `live_detail_${startDate}_${endDate}`;
     const cached = memoryCache.get(cacheKey);
 
     if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -367,7 +371,7 @@ export async function GET(req: NextRequest) {
 
     let inflight = inflightPromises.get(cacheKey);
     if (!inflight) {
-      inflight = fetchLiveDetailFromSokrio(targetDate)
+      inflight = fetchLiveDetailFromSokrio(startDate, endDate)
         .then(res => {
           memoryCache.set(cacheKey, { ...res, timestamp: Date.now() });
           return res;

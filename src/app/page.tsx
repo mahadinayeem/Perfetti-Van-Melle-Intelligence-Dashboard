@@ -1932,85 +1932,59 @@ export default function DashboardPage() {
                 disabled={loading}
               >
                 {loading && activePreset === 'today' && <RefreshCw size={11} className="animate-spin" />}
-                <span>{activeTab === 'live_detail' ? '● Today (Live Only)' : 'Today'}</span>
+                <span>Today</span>
               </button>
-              {activeTab !== 'live_detail' && (
-                <>
-                  <button
-                    id="preset-btn-wtd"
-                    type="button"
-                    className={`btn-preset ${activePreset === 'wtd' ? 'active' : ''} ${loading && activePreset === 'wtd' ? 'is-loading' : ''}`}
-                    onClick={() => applyPreset('wtd')}
-                    disabled={loading}
-                  >
-                    {loading && activePreset === 'wtd' && <RefreshCw size={11} className="animate-spin" />}
-                    <span>WTD</span>
-                  </button>
-                  <button
-                    id="preset-btn-mtd"
-                    type="button"
-                    className={`btn-preset ${activePreset === 'mtd' ? 'active' : ''} ${loading && activePreset === 'mtd' ? 'is-loading' : ''}`}
-                    onClick={() => applyPreset('mtd')}
-                    disabled={loading}
-                  >
-                    {loading && activePreset === 'mtd' && <RefreshCw size={11} className="animate-spin" />}
-                    <span>MTD</span>
-                  </button>
-                </>
-              )}
+              <button
+                id="preset-btn-wtd"
+                type="button"
+                className={`btn-preset ${activePreset === 'wtd' ? 'active' : ''} ${loading && activePreset === 'wtd' ? 'is-loading' : ''}`}
+                onClick={() => applyPreset('wtd')}
+                disabled={loading}
+              >
+                {loading && activePreset === 'wtd' && <RefreshCw size={11} className="animate-spin" />}
+                <span>WTD</span>
+              </button>
+              <button
+                id="preset-btn-mtd"
+                type="button"
+                className={`btn-preset ${activePreset === 'mtd' ? 'active' : ''} ${loading && activePreset === 'mtd' ? 'is-loading' : ''}`}
+                onClick={() => applyPreset('mtd')}
+                disabled={loading}
+              >
+                {loading && activePreset === 'mtd' && <RefreshCw size={11} className="animate-spin" />}
+                <span>MTD</span>
+              </button>
             </div>
 
-            {/* Custom Date Pickers (hidden for Live Detail Report as it is strictly Today) */}
-            {activeTab !== 'live_detail' ? (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <label className="input-label" htmlFor="filter-start-date">
-                    <Calendar size={14} />
-                    <span>From:</span>
-                  </label>
-                  <input
-                    id="filter-start-date"
-                    type="date"
-                    className="custom-input"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
+            {/* Custom Date Pickers */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label className="input-label" htmlFor="filter-start-date">
+                <Calendar size={14} />
+                <span>From:</span>
+              </label>
+              <input
+                id="filter-start-date"
+                type="date"
+                className="custom-input"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                disabled={loading}
+              />
+            </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <label className="input-label" htmlFor="filter-end-date">
-                    <span>To:</span>
-                  </label>
-                  <input
-                    id="filter-end-date"
-                    type="date"
-                    className="custom-input"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
-              </>
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 14px',
-                  backgroundColor: '#ecfdf5',
-                  color: '#047857',
-                  border: '1px solid #a7f3d0',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                }}
-              >
-                <span className="status-dot" style={{ backgroundColor: '#10b981' }}></span>
-                <span>Real-Time Live Market Execution (Strictly Today)</span>
-              </div>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label className="input-label" htmlFor="filter-end-date">
+                <span>To:</span>
+              </label>
+              <input
+                id="filter-end-date"
+                type="date"
+                className="custom-input"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                disabled={loading}
+              />
+            </div>
 
             <button
               id="btn-refresh-data"
