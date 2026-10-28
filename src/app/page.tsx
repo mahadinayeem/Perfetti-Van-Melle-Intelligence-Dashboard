@@ -31,10 +31,11 @@ import {
   Activity,
   Target,
   Boxes,
+  Truck,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
-export type ActiveTab = 'bwiw' | 'daily_sr' | 'live_detail' | 'live_order_update' | 'stock' | 'mt_visit';
+export type ActiveTab = 'bwiw' | 'daily_sr' | 'live_detail' | 'live_order_update' | 'stock' | 'do_receiving' | 'mt_visit';
 
 export interface ColumnDef {
   key: string;
@@ -311,6 +312,41 @@ const TAB_CONFIGS: {
     ],
   },
   {
+    id: 'do_receiving',
+    label: 'DO Receiving Status Report',
+    icon: Truck,
+    endpoint: '/api/reports/do-receiving-status',
+    badge: 'PRIMARY DO',
+    desc: 'Distributor DO Receiving Status, SAP Billing, Invoice & Primary Gate-In Ledger',
+    columns: [
+      { key: 'cluster', label: 'Cluster' },
+      { key: 'area', label: 'Area' },
+      { key: 'territory', label: 'Territory' },
+      { key: 'dbCode', label: 'DB Code', pillType: 'route' },
+      { key: 'dbName', label: 'DB Name' },
+      { key: 'dbType', label: 'DB Type' },
+      { key: 'poDateTime', label: 'PO Date & Time' },
+      { key: 'poNumber', label: 'PO Number' },
+      { key: 'invoiceNo', label: 'Invoice No', pillType: 'bold' },
+      { key: 'invoiceDateTime', label: 'Invoice Date & Time' },
+      { key: 'docType', label: 'Doc Type' },
+      { key: 'doReceivingDateTime', label: 'DO Receiving Date & Time' },
+      { key: 'brand', label: 'Brand', pillType: 'bold' },
+      { key: 'skuCode', label: 'SKU Code', pillType: 'bold' },
+      { key: 'skuName', label: 'SKU Name' },
+      { key: 'uom', label: 'UOM', pillType: 'bold' },
+      { key: 'sapQtyCtn', label: 'SAP Quantity in CTN', pillType: 'number' },
+      { key: 'sapQtyPcs', label: 'SAP Quantity in PCs', pillType: 'number' },
+      { key: 'sapValueDBLanding', label: 'SAP Value in DB Landing', pillType: 'currency' },
+      { key: 'sapTon', label: 'SAP Ton', pillType: 'number' },
+      { key: 'dbReceivedQtyCtn', label: 'DB Received Quantity in CTN', pillType: 'number' },
+      { key: 'dbReceivedQtyPcs', label: 'DB Received Quantity in PCs', pillType: 'number' },
+      { key: 'dbReceivedValueDBLanding', label: 'DB Received Value in DB Landing', pillType: 'currency' },
+      { key: 'dbReceivedTon', label: 'DB Received Ton', pillType: 'number' },
+      { key: 'doReceivingStatus', label: 'DO Receiving Status', pillType: 'success' },
+    ],
+  },
+  {
     id: 'mt_visit',
     label: 'MT Visit Status',
     icon: Store,
@@ -470,7 +506,7 @@ export default function DashboardPage() {
     let newStart = startDate;
     let newEnd = endDate;
 
-    if (newTab === 'bwiw' || newTab === 'stock') {
+    if (newTab === 'bwiw' || newTab === 'stock' || newTab === 'do_receiving') {
       newStart = startOfMonth;
       newEnd = todayStr;
     } else if (newTab === 'live_detail') {
@@ -1304,6 +1340,80 @@ export default function DashboardPage() {
                     })()}
                   </span>
                   <span className="kpi-subtext">Per Completed Visit</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-amber" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'do_receiving' && (
+            <>
+              <div className="kpi-card-premium kpi-card-blue">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Total Active SKUs</span>
+                  <div className="kpi-icon-pill icon-blue">
+                    <Boxes size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">{filteredAndSortedRecords.length}</span>
+                  <span className="kpi-subtext">Catalog Products</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-blue" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-green">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Active Brands</span>
+                  <div className="kpi-icon-pill icon-green">
+                    <Layers size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val">
+                    {new Set(filteredAndSortedRecords.map(r => r.brand).filter(Boolean)).size}
+                  </span>
+                  <span className="kpi-subtext">Product Brands</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-green" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-purple">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">Distributor</span>
+                  <div className="kpi-icon-pill icon-purple">
+                    <Truck size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val" style={{ fontSize: '18px' }}>
+                    102267
+                  </span>
+                  <span className="kpi-subtext">M/S Ahamed Enterprise</span>
+                </div>
+                <div className="kpi-progress-bar">
+                  <div className="kpi-progress-fill fill-purple" style={{ width: '100%' }}></div>
+                </div>
+              </div>
+
+              <div className="kpi-card-premium kpi-card-amber">
+                <div className="kpi-top-row">
+                  <span className="kpi-title">SAP DO Integration</span>
+                  <div className="kpi-icon-pill icon-amber">
+                    <Activity size={20} />
+                  </div>
+                </div>
+                <div className="kpi-middle-row">
+                  <span className="kpi-main-val" style={{ fontSize: '18px', color: '#b45309' }}>
+                    Pending SAP Sync
+                  </span>
+                  <span className="kpi-subtext">Awaiting SAP ERP Connection</span>
                 </div>
                 <div className="kpi-progress-bar">
                   <div className="kpi-progress-fill fill-amber" style={{ width: '100%' }}></div>
