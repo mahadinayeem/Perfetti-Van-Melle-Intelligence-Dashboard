@@ -49,6 +49,7 @@ import {
   Navigation,
   XCircle,
   ClockAlert,
+  CalendarCheck,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -78,11 +79,13 @@ export type ActiveTab =
   | 'freight_export'
   | 'user_info'
   | 'license_report'
+  | 'leave_detail'
   | 'non_bill_outlet'
   | 'te_version_list'
   | 'sr_version_list'
   | 'geo_tag'
   | 'delivery_confirmation'
+  | 'sr_wise_sku'
   | 'void_order'
   | 'void_order_tracker'
   | 'mt_sku_update';
@@ -881,6 +884,33 @@ const TAB_CONFIGS: {
       { key: 'lastLoginDate', label: "Last Login Date", pillType: 'bold' },
     ],
   },
+
+  {
+    id: 'leave_detail',
+    label: 'LeaveDetailReport',
+    icon: CalendarCheck,
+    endpoint: '/api/reports/leave-detail',
+    badge: 'HR & Field',
+    desc: 'SR & Field Force Leave Applications, Approval Status & Duration',
+    columns: [
+      { key: 'cluster', label: 'Cluster' },
+      { key: 'area', label: 'Area' },
+      { key: 'territory', label: 'Territory' },
+      { key: 'dbCode', label: 'DB Code', pillType: 'route' },
+      { key: 'dbName', label: 'DB Name' },
+      { key: 'dbType', label: 'DB Type' },
+      { key: 'suCode', label: 'SU Code' },
+      { key: 'srCode', label: 'SR Code' },
+      { key: 'srName', label: 'SR Name', pillType: 'bold' },
+      { key: 'leaveType', label: 'Leave Type', pillType: 'warning' },
+      { key: 'appliedDate', label: 'Applied Date', pillType: 'bold' },
+      { key: 'appliedTime', label: 'Applied Time' },
+      { key: 'leaveStartDate', label: 'Leave Start Date', pillType: 'bold' },
+      { key: 'leaveEndDate', label: 'Leave End Date', pillType: 'bold' },
+      { key: 'noOfDaysLeave', label: 'No of Days Leave', pillType: 'number' },
+      { key: 'approvedDateTime', label: 'Approved Date & Time', pillType: 'success' },
+    ],
+  },
   {
     id: 'non_bill_outlet',
     label: 'Non-Bill Outlet Report',
@@ -1029,6 +1059,29 @@ const TAB_CONFIGS: {
       { key: 'deliveredQty', label: "Delivered Qty", pillType: 'number' },
       { key: 'deliveredValue', label: "Delivered Value", pillType: 'currency' },
       { key: 'returnedValue', label: "Returned Value", pillType: 'currency' },
+    ],
+  },
+
+  {
+    id: 'sr_wise_sku',
+    label: 'SR wise SKU Report',
+    icon: PackageCheck,
+    endpoint: '/api/reports/sr-wise-sku',
+    badge: 'Line Sales',
+    desc: 'SR-wise SKU Order, Delivery, Returns & Net Sales Reconciliation',
+    columns: [
+      { key: 'itemNo', label: 'Item No', pillType: 'route' },
+      { key: 'description', label: 'Description', pillType: 'bold' },
+      { key: 'unitPriceTp', label: 'Unit Price (TP)', pillType: 'currency' },
+      { key: 'orderedQty', label: 'Ordered Qty', pillType: 'number' },
+      { key: 'deliveryQty', label: 'Delivery Qty', pillType: 'number' },
+      { key: 'returnQty', label: 'Return Qty', pillType: 'number' },
+      { key: 'totalAmountOrder', label: 'Total Amount (Order)', pillType: 'currency' },
+      { key: 'totalAmountDeliver', label: 'Total Amount (Deliver)', pillType: 'currency' },
+      { key: 'totalAmountReturn', label: 'Total Amount (Return)', pillType: 'currency' },
+      { key: 'discountAmountOrder', label: 'Discount Amount (Order)', pillType: 'currency' },
+      { key: 'discountAmountDelivery', label: 'Discount Amount (Delivery)', pillType: 'currency' },
+      { key: 'netAmount', label: 'Net Amount', pillType: 'currency' },
     ],
   },
   {
