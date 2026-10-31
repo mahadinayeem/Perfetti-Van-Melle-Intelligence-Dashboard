@@ -1,0 +1,62 @@
+[
+  {
+    "id": "user-1",
+    "cluster": "Central",
+    "area": "A22",
+    "areaName": "Central North",
+    "territory": "T116",
+    "name": "Md. Sohel Khan",
+    "userId": "54912",
+    "password": "PVMB54912@SR",
+    "positionCode": "DO-129",
+    "userType": "SR"
+  },
+  {
+    "id": "user-2",
+    "cluster": "Cluster-1",
+    "area": "A21",
+    "areaName": "East",
+    "territory": "T32",
+    "name": "M/S Adisha Adiba Enterprise",
+    "userId": "102471",
+    "password": "1234",
+    "positionCode": "102471",
+    "userType": "SUPER DB"
+  },
+  {
+    "id": "user-3",
+    "cluster": "",
+    "area": "",
+    "areaName": "",
+    "territory": "",
+    "name": "Amin Uzzaman",
+    "userId": "728",
+    "password": "Per@12345678",
+    "positionCode": "T115",
+    "userType": "TE"
+  },
+  {
+    "id": "user-4",
+    "cluster": "Organized Trade",
+    "area": "OT02",
+    "areaName": "Organized Trade",
+    "territory": "OT03",
+    "name": "Organized Trade",
+    "userId": "100001",
+    "password": "Modern@123456",
+    "positionCode": "100001",
+    "userType": "MAIN DB"
+  },
+  {
+    "id": "user-5",
+    "cluster": "Cluster-1",
+    "area": "A23",
+    "areaName": "North",
+    "territory": "T56",
+    "name": "M/S Rafi Traders",
+    "userId": "ST1134",
+    "password": "1122",
+    "positionCode": "ST1134",
+    "userType": "SUB DB"
+  }
+]

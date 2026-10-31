@@ -25,43 +25,7 @@ export interface TeAttendanceRecord {
 const memoryCache = new Map<string, { records: TeAttendanceRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
-function getSampleExcelData(): TeAttendanceRecord[] {
-  try {
-    const filePath = path.join(process.cwd(), 'Report Sample.xlsx');
-    if (!fs.existsSync(filePath)) return [];
-    const buf = fs.readFileSync(filePath);
-    const wb = XLSX.read(buf, { type: 'buffer' });
-    const sheet = wb.Sheets['TE Attandance Report'];
-    if (!sheet) return [];
-    const raw: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    if (raw.length < 2) return [];
 
-    const headers = raw[0].map(h => String(h || '').trim());
-    return raw.slice(1).map((r, idx) => {
-      const obj: Record<string, any> = {};
-      headers.forEach((h, colIdx) => {
-        obj[h] = r[colIdx];
-      });
-      return {
-        id: `te-att-${idx + 1}`,
-        cluster: String(obj['Cluster'] || 'Central'),
-        areaName: String(obj['AreaName'] || 'Central South'),
-        territoryName: String(obj['TerritoryName'] || 'Jatra Bari'),
-        teCode: obj['TE Code'] || '5104',
-        teName: String(obj['TE Name'] || 'Palash Chandra Karmakar'),
-        visitType: String(obj['Visit Type'] || 'StockiestVisit'),
-        startWorkDate: String(obj['Start Work Date'] || ''),
-        startWorkTime: String(obj['Start Work Time'] || ''),
-        distanceFromDbLocation: obj['DistanceFromDBLocation'] ?? '',
-        startWorkLatitude: obj['StartWorkLatitude'] ?? '',
-        startWorkLongitude: obj['StartWorkLongitude'] ?? '',
-      };
-    });
-  } catch (e) {
-    console.error('[TE Attendance Report] Failed to read sample excel:', e);
-    return [];
-  }
-}
 
 async function fetchLiveTeAttendanceFromSokrio(startDate: string, endDate: string): Promise<TeAttendanceRecord[]> {
   const token = await getValidToken();
@@ -78,7 +42,7 @@ async function fetchLiveTeAttendanceFromSokrio(startDate: string, endDate: strin
   const tmUsers = allUsers.filter(u => {
     const roleName = (u.roles?.[0]?.name || '').toLowerCase();
     const roleTag = (u.roles?.[0]?.tag || '').toLowerCase();
-    return roleName.includes('tm') || roleTag.includes('manager') || u.code === 5104 || u.code === 224;
+    return roleName.includes('te') || roleName.includes('tm') || roleName.includes('executive') || roleTag.includes('manager') || u.is_report === 1 || String(u.code) === '5104' || String(u.code) === '224';
   });
 
   // 2. Fetch checkins for the date range
@@ -179,11 +143,6 @@ export async function GET(request: NextRequest) {
     let records = await fetchLiveTeAttendanceFromSokrio(startDate, endDate);
     let source = 'sokrio_live_api';
 
-    if (records.length === 0) {
-      records = getSampleExcelData();
-      source = 'sample_excel_fallback';
-    }
-
     const meta = {
       totalRecords: records.length,
       startDate,
@@ -205,13 +164,12 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[TE Attendance Report API Error]:', error);
-    const fallback = getSampleExcelData();
     return NextResponse.json({
       success: true,
-      data: fallback,
+      data: [],
       meta: {
-        totalRecords: fallback.length,
-        source: 'sample_excel_error_fallback',
+        totalRecords: 0,
+        source: 'sokrio_live_api',
         error: error.message,
       },
       cached: false,

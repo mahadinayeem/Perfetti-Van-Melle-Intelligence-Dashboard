@@ -1,6 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidToken } from '@/lib/sokrioClient';
+import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
+import { resolveChannel, resolveOutletEnglishName } from '@/lib/outletResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
+import customerMapData from '@/lib/customerMap.json';
+
+const CUSTOMER_MAP: Record<string, string> = customerMapData as Record<string, string>;
+
+function toEnglishOutletName(name: string, custCode: string): string {
+  if (custCode && CUSTOMER_MAP[custCode]) return CUSTOMER_MAP[custCode];
+  if (!name) return custCode ? `Retail Outlet ${custCode}` : 'Retail Outlet';
+
+  // If already ASCII/English
+  if (!/[\u0980-\u09FF]/.test(name)) return name;
+
+  // Replace common Bengali retail terms
+  let eng = name
+    .replace(/মেসার্স/g, 'M/S')
+    .replace(/স্টোর/g, 'Store')
+    .replace(/ষ্টোর/g, 'Store')
+    .replace(/ভ্যারাইটিজ/g, 'Varieties')
+    .replace(/ভ্যারাইটিস/g, 'Varieties')
+    .replace(/কনফেকশনারী/g, 'Confectionery')
+    .replace(/ট্রেডার্স/g, 'Traders')
+    .replace(/ট্রেডিং/g, 'Trading')
+    .replace(/বেকারী/g, 'Bakery')
+    .replace(/এন্টারপ্রাইজ/g, 'Enterprise')
+    .replace(/টি স্টল/g, 'Tea Stall')
+    .replace(/জেনারেল স্টোর/g, 'General Store')
+    .replace(/হোটেল/g, 'Hotel')
+    .replace(/ফার্মেসী/g, 'Pharmacy')
+    .replace(/ডিপার্টমেন্টাল/g, 'Departmental');
+
+  // If any residual Bengali characters remain, fall back to Customer Code or cleaned name
+  if (/[\u0980-\u09FF]/.test(eng)) {
+    return custCode ? `Outlet ${custCode} Store` : 'Retail Store';
+  }
+  return eng.trim();
+}
 import * as XLSX from 'xlsx';
 import axios from 'axios';
 import path from 'path';
@@ -85,54 +121,7 @@ const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; 
 
 const SKU_CATALOG: Record<string, { motherSkuCode: string; motherSkuName: string; category: string; uom: string; brand: string }> = skuCatalogData as any;
 
-function getSampleExcelData(): LiveOrderUpdateRecord[] {
-  try {
-    const filePath = path.join(process.cwd(), 'Report Sample.xlsx');
-    if (!fs.existsSync(filePath)) return [];
-    const buf = fs.readFileSync(filePath);
-    const wb = XLSX.read(buf, { type: 'buffer' });
-    const sheet = wb.Sheets['Live Order Update Report'];
-    if (!sheet) return [];
 
-    const rows: any[] = XLSX.utils.sheet_to_json(sheet) || [];
-    return rows.map((r, idx) => ({
-      id: `live-order-sample-${idx + 1}`,
-      cluster: String(r['Cluster'] || 'Central'),
-      area: String(r['Area'] || 'Central South'),
-      territory: String(r['1'] || r['Territory'] || 'Jatra Bari'),
-      dbCode: r['DB Code'] || '102267',
-      dbName: String(r['DB Name'] || 'M/S Ahamed Enterprise'),
-      dbType: String(r['DB Type'] || ''),
-      srPosition: String(r['SR Position'] || 'DM-060'),
-      srCode: String(r['SR Code'] || ''),
-      srName: String(r['SR Name'] || ''),
-      orderDate: String(r['Order Date'] || ''),
-      routeCode: String(r['Route Code'] || ''),
-      routeName: String(r['Route Name'] || ''),
-      customerNo: String(r['Customer No'] || ''),
-      customerName: String(r['Customer Name'] || ''),
-      orderNo: String(r['Order No'] || ''),
-      category: String(r['Category'] || 'Gum'),
-      motherSkuCode: String(r['Mother SKU Code'] || ''),
-      motherSkuName: String(r['Mother SKU Name'] || ''),
-      brand: String(r['Brand'] || ''),
-      skuCode: String(r['SKU Code'] || ''),
-      skuName: String(r['SKU Name'] || ''),
-      qty: Number(r['Qty'] || 0),
-      price: Number(r['Price'] || 0),
-      orderValue: Number(r['Order Value'] || 0),
-      discountValue: Number(r['Discount Value'] || 0),
-      cashDiscount: Number(r['Cash Discount'] || 0),
-      valueAfterDiscount: Number(r['Value After Discount'] || 0),
-      orderStatus: String(r['Order Status'] || 'Pending'),
-      uom: String(r['UOM'] || 'BOX'),
-      channel: String(r['Channel'] || 'Retail'),
-    }));
-  } catch (e) {
-    console.error('[Live Order Update] Error loading sample excel:', e);
-    return [];
-  }
-}
 
 async function fetchLiveOrdersFromSokrio(startDate: string, endDate: string): Promise<LiveOrderUpdateRecord[]> {
   let token = await getValidToken();
@@ -192,22 +181,25 @@ async function fetchLiveOrdersFromSokrio(startDate: string, endDate: string): Pr
     else if (r['HNG']) uom = 'HNG';
     else if (skuInfo?.uom) uom = skuInfo.uom;
 
+    const dbCode = String(r['Seller Department Code'] || srMeta?.dbCode || '102267');
+    const custNo = String(r['Buyer Department Code'] || '').trim();
+
     return {
       id: `live-order-${idx + 1}`,
       cluster: 'Central',
       area: 'Central South',
       territory: srMeta?.territory || 'Jatra Bari',
-      dbCode: r['Seller Department Code'] || srMeta?.dbCode || '102267',
+      dbCode,
       dbName: r['Seller Department Name'] || srMeta?.dbName || 'M/S Ahamed Enterprise',
-      dbType: '',
+      dbType: resolveDbType(dbCode),
       srPosition: srMeta?.srPositionCode || 'DM-057',
       srCode,
       srName: srMeta?.srName || String(r['Order Creator Name'] || r['Employee Name'] || ''),
       orderDate: String(r['Order Date'] || startDate),
       routeCode: String(r['Buyer Territory Code'] || `T16R${idx + 1}`),
       routeName: String(r['Buyer Territory Name'] || 'General Route'),
-      customerNo: String(r['Buyer Department Code'] || ''),
-      customerName: String(r['Buyer Department Name'] || ''),
+      customerNo: custNo,
+      customerName: resolveOutletEnglishName(custNo, toEnglishOutletName(String(r['Buyer Department Name'] || ''), custNo)),
       orderNo: String(r['Order Reference'] || r['Tracking ID'] || `ORD-${idx + 1}`),
       category: skuInfo?.category || String(r['Product Category'] || 'Confectionery'),
       motherSkuCode: skuInfo?.motherSkuCode || `MSKU00${skuCode.slice(-2)}`,
@@ -223,7 +215,7 @@ async function fetchLiveOrdersFromSokrio(startDate: string, endDate: string): Pr
       valueAfterDiscount: amount,
       orderStatus: String(r['Order Status'] || 'Pending'),
       uom,
-      channel: 'Retail',
+      channel: resolveChannel(custNo),
     };
   });
 }
@@ -231,8 +223,10 @@ async function fetchLiveOrdersFromSokrio(startDate: string, endDate: string): Pr
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
-    const startDate = url.searchParams.get('startDate') || '2026-10-26';
-    const endDate = url.searchParams.get('endDate') || '2026-10-26';
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const startDate = url.searchParams.get('startDate') || todayStr;
+    const endDate = url.searchParams.get('endDate') || todayStr;
 
     const cacheKey = `live_order_${startDate}_${endDate}`;
     const cached = memoryCache.get(cacheKey);

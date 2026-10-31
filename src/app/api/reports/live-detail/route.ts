@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
-import { getValidToken } from '@/lib/sokrioClient';
+import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
 import territoriesMasterData from '@/lib/territoriesMaster.json';
 
 export interface LiveDetailRecord {
@@ -41,7 +41,7 @@ export interface LiveDetailRecord {
   totalMarketWork: string;
   totalSpendTimeOrderTaking: string;
   transitTime: string;
-  locationAccuracy: number;
+  locationAccuracy: number | string;
   twoLpcOrder: number;
   noOfJarOrderQty: number;
   srLeave: string;
@@ -86,6 +86,30 @@ function parseDateToMs(dateStr: any): number {
   }
   const t = Date.parse(str);
   return isNaN(t) ? 0 : t;
+}
+
+function formatTimeToHHMMSS(val: any): string {
+  if (!val || val === '-' || val === 'null' || val === 'undefined') return '';
+  const s = String(val).trim();
+  const timePart = s.includes(' ') ? s.split(' ')[1] : (s.includes('T') ? s.split('T')[1] : s);
+  const ampmMatch = timePart.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (ampmMatch) {
+    let [_, hStr, mStr, sStr, ampm] = ampmMatch;
+    let h = parseInt(hStr, 10);
+    let m = mStr.padStart(2, '0');
+    let sec = (sStr || '00').padStart(2, '0');
+    if (ampm) {
+      if (ampm.toLowerCase() === 'pm' && h < 12) h += 12;
+      if (ampm.toLowerCase() === 'am' && h === 12) h = 0;
+    }
+    return `${String(h).padStart(2, '0')}:${m}:${sec}`;
+  }
+  const isoMatch = timePart.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (isoMatch) {
+    let [_, hStr, mStr, sStr] = isoMatch;
+    return `${hStr.padStart(2, '0')}:${mStr.padStart(2, '0')}:${(sStr || '00').padStart(2, '0')}`;
+  }
+  return s;
 }
 
 function format24hFromMs(ms: number): string {
@@ -422,8 +446,8 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
     // Client Requirement:
     // Start Work time shown based on Day in Time
     // End work time shown based on Day-out time
-    const startWorkTime = att?.dayIn || firstCallTime || '08:30:00';
-    const endWorkTime = att?.dayOut || '';
+    const startWorkTime = formatTimeToHHMMSS(att?.dayIn) || (firstCallTime ? formatTimeToHHMMSS(firstCallTime) : '');
+    const endWorkTime = formatTimeToHHMMSS(att?.dayOut) || (lastCallTime ? formatTimeToHHMMSS(lastCallTime) : '');
 
     const totalWorkingHours = att?.workingHours
       ? formatMinutes(att.workingHours)
@@ -447,7 +471,7 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
       territory: srMeta.territory,
       dbCode: srMeta.dbCode,
       dbName: srMeta.dbName,
-      dbType: '',
+      dbType: resolveDbType(srMeta.dbCode),
       srPositionCode: srMeta.srPositionCode,
       srCode,
       srName: srMeta.srName || d.srName,
@@ -468,16 +492,16 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
       tls: d.tls,
       lpc: prodCall > 0 ? Number((d.tls / prodCall).toFixed(2)) : 0,
       brandHandle: prodCall > 0 ? Number((d.brands.size / prodCall).toFixed(2)) : d.brands.size,
-      lastSyncTime,
+      lastSyncTime: formatTimeToHHMMSS(lastSyncTime) || lastCallTime,
       startWorkTime,
       endWorkTime,
       totalWorkingHours,
-      firstCall: firstCallTime,
-      lastCall: lastCallTime,
+      firstCall: formatTimeToHHMMSS(firstCallTime),
+      lastCall: formatTimeToHHMMSS(lastCallTime),
       totalMarketWork,
       totalSpendTimeOrderTaking,
       transitTime,
-      locationAccuracy: 1,
+      locationAccuracy: '100%',
       twoLpcOrder: twoLpcCount,
       noOfJarOrderQty: d.jarQty,
       srLeave: visited > 0 ? 'No' : 'Yes',

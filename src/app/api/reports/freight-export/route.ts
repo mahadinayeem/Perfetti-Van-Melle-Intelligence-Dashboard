@@ -24,7 +24,12 @@ export interface FreightExportRecord {
   invoiceNo: string | number;
   deliveryDate: string | number;
   salesQtyLoose: string | number;
+  salesQtyInCTN?: number;
+  amount?: number;
+  isConfirmed?: string;
   isconfirmed: string | number;
+  pONo?: string;
+  poNo?: string;
 }
 
 const DB_MAP: Record<string, any> = (dbMaster as any).dbs || {};
@@ -102,7 +107,12 @@ export async function GET(request: NextRequest) {
           invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV210018${String(d.id).padStart(6, '0')}` : 'INV210018841957'),
           deliveryDate: delDateStr,
           salesQtyLoose: qty,
+          salesQtyInCTN: Math.round((qty / (cat.piecesPerCtn || 15)) * 100) / 100,
+          amount: Math.round(qty * (cat.price || 375)),
+          isConfirmed: 'Yes',
           isconfirmed: 'Yes',
+          pONo: d.order?.code || `PO_${d.order_id || d.id || count}`,
+          poNo: d.order?.code || `PO_${d.order_id || d.id || count}`,
         });
       }
     }

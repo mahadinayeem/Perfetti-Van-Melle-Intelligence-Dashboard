@@ -51,6 +51,10 @@ import {
   ClockAlert,
   CalendarCheck,
   CalendarOff,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -1248,12 +1252,30 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [metaInfo, setMetaInfo] = useState<any>(null);
 
-  // Date range filters (Default: MTD for BWIW Report on initial entry)
-  const [startDate, setStartDate] = useState(() => {
+  // Helper to get standard date strings: Today, WTD, MTD
+  const getPresetDates = () => {
     const now = new Date();
-    return formatYMD(new Date(now.getFullYear(), now.getMonth(), 1));
-  });
-  const [endDate, setEndDate] = useState(() => formatYMD(new Date()));
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+    // WTD: In Bangladesh, the work week starts on Saturday
+    const diffToSat = (now.getDay() + 1) % 7;
+    // If today is Saturday (diffToSat === 0), look back 7 days so WTD spans the full 7-day week
+    const daysBack = diffToSat > 0 ? diffToSat : 7;
+    const startOfWeekDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack);
+    const wtdStartStr = `${startOfWeekDate.getFullYear()}-${pad(startOfWeekDate.getMonth() + 1)}-${pad(startOfWeekDate.getDate())}`;
+
+    // MTD: 1st day of current month
+    const startOfMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    const mtdStartStr = `${startOfMonthDate.getFullYear()}-${pad(startOfMonthDate.getMonth() + 1)}-${pad(startOfMonthDate.getDate())}`;
+
+    return { todayStr, wtdStartStr, mtdStartStr };
+  };
+
+  // Date range filters (Default: Today on initial entry)
+  const [startDate, setStartDate] = useState(() => getPresetDates().todayStr);
+  const [endDate, setEndDate] = useState(() => getPresetDates().todayStr);
+  const [autoCascadeNote, setAutoCascadeNote] = useState<string | null>(null);
   const [globalSearch, setGlobalSearch] = useState('');
 
   // Pagination State
@@ -1271,6 +1293,51 @@ export default function DashboardPage() {
   const [filterSearch, setFilterSearch] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Table horizontal drag-to-scroll & navigation refs/state
+  const tableWrapperRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleTableMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    // Don't drag if clicked on interactive inputs, buttons, or filter dropdowns
+    if (
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('select') ||
+      target.closest('.excel-filter-dropdown') ||
+      target.closest('.excel-filter-trigger')
+    ) {
+      return;
+    }
+    if (!tableWrapperRef.current) return;
+    isDraggingRef.current = true;
+    setIsDragging(true);
+    startXRef.current = e.pageX - tableWrapperRef.current.offsetLeft;
+    scrollLeftRef.current = tableWrapperRef.current.scrollLeft;
+  };
+
+  const handleTableMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !tableWrapperRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - tableWrapperRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * 1.5;
+    tableWrapperRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
+  const handleTableMouseUp = () => {
+    isDraggingRef.current = false;
+    setIsDragging(false);
+  };
+
+  const scrollTable = (direction: 'left' | 'right') => {
+    if (!tableWrapperRef.current) return;
+    const offset = direction === 'left' ? -400 : 400;
+    tableWrapperRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+  };
+
   // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -1286,32 +1353,103 @@ export default function DashboardPage() {
   // Track active fetch request sequence to ignore stale responses
   const reqIdRef = useRef(0);
 
-  // Fetch report data directly from corresponding API endpoint
-  const fetchData = async (tab = activeTab, start = startDate, end = endDate) => {
+  // Helper to fetch data for a specific endpoint & range
+  const executeFetch = async (tab: ActiveTab, start: string, end: string) => {
+    const cfg = TAB_CONFIGS.find(t => t.id === tab) || TAB_CONFIGS[0];
+    const separator = cfg.endpoint.includes('?') ? '&' : '?';
+    const url = `${cfg.endpoint}${separator}startDate=${start}&endDate=${end}&start=${start}&end=${end}&date=${end}`;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      const text = await res.text();
+      let errMsg = `Server returned status ${res.status}`;
+      try {
+        const parsed = JSON.parse(text);
+        errMsg = parsed.message || parsed.error || errMsg;
+      } catch {}
+      throw new Error(errMsg);
+    }
+    return await res.json();
+  };
+
+  // Smart Auto-Cascading Fetch:
+  // Step 1: Query TODAY. If records exist (> 0), display Today.
+  // Step 2: If Today is empty (0 records), automatically query WTD (Week to Date). If records exist, display WTD.
+  // Step 3: If WTD is also empty (0 records), automatically query MTD (Month to Date).
+  const cascadeFetch = async (tab = activeTab) => {
     const currentReqId = ++reqIdRef.current;
     setLoading(true);
     setError(null);
+    setAutoCascadeNote(null);
+
+    const { todayStr, wtdStartStr, mtdStartStr } = getPresetDates();
+
     try {
-      const cfg = TAB_CONFIGS.find(t => t.id === tab) || TAB_CONFIGS[0];
-      const separator = cfg.endpoint.includes('?') ? '&' : '?';
-      const url = `${cfg.endpoint}${separator}startDate=${start}&endDate=${end}&start=${start}&end=${end}`;
+      // 1. Try Today
+      const todayJson = await executeFetch(tab, todayStr, todayStr);
+      if (currentReqId !== reqIdRef.current) return;
 
-      const res = await fetch(url);
-      if (currentReqId !== reqIdRef.current) return; // Stale request, ignore
-
-      if (!res.ok) {
-        const text = await res.text();
-        let errMsg = `Server returned status ${res.status}`;
-        try {
-          const parsed = JSON.parse(text);
-          errMsg = parsed.message || parsed.error || errMsg;
-        } catch {}
-        setError(errMsg);
+      if (todayJson.success && Array.isArray(todayJson.data) && todayJson.data.length > 0) {
+        setRecords(todayJson.data);
+        setMetaInfo(todayJson.meta || null);
+        setStartDate(todayStr);
+        setEndDate(todayStr);
+        setAutoCascadeNote(null);
+        setCurrentPage(1);
+        setLoading(false);
         return;
       }
 
-      const json = await res.json();
-      if (currentReqId !== reqIdRef.current) return; // Stale request, ignore
+      // 2. Today is empty -> Cascade to WTD
+      const wtdJson = await executeFetch(tab, wtdStartStr, todayStr);
+      if (currentReqId !== reqIdRef.current) return;
+
+      if (wtdJson.success && Array.isArray(wtdJson.data) && wtdJson.data.length > 0) {
+        setRecords(wtdJson.data);
+        setMetaInfo(wtdJson.meta || null);
+        setStartDate(wtdStartStr);
+        setEndDate(todayStr);
+        setAutoCascadeNote('Today had 0 records — auto-loaded Week-to-Date (WTD)');
+        setCurrentPage(1);
+        setLoading(false);
+        return;
+      }
+
+      // 3. WTD also empty -> Cascade to MTD
+      const mtdJson = await executeFetch(tab, mtdStartStr, todayStr);
+      if (currentReqId !== reqIdRef.current) return;
+
+      setRecords(mtdJson.data || []);
+      setMetaInfo(mtdJson.meta || null);
+      setStartDate(mtdStartStr);
+      setEndDate(todayStr);
+      if (mtdJson.data && mtdJson.data.length > 0) {
+        setAutoCascadeNote('Today & WTD had 0 records — auto-loaded Month-to-Date (MTD)');
+      } else {
+        setAutoCascadeNote('No records found for Today, WTD, or MTD');
+      }
+      setCurrentPage(1);
+    } catch (err: any) {
+      if (currentReqId !== reqIdRef.current) return;
+      setError(err.message || 'Error connecting to report service');
+      setRecords([]);
+    } finally {
+      if (currentReqId === reqIdRef.current) {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Manual fetch for when the user explicitly clicks a preset or selects custom dates
+  const fetchManualData = async (tab = activeTab, start = startDate, end = endDate) => {
+    const currentReqId = ++reqIdRef.current;
+    setLoading(true);
+    setError(null);
+    setAutoCascadeNote(null);
+
+    try {
+      const json = await executeFetch(tab, start, end);
+      if (currentReqId !== reqIdRef.current) return;
 
       if (json.success) {
         setRecords(json.data || []);
@@ -1323,6 +1461,7 @@ export default function DashboardPage() {
     } catch (err: any) {
       if (currentReqId !== reqIdRef.current) return;
       setError(err.message || 'Error connecting to report service');
+      setRecords([]);
     } finally {
       if (currentReqId === reqIdRef.current) {
         setLoading(false);
@@ -1330,69 +1469,69 @@ export default function DashboardPage() {
     }
   };
 
-  // Synchronized tab change handler to avoid race conditions
+  // Synchronized tab change handler: triggers smart cascade starting with Today
   const handleTabChange = (newTab: ActiveTab) => {
     if (newTab === activeTab) return;
-    const now = new Date();
-    const todayStr = formatYMD(now);
-    const startOfMonth = formatYMD(new Date(now.getFullYear(), now.getMonth(), 1));
-
-    let newStart = startDate;
-    let newEnd = endDate;
-
-    if (newTab === 'bwiw' || newTab === 'stock' || newTab === 'do_receiving') {
-      newStart = startOfMonth;
-      newEnd = todayStr;
-    } else if (newTab === 'live_detail') {
-      newStart = todayStr;
-      newEnd = todayStr;
-    }
-
     setActiveTab(newTab);
-    setStartDate(newStart);
-    setEndDate(newEnd);
-  };
-
-  // Re-fetch whenever tab or dates change
-  useEffect(() => {
     setColumnFilters({});
     setSortConfig(null);
-    fetchData(activeTab, startDate, endDate);
-  }, [activeTab, startDate, endDate]);
+    setGlobalSearch('');
+    cascadeFetch(newTab);
+  };
 
-  // Quick preset helper (MTD, WTD, Today)
+  // Initial load: Smart cascade on mount
+  useEffect(() => {
+    cascadeFetch('bwiw');
+  }, []);
+
+  // Quick preset helper (MTD, WTD, Today) - User manual click
   const applyPreset = (preset: 'mtd' | 'wtd' | 'today') => {
-    const now = new Date();
-    const todayStr = formatYMD(now);
+    const { todayStr, wtdStartStr, mtdStartStr } = getPresetDates();
+    let s = todayStr;
+    let e = todayStr;
 
     if (preset === 'today') {
-      setStartDate(todayStr);
-      setEndDate(todayStr);
-    } else if (preset === 'mtd') {
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      setStartDate(formatYMD(startOfMonth));
-      setEndDate(todayStr);
+      s = todayStr;
+      e = todayStr;
     } else if (preset === 'wtd') {
-      const diffToSat = (now.getDay() + 1) % 7;
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - diffToSat);
-      setStartDate(formatYMD(startOfWeek));
-      setEndDate(todayStr);
+      s = wtdStartStr;
+      e = todayStr;
+    } else if (preset === 'mtd') {
+      s = mtdStartStr;
+      e = todayStr;
+    }
+
+    setStartDate(s);
+    setEndDate(e);
+    fetchManualData(activeTab, s, e);
+  };
+
+  // Custom date picker input handlers
+  const handleStartDateChange = (val: string) => {
+    setStartDate(val);
+    fetchManualData(activeTab, val, endDate);
+  };
+
+  const handleEndDateChange = (val: string) => {
+    setEndDate(val);
+    fetchManualData(activeTab, startDate, val);
+  };
+
+  // Refresh handler: re-evaluates cascade or refreshes custom range
+  const handleRefresh = () => {
+    if (autoCascadeNote !== null) {
+      cascadeFetch(activeTab);
+    } else {
+      fetchManualData(activeTab, startDate, endDate);
     }
   };
 
   const activePreset = useMemo(() => {
-    const now = new Date();
-    const todayStr = formatYMD(now);
-    const startOfMonth = formatYMD(new Date(now.getFullYear(), now.getMonth(), 1));
-    const diffToSat = (now.getDay() + 1) % 7;
-    const startOfWeekDate = new Date(now);
-    startOfWeekDate.setDate(now.getDate() - diffToSat);
-    const startOfWeek = formatYMD(startOfWeekDate);
+    const { todayStr, wtdStartStr, mtdStartStr } = getPresetDates();
 
     if (startDate === todayStr && endDate === todayStr) return 'today';
-    if (startDate === startOfWeek && endDate === todayStr) return 'wtd';
-    if (startDate === startOfMonth && endDate === todayStr) return 'mtd';
+    if (startDate === wtdStartStr && endDate === todayStr) return 'wtd';
+    if (startDate === mtdStartStr && endDate === todayStr) return 'mtd';
     return null;
   }, [startDate, endDate]);
 
@@ -1426,6 +1565,17 @@ export default function DashboardPage() {
       totalordervalue: ['totalordervalue', 'ordervalue', 'amount'],
       deliveredqty: ['deliveredqty', 'deliveryqty'],
       deliveredvalue: ['deliveredvalue', 'deliveryvalue', 'payable'],
+      locationaccuracy: ['locationaccuracy', 'location_accuracy', 'location accuracy'],
+      distancefromdblocation: ['distancefromdblocation', 'distance_from_db_location', 'distance from db location', 'distance'],
+      startworklatitude: ['startworklatitude', 'start_work_latitude', 'start work latitude', 'startlat', 'lat', 'latitude'],
+      startworklongitude: ['startworklongitude', 'start_work_longitude', 'start work longitude', 'startlng', 'long', 'longitude'],
+      logintime: ['logintime', 'login_time', 'login time'],
+      endtime: ['endtime', 'end_time', 'end time'],
+      firstcall: ['firstcall', 'first_call', 'first call'],
+      lastcall: ['lastcall', 'last_call', 'last call'],
+      dayend: ['dayend', 'day_end', 'day end'],
+      password: ['password', 'user_password'],
+      positioncode: ['positioncode', 'position_code', 'position code', 'sucode', 'srpositioncode'],
     };
 
     const aliases = keyAliases[lower];
@@ -1507,10 +1657,27 @@ export default function DashboardPage() {
   // Pagination calculation
   const totalRecords = filteredAndSortedRecords.length;
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
+  const startRecord = totalRecords === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endRecord = Math.min(currentPage * pageSize, totalRecords);
+
   const paginatedRecords = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return filteredAndSortedRecords.slice(start, start + pageSize);
   }, [filteredAndSortedRecords, currentPage, pageSize]);
+
+  // Smart ellipsis page numbers array
+  const paginationPages = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, '...', totalPages];
+    }
+    if (currentPage >= totalPages - 3) {
+      return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+  }, [currentPage, totalPages]);
 
   // Excel / CSV Export
   const exportData = (format: 'xlsx' | 'csv') => {
@@ -1975,9 +2142,14 @@ export default function DashboardPage() {
           {/* Brand Logo & Title */}
           <div className="brand-section">
             <div className="brand-logo-wrap">
-              <span style={{ fontWeight: 900, fontSize: '20px', letterSpacing: '-0.04em', color: 'var(--primary)' }}>
-                PVM
-              </span>
+              <Image
+                src="/pvm-logo.png"
+                alt="Perfetti Van Melle Logo"
+                width={120}
+                height={36}
+                style={{ height: '34px', width: 'auto', objectFit: 'contain' }}
+                priority
+              />
             </div>
             <div className="brand-divider-line"></div>
             <div className="brand-info">
@@ -2047,7 +2219,7 @@ export default function DashboardPage() {
         {/* KPI Summary Cards */}
         <section className="kpi-grid" aria-label="Key Performance Indicators">
           {currentKpis.map((kpi, idx) => (
-            <div key={idx} className={`kpi-card-premium kpi-card-${kpi.color}`}>
+            <div key={`kpi-${kpi.title}-${idx}`} className={`kpi-card-premium kpi-card-${kpi.color}`}>
               <div className="kpi-top-row">
                 <span className="kpi-title">{kpi.title}</span>
                 <div className={`kpi-icon-pill icon-${kpi.color}`}>
@@ -2113,7 +2285,7 @@ export default function DashboardPage() {
                 type="date"
                 className="custom-input"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => handleStartDateChange(e.target.value)}
                 disabled={loading}
               />
             </div>
@@ -2127,7 +2299,7 @@ export default function DashboardPage() {
                 type="date"
                 className="custom-input"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => handleEndDateChange(e.target.value)}
                 disabled={loading}
               />
             </div>
@@ -2136,13 +2308,35 @@ export default function DashboardPage() {
               id="btn-refresh-data"
               type="button"
               className="btn btn-outline"
-              onClick={() => fetchData(activeTab, startDate, endDate)}
+              onClick={handleRefresh}
               disabled={loading}
               title="Refresh Data from Sokrio"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
               <span>Refresh</span>
             </button>
+
+            {autoCascadeNote && (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  borderRadius: '16px',
+                  background: 'rgba(245, 158, 11, 0.12)',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  color: '#b45309',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap'
+                }}
+                title="Smart Auto-Cascading: Today -> WTD -> MTD"
+              >
+                <Sparkles size={12} style={{ color: '#f59e0b' }} />
+                <span>{autoCascadeNote}</span>
+              </div>
+            )}
           </div>
 
           <div className="action-buttons">
@@ -2239,7 +2433,7 @@ export default function DashboardPage() {
             </div>
             <button
               type="button"
-              onClick={() => fetchData(activeTab, startDate, endDate)}
+              onClick={handleRefresh}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -2277,8 +2471,8 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {hasActiveFilters && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {hasActiveFilters && (
                 <span style={{
                   fontSize: '11px',
                   fontWeight: 700,
@@ -2289,11 +2483,71 @@ export default function DashboardPage() {
                 }}>
                   Active Filters Applied
                 </span>
+              )}
+
+              {/* Horizontal Scroll Controls */}
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                padding: '2px 6px',
+                borderRadius: '6px'
+              }}>
+                <button
+                  type="button"
+                  title="Scroll Left (or click & drag table)"
+                  onClick={() => scrollTable('left')}
+                  style={{
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    borderRadius: '4px',
+                    width: '26px',
+                    height: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#334155'
+                  }}
+                >
+                  <ChevronLeft size={15} />
+                </button>
+                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, padding: '0 4px', userSelect: 'none' }}>
+                  Scroll
+                </span>
+                <button
+                  type="button"
+                  title="Scroll Right (or click & drag table)"
+                  onClick={() => scrollTable('right')}
+                  style={{
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    borderRadius: '4px',
+                    width: '26px',
+                    height: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#334155'
+                  }}
+                >
+                  <ChevronRight size={15} />
+                </button>
               </div>
-            )}
+            </div>
           </div>
 
-          <div className="table-wrapper">
+          <div
+            ref={tableWrapperRef}
+            className={`table-wrapper ${isDragging ? 'is-dragging' : ''}`}
+            onMouseDown={handleTableMouseDown}
+            onMouseMove={handleTableMouseMove}
+            onMouseUp={handleTableMouseUp}
+            onMouseLeave={handleTableMouseUp}
+          >
             <table className="modern-table">
               <thead>
                 <tr>
@@ -2460,10 +2714,10 @@ export default function DashboardPage() {
                                   No matching values found
                                 </div>
                               ) : (
-                                matchingVals.map((val) => {
+                                matchingVals.map((val, vIdx) => {
                                   const isChecked = !columnFilters[col.key] || columnFilters[col.key].has(val);
                                   return (
-                                    <label key={val} className="popup-list-item">
+                                    <label key={`filter-${col.key}-${vIdx}-${val}`} className="popup-list-item">
                                       <input
                                         type="checkbox"
                                         className="popup-checkbox"
@@ -2536,7 +2790,7 @@ export default function DashboardPage() {
                   paginatedRecords.map((r, rowIdx) => {
                     const rowNumber = (currentPage - 1) * pageSize + rowIdx + 1;
                     return (
-                      <tr key={r.id || `row-${rowNumber}`}>
+                      <tr key={`${r.id ? r.id + '-' : ''}row-${rowNumber}-${rowIdx}`}>
                         <td className="excel-td" style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: '11px', fontFamily: 'monospace' }}>
                           {rowNumber}
                         </td>
@@ -2553,47 +2807,121 @@ export default function DashboardPage() {
             </table>
           </div>
 
-          {/* Table Footer with Pagination */}
+          {/* Table Footer with Modern Enterprise Pagination */}
           <div className="pagination-bar">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>Show</span>
-              <select
-                className="custom-input"
-                style={{ padding: '3px 8px', fontSize: '12px' }}
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-              >
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-                <option value={200}>200</option>
-              </select>
-              <span>records per page</span>
+            {/* 1. Left: Page Size Selector */}
+            <div className="pagination-size-wrap">
+              <span className="pagination-size-label">Show</span>
+              <div className="pagination-select-wrapper">
+                <select
+                  id="pagination-page-size-select"
+                  className="pagination-select"
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  title="Rows per page"
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={200}>200</option>
+                  <option value={500}>500</option>
+                </select>
+              </div>
+              <span className="pagination-size-label">records per page</span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {/* 2. Middle: Records Summary Pill */}
+            <div className="pagination-info-pill">
+              <span>Showing</span>
+              <strong className="pagination-info-highlight">
+                {startRecord.toLocaleString()}–{endRecord.toLocaleString()}
+              </strong>
+              <span>of</span>
+              <strong className="pagination-info-highlight">
+                {totalRecords.toLocaleString()}
+              </strong>
+              <span>records</span>
+              {records.length > totalRecords && (
+                <span className="pagination-filtered-badge">
+                  (filtered from {records.length.toLocaleString()})
+                </span>
+              )}
+            </div>
+
+            {/* 3. Right: Pagination Navigation Controls */}
+            <div className="pagination-nav-group" aria-label="Pagination Navigation">
+              {totalPages > 2 && (
+                <button
+                  type="button"
+                  className="pagination-nav-btn"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  title="Go to first page"
+                >
+                  <ChevronsLeft size={14} />
+                </button>
+              )}
+
               <button
                 type="button"
-                className="pagination-btn"
+                className="pagination-nav-btn"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
+                title="Previous page"
               >
-                Previous
+                <ChevronLeft size={14} />
+                <span>Previous</span>
               </button>
-              <span style={{ fontSize: '12px', fontWeight: 600, padding: '0 8px' }}>
-                Page {currentPage} of {totalPages}
-              </span>
+
+              {paginationPages.map((pageNum, idx) => {
+                if (pageNum === '...') {
+                  return (
+                    <span key={`ellipsis-${idx}`} className="pagination-ellipsis">
+                      …
+                    </span>
+                  );
+                }
+                const pageNumber = pageNum as number;
+                const isCurrent = pageNumber === currentPage;
+                return (
+                  <button
+                    key={`page-${pageNumber}`}
+                    type="button"
+                    className={`pagination-page-btn ${isCurrent ? 'active' : ''}`}
+                    onClick={() => setCurrentPage(pageNumber)}
+                    aria-current={isCurrent ? 'page' : undefined}
+                    title={`Page ${pageNumber}`}
+                  >
+                    {pageNumber}
+                  </button>
+                );
+              })}
+
               <button
                 type="button"
-                className="pagination-btn"
+                className="pagination-nav-btn"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
+                title="Next page"
               >
-                Next
+                <span>Next</span>
+                <ChevronRight size={14} />
               </button>
+
+              {totalPages > 2 && (
+                <button
+                  type="button"
+                  className="pagination-nav-btn"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  title="Go to last page"
+                >
+                  <ChevronsRight size={14} />
+                </button>
+              )}
             </div>
           </div>
         </section>

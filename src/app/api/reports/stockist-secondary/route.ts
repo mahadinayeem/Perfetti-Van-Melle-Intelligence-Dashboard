@@ -38,54 +38,7 @@ const SKU_CATALOG: Record<string, any> = skuCatalogData as any;
 const memoryCache = new Map<string, { records: StockistSecondaryRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
-function getSampleExcelData(): StockistSecondaryRecord[] {
-  try {
-    const filePath = path.join(process.cwd(), 'Report Sample.xlsx');
-    if (!fs.existsSync(filePath)) return [];
-    const buf = fs.readFileSync(filePath);
-    const wb = XLSX.read(buf, { type: 'buffer' });
-    const sheet = wb.Sheets['Stockist Secondary Report'];
-    if (!sheet) return [];
-    const raw: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    if (raw.length < 2) return [];
 
-    const headers = raw[0].map(h => String(h || '').trim());
-    return raw.slice(1).map((r, idx) => {
-      const obj: Record<string, any> = {};
-      headers.forEach((h, colIdx) => {
-        obj[h] = r[colIdx];
-      });
-      return {
-        id: `stk-sec-${idx + 1}`,
-        date: String(obj['Date'] || ''),
-        cluster: String(obj['Cluster'] || 'Central'),
-        area: String(obj['Area'] || 'Central South'),
-        territory: String(obj['Territory'] || 'Jatra Bari'),
-        teTsoName: String(obj['TE/TSO Name'] || 'Palash Chandra Karmakar'),
-        teTsoCode: obj['TE/TSO Code'] || 5104,
-        type: String(obj['Type'] || 'TE'),
-        superDbCode: '',
-        superDbName: '',
-        stockiestPositionCode: '',
-        stockiestPositionName: '',
-        stockiestDbCode: obj['Stockiest DB Code'] || 102267,
-        stockiestDbName: String(obj['Stockiest DB Name'] || 'M/S Ahamed Enterprise'),
-        brand: String(obj['Brand'] || ''),
-        skuCode: obj['SKU Code'] || '',
-        skuName: String(obj['SKU Name'] || ''),
-        uom: String(obj['UOM'] || 'JAR'),
-        openingStock: obj['Opening Stock'] ?? 0,
-        closingStock: obj['Closing Stock'] ?? 0,
-        secondarySales: obj['Secondary Sales'] ?? 0,
-        secondarySalesValue: obj['Secondary Sales Value'] ?? 0,
-        secondarySalesTon: obj['Secondary Sales Ton'] ?? 0,
-      };
-    });
-  } catch (e) {
-    console.error('[Stockist Secondary Report] Failed to read sample excel:', e);
-    return [];
-  }
-}
 
 async function fetchLiveStockistSecondary(startDate: string, endDate: string): Promise<StockistSecondaryRecord[]> {
   const token = await getValidToken();
@@ -97,7 +50,7 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
     timeout: 30000,
   });
 
-  const stocks = Array.isArray(stocksRes.data?.data) ? stocksRes.data.data : [];
+  const stocks = stocksRes.data?.stocks || (Array.isArray(stocksRes.data?.data) ? stocksRes.data.data : []);
   if (stocks.length === 0) return [];
 
   // 2. Fetch live secondary sales orders
@@ -219,11 +172,6 @@ export async function GET(request: NextRequest) {
     let records = await fetchLiveStockistSecondary(startDate, endDate);
     let source = 'sokrio_live_api';
 
-    if (records.length === 0) {
-      records = getSampleExcelData();
-      source = 'sample_excel_fallback';
-    }
-
     const meta = {
       totalRecords: records.length,
       startDate,
@@ -245,13 +193,12 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[Stockist Secondary Report API Error]:', error);
-    const fallback = getSampleExcelData();
     return NextResponse.json({
       success: true,
-      data: fallback,
+      data: [],
       meta: {
-        totalRecords: fallback.length,
-        source: 'sample_excel_error_fallback',
+        totalRecords: 0,
+        source: 'sokrio_live_api',
         error: error.message,
       },
       cached: false,

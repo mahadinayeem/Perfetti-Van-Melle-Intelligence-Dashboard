@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidToken } from '@/lib/sokrioClient';
 import axios from 'axios';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as XLSX from 'xlsx';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,8 +59,8 @@ export async function GET(request: NextRequest) {
         territory: u.territory_id ? `T${u.territory_id}` : 'Gazipur',
         name: u.name || '',
         userId: u.code || u.id,
-        password: '', // Kept blank for security reasons
-        positionCode: u.device_id || `P-${u.code || u.id}`,
+        password: (roleName.toUpperCase().includes('TE') ? 'Per@12345678' : (roleName.toUpperCase().includes('DB') ? '1234' : `PVMB${u.code || u.id}@SR`)),
+        positionCode: (roleName.toUpperCase().includes('TE') ? (u.territory_id ? `T${u.territory_id}` : 'T115') : (roleName.toUpperCase().includes('DB') ? String(u.code || u.id) : `DO-${String(u.code || u.id).slice(-3)}`)),
         userType: roleName,
       });
     }

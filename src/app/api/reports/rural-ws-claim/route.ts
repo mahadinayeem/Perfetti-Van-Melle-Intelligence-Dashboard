@@ -26,6 +26,9 @@ export interface RuralWsClaimRecord {
   skuCode: string | number;
   qty: string | number;
   percentageDiscount: string | number;
+  totalInvoiceDiscount?: number;
+  totalInvoiceAmount?: number;
+  amount?: number;
   claimAmount: string | number;
 }
 
@@ -109,6 +112,9 @@ export async function GET(request: NextRequest) {
           skuCode,
           qty,
           percentageDiscount: '3%',
+          totalInvoiceDiscount: discVal || 82,
+          totalInvoiceAmount: Math.round(qty * tp),
+          amount: Math.round(qty * tp),
           claimAmount: discVal || 82,
         });
       }

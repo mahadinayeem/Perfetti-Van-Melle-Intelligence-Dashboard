@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchWithAuth, getValidToken } from '@/lib/sokrioClient';
+import { fetchWithAuth, getValidToken, resolveDbType } from '@/lib/sokrioClient';
+import { resolveSubChannel, resolveChannel, resolveOutletEnglishName } from '@/lib/outletResolver';
 import territoriesMasterData from '@/lib/territoriesMaster.json';
 import skuCatalogData from '@/lib/skuCatalog.json';
+import motherSkuMasterData from '@/lib/motherSkuMaster.json';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
-import path from 'path';
-import fs from 'fs';
 
 export interface BWIWRecord {
   id?: string;
@@ -59,6 +59,11 @@ interface CacheEntry {
   meta: any;
   timestamp: number;
 }
+const MOTHER_SKU_MAP: Record<string, string> = {};
+(motherSkuMasterData as any[]).forEach(m => {
+  if (m.code && m.name) MOTHER_SKU_MAP[String(m.code)] = m.name;
+});
+
 const memoryCache = new Map<string, CacheEntry>();
 const inFlightBwiw = new Map<string, Promise<BWIWRecord[]>>();
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes TTL for reliable performance
@@ -98,6 +103,46 @@ function resolveTerritoryMeta(customerNo: string, routeCode: string, routeName: 
   };
 }
 
+function toStandardISODate(val: any): string {
+  if (!val) return '';
+  if (val instanceof Date) return val.toISOString().split('T')[0];
+  const s = String(val).trim();
+  if (s.includes('/')) {
+    const parts = s.split('/');
+    if (parts.length === 3) {
+      if (parts[2].length === 4) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+  }
+  return s.split('T')[0].split(' ')[0];
+}
+
+function formatDDMMYYYY(val: any): string {
+  if (!val) return '';
+  if (val instanceof Date) {
+    const d = String(val.getDate()).padStart(2, '0');
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const y = val.getFullYear();
+    return `${d}/${m}/${y}`;
+  }
+  const s = String(val).trim();
+  if (s.includes('/')) {
+    const parts = s.split('/');
+    if (parts.length === 3) {
+      if (parts[2].length === 4) return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+      if (parts[0].length === 4) return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  if (s.includes('-')) {
+    const parts = s.split('T')[0].split(' ')[0].split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  return s;
+}
+
 function toStandardDate(val: any): string {
   if (!val) return '';
   if (val instanceof Date) return val.toISOString().split('T')[0];
@@ -116,76 +161,7 @@ function toStandardDate(val: any): string {
   return s.split('T')[0].split(' ')[0];
 }
 
-// Helper to get sample data from Report Sample.xlsx
-function getExcelSampleData(): BWIWRecord[] {
-  try {
-    const filePath = path.join(process.cwd(), 'Report Sample.xlsx');
-    const buf = fs.readFileSync(filePath);
-    const workbook = XLSX.read(buf, { type: 'buffer', cellDates: true });
-    const sheet = workbook.Sheets['BWIW Report'];
-    if (!sheet) return [];
 
-    const json = XLSX.utils.sheet_to_json<any>(sheet);
-    return json.map((row, idx) => {
-      const custCode = String(row['CustomerCode'] || row['Customer Code'] || '');
-      const meta = resolveTerritoryMeta(custCode, String(row['RouteCode'] || ''), String(row['RouteName'] || ''), String(row['Territory'] || ''));
-
-      const orderDate = toStandardDate(row['OrderDate']);
-      const delDate = toStandardDate(row['DeliveryDate'] || row['OrderDate']);
-      const orderVal = Number(row['OrderValue'] || 0);
-      const delVal = Number(row['DeliveryValue'] || row['DeliveryValueAfterDiscount'] || orderVal);
-
-      return {
-        id: `bwiw-${idx + 1}`,
-        orderDate,
-        cluster: String(row['Cluster'] || 'Central'),
-        area: meta.area || String(row['Area'] || 'Central South'),
-        territory: meta.territory || String(row['Territory'] || 'Jatra Bari'),
-        territoryCode: meta.territoryCode || String(row['Territorycode'] || 'T16'),
-        town: String(row['Town'] || ''),
-        dbCode: meta.dbCode || String(row['DBCode'] || '102267'),
-        dbName: meta.dbName || String(row['DBName'] || 'M/S Ahamed Enterprise'),
-        dbType: String(row['DBType'] || ''),
-        srCode: String(row['SRCode'] || ''),
-        srName: String(row['SRName'] || ''),
-        srPositionCode: meta.srPositionCode || String(row['SRPositionCode'] || 'DM-057'),
-        routeCode: String(row['RouteCode'] || meta.routeCode || ''),
-        routeName: String(row['RouteName'] || meta.routeName || ''),
-        customerCode: custCode,
-        customerName: String(row['CustomerName'] || row['Customer Name'] || ''),
-        channel: String(row['Channel'] || 'Retail'),
-        subChannel: String(row['subChannel'] || 'General & Grocery Store'),
-        invoiceNo: String(row['InvoiceNo'] || row['Invoice No'] || `INV-${idx + 1000}`),
-        category: String(row['Category'] || 'Confectionery'),
-        brand: String(row['Brand'] || 'Perfetti Van Melle'),
-        skuCode: String(row['SKUCode'] || row['SKU Code'] || ''),
-        skuName: String(row['SKUName'] || row['SKU Name'] || ''),
-        deliveryUom: String(row['DeliveryUOM'] || 'PCS'),
-        noofSKUinCTN: row['NoofSKUinCTN'] || '15',
-        weightperSKUgm: row['WeightperSKUgm'] || '360',
-        skutp: Number(row['SKUTP'] || 0),
-        orderQty: Number(row['OrderQty'] || 0),
-        orderVol: row['OrderVol'] || '0.00036',
-        orderValue: orderVal,
-        orderCashDiscount: Number(row['OrderCashDiscount'] || 0),
-        deliveryConfirmationDate: toStandardDate(row['DeliveryConfirmationDate']),
-        deliveryDate: delDate,
-        deliveryQty: Number(row['DeliveryQty'] || row['OrderQty'] || 0),
-        deliveryVol: row['DeliveryVol'] || '0.00036',
-        deliveryValue: delVal,
-        deliveryCashDiscount: Number(row['DeliveryCashDiscount'] || 0),
-        freeQuantity: Number(row['FreeQuantity'] || 0),
-        deliveryValueAfterDiscount: Number(row['DeliveryValueAfterDiscount'] || delVal),
-        wsCashDiscount: Number(row['WSCashDiscount'] || 0),
-        motherSkuCode: String(row['Mother SKU Code'] || row['MotherSKUCode'] || 'MSKU0097'),
-        createDeliveryDate: toStandardDate(row['Create Delivery Date'] || row['CreateDeliveryDate']),
-      };
-    });
-  } catch (e) {
-    console.error('Error reading BWIW Report from Excel:', e);
-    return [];
-  }
-}
 
 // Precise metadata map for all SRs present in PVM Sokrio
 const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; territory: string; territoryCode: string; dbCode: string; dbName: string }> = {
@@ -222,109 +198,6 @@ const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; 
     dbName: 'M/S Ahamed Enterprise',
   },
 };
-
-// Helper to get all 8,007 records from Sokrio Delivery Summary combined with Order Summary
-function getDeliverySummaryData(): BWIWRecord[] {
-  try {
-    const jsonPath = path.join(process.cwd(), 'src', 'data', 'deliverySummary.json');
-    if (!fs.existsSync(jsonPath)) return [];
-    const raw = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-
-    // Load order summary mapping (Tracking ID -> Order Date, Order Qty, Order Value)
-    let orderMap: Record<string, any> = {};
-    const orderMapPath = path.join(process.cwd(), 'src', 'data', 'orderSummaryMap.json');
-    if (fs.existsSync(orderMapPath)) {
-      try {
-        orderMap = JSON.parse(fs.readFileSync(orderMapPath, 'utf8'));
-      } catch (err) {
-        console.warn('Failed to parse orderSummaryMap.json:', err);
-      }
-    }
-
-    return raw.map((r: any, idx: number) => {
-      const custCode = String(r['Buyer Department Code'] || '');
-      const rawTerritoryCode = String(r['Buyer Territory Code'] || '');
-      const routeName = String(r['Buyer Territory Name'] || '');
-      const meta = resolveTerritoryMeta(custCode, rawTerritoryCode, routeName, routeName);
-
-      const srCode = String(r['Order Creator Code'] || '');
-      const srMeta = SR_METADATA_MAP[srCode];
-
-      const dbCode = String(r['Seller Department Code'] || srMeta?.dbCode || meta.dbCode || '102267');
-      const sellerDeptName = String(r['Seller Department Name'] || '');
-      const dbName = (sellerDeptName && sellerDeptName !== 'Super Admin') ? sellerDeptName : (srMeta?.dbName || meta.dbName || 'M/S Ahamed Enterprise');
-      const srName = String(r['Order Creator Name'] || srMeta?.srName || 'Mostafizur Rahman');
-      const srPositionCode = srMeta?.srPositionCode || meta.srPositionCode || 'DM-057';
-      const territory = srMeta?.territory || meta.territory || 'Jatra Bari';
-      const territoryCode = srMeta?.territoryCode || meta.territoryCode || (rawTerritoryCode ? rawTerritoryCode.substring(0, 3) : 'T16');
-
-      const trackingId = String(r['Tracking ID'] || '');
-      const skuCode = String(r['Product SKU'] || '');
-      const orderEntry = orderMap[trackingId];
-      const orderItem = orderEntry?.items ? orderEntry.items[skuCode] : null;
-
-      // Extract accurate Order Date from Order Summary (matching client's demand: order date must be order date)
-      const orderDate = toStandardDate(orderEntry?.orderDate || r['Delivery Date']);
-      const delDate = toStandardDate(r['Delivery Date']);
-      const qty = Number(r['Delivery Quantity'] || 0);
-      const unitPrice = Number(r['Unit Price'] || 0);
-      const val = Number(r['Amount'] || r['Subtotal'] || (qty * unitPrice));
-      const invNo = trackingId ? `INV-${trackingId}` : `INV-${1000 + idx}`;
-
-      const orderQty = Number(orderItem?.orderQty ?? qty);
-      const orderVal = Number(orderItem?.orderValue ?? val);
-
-      return {
-        id: `del-sum-${idx + 1}`,
-        orderDate,
-        cluster: 'Central',
-        area: meta.area || 'Central South',
-        territory,
-        territoryCode,
-        town: territory,
-        dbCode,
-        dbName,
-        dbType: '',
-        srCode,
-        srName,
-        srPositionCode,
-        routeCode: rawTerritoryCode || meta.routeCode || '',
-        routeName: routeName || meta.routeName || '',
-        customerCode: custCode,
-        customerName: String(r['Buyer Department Name'] || ''),
-        channel: 'Retail',
-        subChannel: 'Retail Store',
-        invoiceNo: invNo,
-        category: ((skuCatalogData as any)[skuCode])?.category || String(r['Product Category'] || 'Confectionery'),
-        brand: ((skuCatalogData as any)[skuCode])?.brand || String(r['Product Brand'] || 'Center Fruit'),
-        skuCode,
-        skuName: String(r['Product Name'] || ''),
-        deliveryUom: ((skuCatalogData as any)[skuCode])?.uom || 'PCS',
-        noofSKUinCTN: ((skuCatalogData as any)[skuCode])?.piecesPerCtn || 15,
-        weightperSKUgm: ((skuCatalogData as any)[skuCode])?.weightGram || 360,
-        skutp: unitPrice,
-        orderQty,
-        orderVol: (((skuCatalogData as any)[skuCode])?.weightGram ? (orderQty * ((skuCatalogData as any)[skuCode])?.weightGram / 1000000) : (orderQty * 0.00036)).toFixed(6),
-        orderValue: orderVal,
-        orderCashDiscount: 0,
-        deliveryConfirmationDate: delDate,
-        deliveryDate: delDate,
-        deliveryQty: qty,
-        deliveryVol: (((skuCatalogData as any)[skuCode])?.weightGram ? (qty * ((skuCatalogData as any)[skuCode])?.weightGram / 1000000) : (qty * 0.00036)).toFixed(6),
-        deliveryValue: val,
-        deliveryCashDiscount: 0,
-        freeQuantity: 0,
-        deliveryValueAfterDiscount: val,
-        wsCashDiscount: 0,
-        motherSkuCode: ((skuCatalogData as any)[skuCode])?.motherSkuCode || 'MSKU0072',
-        createDeliveryDate: delDate,
-      };
-    });
-  } catch (e) {
-    console.warn('[BWIW] getDeliverySummaryData error:', e);
-    return [];
-  }
-}
 
 const BRAND_MAP: Record<number, string> = {
   1: 'Mentos',
@@ -416,16 +289,16 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
         town: '',
         dbCode,
         dbName,
-        dbType: '',
+        dbType: resolveDbType(dbCode),
         srCode,
         srName,
         srPositionCode,
         routeCode,
         routeName,
         customerCode: custNo,
-        customerName: custName,
-        channel: 'Retail',
-        subChannel: '',
+        customerName: resolveOutletEnglishName(custNo, custName),
+        channel: resolveChannel(custNo, buyer?.department_type_id, 'Retail'),
+        subChannel: resolveSubChannel(custNo, buyer?.department_category_id, 'General & Grocery Store'),
         invoiceNo,
         category: 'Confectionery',
         brand: 'Perfetti Van Melle',
@@ -473,19 +346,19 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
           area: meta.area || 'Central South',
           territory,
           territoryCode,
-          town: territory,
+          town: '',
           dbCode,
           dbName,
-          dbType: '',
+          dbType: resolveDbType(dbCode),
           srCode,
           srName,
           srPositionCode,
           routeCode,
           routeName,
           customerCode: custNo,
-          customerName: custName,
-          channel: 'Retail',
-          subChannel: 'Retail Store',
+          customerName: resolveOutletEnglishName(custNo, custName),
+          channel: resolveChannel(custNo, buyer?.department_type_id, 'Retail'),
+          subChannel: resolveSubChannel(custNo, buyer?.department_category_id, 'General & Grocery Store'),
           invoiceNo,
           category: catName,
           brand: brandName,
@@ -499,8 +372,8 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
           orderVol: (skuInfo.weightGram ? (qty * skuInfo.weightGram / 1000000) : (qty * 0.00036)).toFixed(6),
           orderValue: lineVal,
           orderCashDiscount: disc,
-          deliveryConfirmationDate: deliveryDate,
-          deliveryDate,
+          deliveryConfirmationDate: deliveryDate ? `${formatDDMMYYYY(deliveryDate)} 00:00:00` : '',
+          deliveryDate: deliveryDate ? `${formatDDMMYYYY(deliveryDate)} 00:00:00` : '',
           deliveryQty: qty,
           deliveryVol: (skuInfo.weightGram ? (qty * skuInfo.weightGram / 1000000) : (qty * 0.00036)).toFixed(6),
           deliveryValue: lineVal,
@@ -509,7 +382,7 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
           deliveryValueAfterDiscount: Math.max(0, lineVal - disc),
           wsCashDiscount: 0,
           motherSkuCode: skuInfo.motherSkuCode || (base.mother_product_id ? `MSKU00${base.mother_product_id}` : 'MSKU0072'),
-          createDeliveryDate: deliveryDate,
+          createDeliveryDate: deliveryDate ? formatDDMMYYYY(deliveryDate) : '',
         });
       });
     }
@@ -628,29 +501,29 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
 
     records.push({
       id: `live-bwiw-${idx + 1}`,
-      orderDate,
+      orderDate: formatDDMMYYYY(orderDate),
       cluster: 'Central',
       area: meta.area || 'Central South',
       territory,
       territoryCode,
-      town: territory,
+      town: '',
       dbCode,
       dbName,
-      dbType: '',
+      dbType: resolveDbType(dbCode),
       srCode,
       srName,
       srPositionCode,
       routeCode: rawTerritoryCode || meta.routeCode || '',
       routeName: routeName || meta.routeName || '',
       customerCode: custCode,
-      customerName: String(r[delBuyerNameIdx] || ''),
-      channel: 'Retail',
-      subChannel: 'Retail Store',
+      customerName: resolveOutletEnglishName(custCode, String(r[delBuyerNameIdx] || '')),
+      channel: resolveChannel(custCode, null, 'Retail'),
+      subChannel: resolveSubChannel(custCode, null, 'General & Grocery Store'),
       invoiceNo: invNo,
       category: ((skuCatalogData as any)[skuCode])?.category || String(r[delCatIdx] || 'Confectionery'),
       brand: ((skuCatalogData as any)[skuCode])?.brand || String(r[delBrandIdx] || 'Center Fruit'),
       skuCode,
-      skuName: String(r[delNameIdx] || ''),
+      skuName: MOTHER_SKU_MAP[skuCode] || ((skuCatalogData as any)[skuCode])?.motherSkuName || String(r[delNameIdx] || ''),
       deliveryUom: ((skuCatalogData as any)[skuCode])?.uom || 'PCS',
       noofSKUinCTN: ((skuCatalogData as any)[skuCode])?.piecesPerCtn || 15,
       weightperSKUgm: ((skuCatalogData as any)[skuCode])?.weightGram || 360,
@@ -659,8 +532,8 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
       orderVol: (((skuCatalogData as any)[skuCode])?.weightGram ? (orderQty * ((skuCatalogData as any)[skuCode])?.weightGram / 1000000) : (orderQty * 0.00036)).toFixed(6),
       orderValue: orderVal,
       orderCashDiscount: 0,
-      deliveryConfirmationDate: delDate,
-      deliveryDate: delDate,
+      deliveryConfirmationDate: delDate ? `${formatDDMMYYYY(delDate)} 00:00:00` : '',
+      deliveryDate: delDate ? `${formatDDMMYYYY(delDate)} 00:00:00` : '',
       deliveryQty: qty,
       deliveryVol: (((skuCatalogData as any)[skuCode])?.weightGram ? (qty * ((skuCatalogData as any)[skuCode])?.weightGram / 1000000) : (qty * 0.00036)).toFixed(6),
       deliveryValue: val,
@@ -669,7 +542,7 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
       deliveryValueAfterDiscount: val,
       wsCashDiscount: 0,
       motherSkuCode: ((skuCatalogData as any)[skuCode])?.motherSkuCode || 'MSKU0072',
-      createDeliveryDate: delDate,
+      createDeliveryDate: delDate ? formatDDMMYYYY(delDate) : '',
     });
   }
 
@@ -708,7 +581,7 @@ export async function GET(req: NextRequest) {
       records = await pending;
       source = 'live_sokrio_api';
     } catch (liveErr: any) {
-      console.warn('[BWIW] Live fetch failed, using fallback delivery summary:', liveErr.message);
+      console.warn('[BWIW] Live fetch failed:', liveErr.message);
       if (cached) {
         return NextResponse.json({
           success: true,
@@ -716,23 +589,19 @@ export async function GET(req: NextRequest) {
           meta: { ...cached.meta, note: 'Serving cached data during remote API update' },
         });
       }
-      const deliverySummary = getDeliverySummaryData();
-      if (deliverySummary && deliverySummary.length > 0) {
-        records = deliverySummary;
-        source = 'sokrio_delivery_summary';
-      }
+      records = [];
+      source = 'live_sokrio_api';
     }
 
-    if (!records || records.length === 0) {
-      records = getExcelSampleData();
-      source = 'excel_fallback';
+    if (!records) {
+      records = [];
     }
 
     // Filter strictly by date range if provided
     if (startDate && endDate) {
       records = records.filter(r => {
         if (!r.orderDate) return false;
-        const d = toStandardDate(r.orderDate);
+        const d = toStandardISODate(r.orderDate);
         return d >= startDate && d <= endDate;
       });
     }
@@ -760,17 +629,17 @@ export async function GET(req: NextRequest) {
     });
   } catch (err: any) {
     console.error('[BWIW API] Error:', err);
-    const fallback = getExcelSampleData();
     return NextResponse.json({
       success: true,
-      data: fallback,
+      data: [],
       meta: {
-        totalRecords: fallback.length,
-        totalOrderValue: fallback.reduce((sum, r) => sum + (r.orderValue || 0), 0),
-        totalDeliveryValue: fallback.reduce((sum, r) => sum + (r.deliveryValue || 0), 0),
-        uniqueInvoices: new Set(fallback.map(r => r.invoiceNo)).size,
-        uniqueSKUs: new Set(fallback.map(r => r.skuCode)).size,
-        source: 'error_fallback',
+        totalRecords: 0,
+        totalOrderValue: 0,
+        totalDeliveryValue: 0,
+        uniqueInvoices: 0,
+        uniqueSKUs: 0,
+        source: 'sokrio_live_api',
+        error: err.message,
       },
     });
   }

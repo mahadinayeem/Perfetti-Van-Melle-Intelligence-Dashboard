@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidToken } from '@/lib/sokrioClient';
+import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
 import skuCatalogData from '@/lib/skuCatalog.json';
-import * as XLSX from 'xlsx';
 import axios from 'axios';
-import path from 'path';
-import fs from 'fs';
 
 export interface StockReportRecord {
   id?: string;
@@ -165,9 +162,14 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
     const pendingDelivery = Number(st.pending_qty ?? 0);
     const billableStock = floorStock - Math.abs(pendingDelivery);
 
-    const openingStock = Number(ledger?.opening_stock ?? 0);
     const primaryStock = Number(ledger?.primary_lifting ?? 0);
     const deliveredSecondary = Number(ledger?.secondary_sales ?? st.delivered_qty ?? 0);
+
+    let openingStock = Number(ledger?.opening_stock ?? 0);
+    if (openingStock <= 0 && floorStock > 0) {
+      openingStock = floorStock + deliveredSecondary - primaryStock;
+      if (openingStock <= 0) openingStock = floorStock;
+    }
     const transit = Number(ledger?.total_transit ?? st.on_transit_receive ?? 0);
     const orderedQty = 0;
     const doReceivingPending = 0;
@@ -179,7 +181,7 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
     const territory = 'Jatra Bari';
     const dbCode = dept.code || 102267;
     const dbName = dept.name || 'M/S Ahamed Enterprise';
-    const dbType = '';
+    const dbType = resolveDbType(dbCode);
     const location = dept.code || 102267;
     const dbStatus = dept.status ? (dept.status.charAt(0).toUpperCase() + dept.status.slice(1)) : 'Active';
 
@@ -239,19 +241,25 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
       const floorStock = Number(ledger.current_stock ?? 0);
       const pendingDelivery = 0;
       const billableStock = floorStock;
-      const openingStock = Number(ledger.opening_stock ?? 0);
       const primaryStock = Number(ledger.primary_lifting ?? 0);
       const deliveredSecondary = Number(ledger.secondary_sales ?? 0);
       const transit = Number(ledger.total_transit ?? 0);
 
+      let openingStock = Number(ledger.opening_stock ?? 0);
+      if (openingStock <= 0 && floorStock > 0) {
+        openingStock = floorStock + deliveredSecondary - primaryStock;
+        if (openingStock <= 0) openingStock = floorStock;
+      }
+
+      const dbCode = 102267;
       result.push({
         id: `stock-ledger-${skuCode}`,
         cluster: 'Central',
         area: 'Central South',
         territory: 'Jatra Bari',
-        dbCode: 102267,
+        dbCode,
         dbName: 'M/S Ahamed Enterprise',
-        dbType: '',
+        dbType: resolveDbType(dbCode),
         location: 102267,
         itemNo: Number(skuCode) || skuCode,
         description,
@@ -317,7 +325,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const records = await fetchLiveStockFromSokrio(startDate, endDate);
+    let records = await fetchLiveStockFromSokrio(startDate, endDate);
+    if (!records) records = [];
+
+    // Filter out SKUs which have NO stock at all (as requested)
+    records = records.filter(r => (r.billableStock > 0 || r.floorStock > 0 || r.openingStock > 0 || r.primaryStock > 0));
 
     const totalFloorStockValueTP = records.reduce((acc, r) => acc + (Number(r.floorStockValueTradePrice) || 0), 0);
     const totalBillableStockValueTP = records.reduce((acc, r) => acc + (Number(r.billableStockValueTradePrice) || 0), 0);

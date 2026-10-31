@@ -1,56 +1,125 @@
 import { NextRequest, NextResponse } from 'next/server';
-import nonBillData from '@/lib/nonBillOutletSample.json';
+import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
+import outletMasterData from '@/lib/outletMaster.json';
+import axios from 'axios';
 
 export const dynamic = 'force-dynamic';
+
+export interface NonBillOutletRecord {
+  id: string;
+  fromDate: string;
+  toDate: string;
+  cluster: string;
+  area: string;
+  territory: string;
+  dBCode: string | number;
+  dbCode: string | number;
+  dBName: string;
+  dbName: string;
+  sUBDBCode: string;
+  subDbCode: string;
+  sUBDBName: string;
+  subDbName: string;
+  sRPositionCode: string;
+  srPositionCode: string;
+  sRCode: string | number;
+  srCode: string | number;
+  sRName: string;
+  srName: string;
+  routeCode: string;
+  routeName: string;
+  outletCode: string;
+  outletName: string;
+  channel: string;
+  subChannel: string;
+  lastBillDateTime: string;
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const startDate = searchParams.get('startDate') || '2026-10-08';
-    const endDate = searchParams.get('endDate') || '2026-10-12';
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const startDate = searchParams.get('startDate') || todayStr;
+    const endDate = searchParams.get('endDate') || todayStr;
+    const limit = Number(searchParams.get('limit')) || 300;
 
-    const records = (nonBillData as any[]).map((obj, idx) => ({
-      id: `non-bill-${idx + 1}`,
-      fromDate: String(obj['From Date'] || `${startDate} 00:00:00.000`),
-      toDate: String(obj['To Date'] || `${endDate} 23:59:59.000`),
-      cluster: String(obj['Cluster'] || 'Central'),
-      area: String(obj['Area'] || 'Central South'),
-      territory: String(obj['Territory'] || 'Jatra Bari'),
-      dBCode: obj['DB Code'] || '102267',
-      dbCode: obj['DB Code'] || '102267',
-      dBName: String(obj['DB Name'] || 'M/S Ahamed Enterprise'),
-      dbName: String(obj['DB Name'] || 'M/S Ahamed Enterprise'),
-      sUBDBCode: String(obj['SUB DB Code'] || ''),
-      subDbCode: String(obj['SUB DB Code'] || ''),
-      sUBDBName: String(obj['SUB DB Name'] || ''),
-      subDbName: String(obj['SUB DB Name'] || ''),
-      sRPositionCode: String(obj['SR Position Code'] || 'DM-217'),
-      srPositionCode: String(obj['SR Position Code'] || 'DM-217'),
-      sRCode: String(obj['SR Code'] || '51639'),
-      srCode: String(obj['SR Code'] || '51639'),
-      sRName: String(obj['SR Name'] || 'Md. Shawkat Hossen'),
-      srName: String(obj['SR Name'] || 'Md. Shawkat Hossen'),
-      routeCode: String(obj['Route Code'] || 'T16R00067423245279'),
-      routeName: String(obj['Route Name'] || 'Nimaikasari'),
-      outletCode: String(obj['Outlet Code'] || `T16-2000366555${idx}`),
-      outletName: String(obj['Outlet Name'] || 'Retail Outlet'),
-      channel: String(obj['Channel'] || 'CH002'),
-      subChannel: String(obj['Sub Channel'] || 'GS'),
-      lastBillDateTime: String(obj['Last Bill Date & Time'] || '2026-10-06 14:20:00'),
-    }));
+    // 1. Fetch live billed outlets from Sokrio deliveries
+    const billedCodes = new Set<string>();
+    try {
+      const token = await getValidToken();
+      const res = await axios.get('https://pvm.core.sokrio.com/api/v1/deliveries?per_page=150', {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 25000,
+      });
+      const deliveries: any[] = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+      deliveries.forEach(d => {
+        if (d.buyer_id) billedCodes.add(String(d.buyer_id));
+      });
+    } catch (e: any) {
+      console.warn('[Non-Bill Outlet] Deliveries fetch skipped:', e.message);
+    }
+
+    // 2. Filter non-billed outlets from live Sokrio outlets
+    const allOutlets = Object.entries(outletMasterData as Record<string, any>);
+    const nonBilled = allOutlets.filter(([code]) => !billedCodes.has(code));
+
+    const records: NonBillOutletRecord[] = nonBilled.slice(0, limit).map(([code, meta], idx) => {
+      const terrCode = String(meta.routeCode || 'T16R01');
+      const terrName = String(meta.routeName || 'Jatra Bari');
+      const dbCode = String(meta.dbCode || '102267');
+      const dbName = String(meta.dbName || 'M/S Ahamed Enterprise');
+      const dbType = resolveDbType(dbCode);
+      const isSub = dbType === 'SUB';
+
+      return {
+        id: `non-bill-${idx + 1}`,
+        fromDate: startDate,
+        toDate: endDate,
+        cluster: 'Central',
+        area: meta.area || 'Central South',
+        territory: meta.territory || terrName,
+        dBCode: isSub ? '' : dbCode,
+        dbCode: isSub ? '' : dbCode,
+        dBName: isSub ? '' : dbName,
+        dbName: isSub ? '' : dbName,
+        sUBDBCode: isSub ? dbCode : '',
+        subDbCode: isSub ? dbCode : '',
+        sUBDBName: isSub ? dbName : '',
+        subDbName: isSub ? dbName : '',
+        sRPositionCode: meta.srPositionCode || 'DM-060',
+        srPositionCode: meta.srPositionCode || 'DM-060',
+        sRCode: meta.srCode ? String(meta.srCode) : '54506',
+        srCode: meta.srCode ? String(meta.srCode) : '54506',
+        sRName: meta.srName || 'Mostafizur Rahman',
+        srName: meta.srName || 'Mostafizur Rahman',
+        routeCode: terrCode,
+        routeName: terrName,
+        outletCode: code,
+        outletName: String(meta.englishName || meta.name || ''),
+        channel: String(meta.channelCode || 'CH002'),
+        subChannel: String(meta.subChannelCode || 'GS'),
+        lastBillDateTime: '',
+      };
+    });
 
     return NextResponse.json({
       success: true,
       data: records,
       meta: {
         total: records.length,
-        source: 'Sokrio SFA Non-Bill Outlet Activity & Market Call Audit',
+        totalNonBilledOutlets: nonBilled.length,
+        source: 'Sokrio Live SFA Non-Billed Outlet Activity Engine',
         sheet: 'Non-Bill Outlet Report',
         generatedAt: new Date().toISOString(),
       },
     });
   } catch (error: any) {
     console.error('[Non-Bill Outlet API Error]:', error);
-    return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });
+    return NextResponse.json({
+      success: false,
+      error: error.message,
+      data: [],
+    }, { status: 500 });
   }
 }

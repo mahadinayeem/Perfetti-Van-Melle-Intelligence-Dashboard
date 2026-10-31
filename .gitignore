@@ -31,3 +31,4 @@ yarn-error.log*
 /scratch/
 test_api.py
 ~$*
+tsconfig.tsbuildinfo

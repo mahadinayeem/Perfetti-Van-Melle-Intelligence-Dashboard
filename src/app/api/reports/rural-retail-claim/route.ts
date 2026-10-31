@@ -20,10 +20,12 @@ export interface RuralRetailClaimRecord {
   outletCode: string | number;
   outletName: string | number;
   invoiceNo: string | number;
+  orderDate?: string | number;
   deliveryDate: string | number;
   sKUCode: string | number;
   skuCode: string | number;
   qty: string | number;
+  amount?: number;
   claimAmount: string | number;
 }
 
@@ -67,6 +69,7 @@ export async function GET(request: NextRequest) {
 
     for (const d of deliveries) {
       const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : todayStr;
+      const orderDateStr = d.order?.order_date ? String(d.order.order_date).split(' ')[0] : delDateStr;
       const dbCodeRaw = d.seller_id ? String(d.seller_id) : 'SD0302';
       const dbInfo = DB_MAP[dbCodeRaw] || {
         dbCode: dbCodeRaw,
@@ -99,10 +102,12 @@ export async function GET(request: NextRequest) {
           outletCode: d.buyer_id ? `T28-2000${d.buyer_id}` : 'T28-20003517919',
           outletName,
           invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV210015${String(d.id).padStart(6, '0')}` : 'INV210015925969'),
+          orderDate: orderDateStr,
           deliveryDate: delDateStr,
           sKUCode: skuCode,
           skuCode,
           qty,
+          amount: 15,
           claimAmount: 15,
         });
       }

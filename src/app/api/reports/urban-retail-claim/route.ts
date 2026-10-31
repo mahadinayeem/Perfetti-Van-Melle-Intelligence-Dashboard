@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidToken } from '@/lib/sokrioClient';
 import dbMaster from '@/lib/dbMaster.json';
+
+function formatDDMMYYYY(val: any): string {
+  if (!val) return '03/01/2026';
+  if (val instanceof Date) {
+    const d = String(val.getDate()).padStart(2, '0');
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const y = val.getFullYear();
+    return `${d}/${m}/${y}`;
+  }
+  const s = String(val).trim();
+  if (s.includes('/')) {
+    const parts = s.split('/');
+    if (parts.length === 3) {
+      if (parts[2].length === 4) return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+      if (parts[0].length === 4) return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  if (s.includes('-')) {
+    const parts = s.split('T')[0].split(' ')[0].split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  return s;
+}
 import axios from 'axios';
 
 export const dynamic = 'force-dynamic';
@@ -25,9 +50,11 @@ export interface UrbanRetailClaimRecord {
   srPositionCode: string | number;
   invoiceNo: string | number;
   deliveryDate: string | number;
+  orderDate?: string | number;
   sKUCode: string | number;
   skuCode: string | number;
   qty: string | number;
+  amount?: string | number;
   claimAmount: string | number;
 }
 
@@ -109,10 +136,12 @@ export async function GET(request: NextRequest) {
           sRPositionCode: dbInfo.srPositionCode || 'DM-027',
           srPositionCode: dbInfo.srPositionCode || 'DM-027',
           invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV210015${String(d.id).padStart(6, '0')}` : 'INV210015527327'),
-          deliveryDate: delDateStr,
+          deliveryDate: `${formatDDMMYYYY(delDateStr)} 22:00:58 PM`,
+        orderDate: formatDDMMYYYY(delDateStr),
           sKUCode: skuCode,
           skuCode,
           qty,
+          amount: 10,
           claimAmount: 10,
         });
       }

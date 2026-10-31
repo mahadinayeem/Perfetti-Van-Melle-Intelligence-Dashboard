@@ -22,38 +22,7 @@ const SKU_CATALOG: Record<string, any> = skuCatalogData as any;
 const memoryCache = new Map<string, { records: PoCrsRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
-function getSampleExcelData(): PoCrsRecord[] {
-  try {
-    const filePath = path.join(process.cwd(), 'Report Sample.xlsx');
-    if (!fs.existsSync(filePath)) return [];
-    const buf = fs.readFileSync(filePath);
-    const wb = XLSX.read(buf, { type: 'buffer' });
-    const sheet = wb.Sheets['PO CRS Report'];
-    if (!sheet) return [];
-    const raw: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    if (raw.length < 2) return [];
 
-    const headers = raw[0].map(h => String(h || '').trim());
-    return raw.slice(1).map((r, idx) => {
-      const obj: Record<string, any> = {};
-      headers.forEach((h, colIdx) => {
-        obj[h] = r[colIdx];
-      });
-      return {
-        id: `crs-${idx + 1}`,
-        distributorId: obj['DistributorID'] || 102267,
-        distributorName: String(obj['DistributorName'] || 'M/S Ahamed Enterprise'),
-        skuCode: obj['SKU Code'] || '',
-        skuName: String(obj['SKU Name'] || ''),
-        suggestedQty: obj['SuggestedQty'] ?? '',
-        amount: obj['Amount'] ?? '',
-      };
-    });
-  } catch (e) {
-    console.error('[PO CRS Report] Failed to read sample excel:', e);
-    return [];
-  }
-}
 
 async function fetchLiveStocksFromSokrio(): Promise<PoCrsRecord[]> {
   const token = await getValidToken();
@@ -64,7 +33,7 @@ async function fetchLiveStocksFromSokrio(): Promise<PoCrsRecord[]> {
     timeout: 30000,
   });
 
-  const stocks = Array.isArray(res.data?.data) ? res.data.data : [];
+  const stocks = res.data?.stocks || (Array.isArray(res.data?.data) ? res.data.data : []);
   if (stocks.length === 0) return [];
 
   const records: PoCrsRecord[] = [];
@@ -119,11 +88,6 @@ export async function GET(request: NextRequest) {
     let records = await fetchLiveStocksFromSokrio();
     let source = 'sokrio_live_api';
 
-    if (records.length === 0) {
-      records = getSampleExcelData();
-      source = 'sample_excel_fallback';
-    }
-
     const meta = {
       totalRecords: records.length,
       source,
@@ -143,13 +107,12 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[PO CRS Report API Error]:', error);
-    const fallback = getSampleExcelData();
     return NextResponse.json({
       success: true,
-      data: fallback,
+      data: [],
       meta: {
-        totalRecords: fallback.length,
-        source: 'sample_excel_error_fallback',
+        totalRecords: 0,
+        source: 'sokrio_live_api',
         error: error.message,
       },
       cached: false,

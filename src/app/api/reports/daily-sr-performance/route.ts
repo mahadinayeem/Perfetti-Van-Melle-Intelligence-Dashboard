@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidToken } from '@/lib/sokrioClient';
+import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
 import territoriesMasterData from '@/lib/territoriesMaster.json';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
@@ -146,6 +146,50 @@ function resolveTerritoryMeta(customerNo: string, routeCode: string, routeName: 
   };
 }
 
+function formatTimeToHHMMSS(val: any): string {
+  if (!val || val === '-' || val === 'null' || val === 'undefined') return '';
+  const s = String(val).trim();
+  const timePart = s.includes(' ') ? s.split(' ')[1] : (s.includes('T') ? s.split('T')[1] : s);
+  const ampmMatch = timePart.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (ampmMatch) {
+    let [_, hStr, mStr, sStr, ampm] = ampmMatch;
+    let h = parseInt(hStr, 10);
+    let m = mStr.padStart(2, '0');
+    let sec = (sStr || '00').padStart(2, '0');
+    if (ampm) {
+      if (ampm.toLowerCase() === 'pm' && h < 12) h += 12;
+      if (ampm.toLowerCase() === 'am' && h === 12) h = 0;
+    }
+    return `${String(h).padStart(2, '0')}:${m}:${sec}`;
+  }
+  return s;
+}
+
+function formatDDMMYYYY(val: any): string {
+  if (!val) return '';
+  if (val instanceof Date) {
+    const d = String(val.getDate()).padStart(2, '0');
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const y = val.getFullYear();
+    return `${d}/${m}/${y}`;
+  }
+  const s = String(val).trim();
+  if (s.includes('/')) {
+    const parts = s.split('/');
+    if (parts.length === 3) {
+      if (parts[2].length === 4) return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+      if (parts[0].length === 4) return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  if (s.includes('-')) {
+    const parts = s.split('T')[0].split(' ')[0].split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  return s;
+}
+
 function toStandardDate(val: any): string {
   if (!val) return '';
   if (val instanceof Date) return val.toISOString().split('T')[0];
@@ -276,34 +320,40 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
   const groups = new Map<string, SRGroupData>();
 
   function getOrCreateGroup(srCode: string, date: string, routeCode: string, routeName: string, srName: string): SRGroupData {
-    const key = `${srCode}_${date}_${routeCode || 'R1'}`;
-    if (!groups.has(key)) {
-      groups.set(key, {
-        srCode,
-        srName: srName || 'SR ' + srCode,
-        orderDate: date,
-        routeCode,
-        routeName: routeName || 'General Route',
-        calls: 0,
-        visitedOutlets: new Set<string>(),
-        firstCheckin: null,
-        lastCheckin: null,
-        inOutletMinutes: 0,
-        lat: '',
-        lng: '',
-        orderCustomers: new Set<string>(),
-        orderInvoices: new Map<string, Set<string>>(),
-        orderTotalValue: 0,
-        orderLineCount: 0,
-        delCustomers: new Set<string>(),
-        delInvoices: new Map<string, Set<string>>(),
-        delTotalValue: 0,
-        delLineCount: 0,
-        freeQty: 0,
-        schemeCount: 0,
-      });
+    const key = `${srCode}_${date}`;
+    if (groups.has(key)) {
+      const existing = groups.get(key)!;
+      if (routeCode && (!existing.routeCode || existing.routeCode === 'R1')) existing.routeCode = routeCode;
+      if (routeName && (!existing.routeName || existing.routeName === 'General Route')) existing.routeName = routeName;
+      if (srName && (!existing.srName || existing.srName.startsWith('SR '))) existing.srName = srName;
+      return existing;
     }
-    return groups.get(key)!;
+    const newGrp: SRGroupData = {
+      srCode,
+      srName: srName || 'SR ' + srCode,
+      orderDate: date,
+      routeCode,
+      routeName: routeName || 'General Route',
+      calls: 0,
+      visitedOutlets: new Set<string>(),
+      firstCheckin: null,
+      lastCheckin: null,
+      inOutletMinutes: 0,
+      lat: '',
+      lng: '',
+      orderCustomers: new Set<string>(),
+      orderInvoices: new Map<string, Set<string>>(),
+      orderTotalValue: 0,
+      orderLineCount: 0,
+      delCustomers: new Set<string>(),
+      delInvoices: new Map<string, Set<string>>(),
+      delTotalValue: 0,
+      delLineCount: 0,
+      freeQty: 0,
+      schemeCount: 0,
+    };
+    groups.set(key, newGrp);
+    return newGrp;
   }
 
   // A. Process Checkins
@@ -466,8 +516,8 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
     let timePerOutlet = '';
 
     if (grp.calls > 0) {
-      if (grp.firstCheckin) firstCall = String(grp.firstCheckin).replace(/^.*?\s+/, '');
-      if (grp.lastCheckin) lastCall = String(grp.lastCheckin).replace(/^.*?\s+/, '');
+      if (grp.firstCheckin) firstCall = formatTimeToHHMMSS(grp.firstCheckin);
+      if (grp.lastCheckin) lastCall = formatTimeToHHMMSS(grp.lastCheckin);
 
       const inHrs = Math.floor(grp.inOutletMinutes / 60);
       const inMins = Math.round(grp.inOutletMinutes % 60);
@@ -498,12 +548,12 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
     }
 
     const territory = srMeta?.territory || meta.territory || 'Jatra Bari';
-    const town = territory;
-    const dbType = '';
+    const town = '';
+    const dbType = resolveDbType(srMeta?.dbCode || meta.dbCode || '102267');
 
     records.push({
       id: `daily-sr-${idx++}`,
-      orderDate,
+      orderDate: formatDDMMYYYY(orderDate),
       cluster: 'Central',
       area: meta.area || 'Central South',
       territory,
@@ -550,7 +600,7 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
       dropSize,
       noOfRetailScheme: grp.schemeCount > 0 ? grp.schemeCount : (grp.freeQty > 0 ? grp.freeQty : 0),
       noOfWSScheme: 0,
-      locationAccuracy: '',
+      locationAccuracy: '100%',
       latitude: grp.lat || '',
       longitude: grp.lng || '',
       firstCall,
@@ -572,8 +622,10 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
-    const startDate = url.searchParams.get('startDate') || '2026-10-14';
-    const endDate = url.searchParams.get('endDate') || '2026-10-14';
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const startDate = url.searchParams.get('startDate') || todayStr;
+    const endDate = url.searchParams.get('endDate') || todayStr;
 
     const forceRefresh = url.searchParams.get('refresh') === 'true';
 

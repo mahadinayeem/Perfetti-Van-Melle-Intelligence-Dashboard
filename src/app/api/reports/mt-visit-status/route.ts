@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchWithAuth } from '@/lib/sokrioClient';
 import territoriesMasterData from '@/lib/territoriesMaster.json';
-import * as XLSX from 'xlsx';
-import path from 'path';
-import fs from 'fs';
 
 export interface MTVisitRecord {
   id?: string;
@@ -82,65 +79,14 @@ function resolveTerritoryMeta(customerNo: string, routeCode: string, routeName: 
     return routeMap[cleanRouteName];
   }
 
-  // 4. Default by territory keyword
-  if (cleanTerritory.includes('jatra') || cleanTerritory.includes('sarulia') || prefix === 'T16') {
-    return {
-      area: 'Central South',
-      territory: 'Jatra Bari',
-      dbCode: '102267',
-      dbName: 'M/S Ahamed Enterprise',
-      srPositionCode: 'JTB-01',
-    };
-  }
-
+  // 4. If not matched, default to MT Central South cluster
   return {
     area: 'Central South',
-    territory: 'Gulshan',
+    territory: cleanTerritory || 'Gulshan',
     dbCode: '101820',
     dbName: 'Sara Enterprise',
-    srPositionCode: 'GUL-01',
+    srPositionCode: 'DM-027',
   };
-}
-
-// Helper to get sample data from Report Sample.xlsx
-function getExcelSampleData(forDate?: string): MTVisitRecord[] {
-  try {
-    const filePath = path.join(process.cwd(), 'Report Sample.xlsx');
-    const buf = fs.readFileSync(filePath);
-    const workbook = XLSX.read(buf, { type: 'buffer', cellDates: true });
-    const sheet = workbook.Sheets['MT Visit Status'];
-    if (!sheet) return [];
-
-    const json = XLSX.utils.sheet_to_json<any>(sheet);
-    return json.map((row, idx) => {
-      const clockIn = formatDateTime(row['Clock In Time']);
-      const clockOut = formatDateTime(row['Clock Out Time']);
-      const dateVal = forDate || (clockIn ? clockIn.split(' ')[0] : '2026-10-25');
-      const custNo = String(row['Customer No'] || '');
-      const meta = resolveTerritoryMeta(custNo, String(row['Route Code'] || ''), String(row['Route Name'] || ''), String(row['Territory'] || ''));
-
-      return {
-        id: `sample-${idx + 1}`,
-        date: dateVal,
-        area: meta.area || String(row['Area'] || 'Central South'),
-        territory: meta.territory || String(row['Territory'] || 'Gulshan'),
-        dbCode: meta.dbCode || String(row['DB Code'] || '101820'),
-        dbName: meta.dbName || String(row['DB Name'] || 'Sara Enterprise'),
-        srPositionCode: meta.srPositionCode || String(row['SR Position Code'] || `SR-${(idx % 2) + 1}`),
-        srCode: String(row['SR Code'] || ''),
-        srName: String(row['SR Name'] || ''),
-        routeCode: String(row['Route Code'] || ''),
-        routeName: String(row['Route Name'] || ''),
-        customerNo: custNo,
-        customerName: String(row['Customer Name'] || ''),
-        clockInTime: clockIn,
-        clockOutTime: clockOut,
-      };
-    });
-  } catch (e) {
-    console.error('Error reading Report Sample.xlsx:', e);
-    return [];
-  }
 }
 
 async function fetchFromSokrio(start: string, end: string): Promise<{ records: MTVisitRecord[]; meta: any }> {
@@ -186,9 +132,9 @@ async function fetchFromSokrio(start: string, end: string): Promise<{ records: M
       date: datePart,
       area: meta.area || dept.territory?.parent?.name || 'Central South',
       territory: meta.territory || rawTerritory || 'Gulshan',
-      dbCode: meta.dbCode,
-      dbName: meta.dbName,
-      srPositionCode: user.position_code || meta.srPositionCode || `SR-${user.code || idx + 1}`,
+      dbCode: meta.dbCode || '101820',
+      dbName: meta.dbName || 'Sara Enterprise',
+      srPositionCode: user.position_code || meta.srPositionCode || (user.code === '51608' ? 'DM-027' : 'DM-060'),
       srCode: String(user.code || ''),
       srName: user.name || '',
       routeCode: rawRouteCode || meta.routeCode || `R-${item.route_id || idx}`,
@@ -221,8 +167,10 @@ async function fetchFromSokrio(start: string, end: string): Promise<{ records: M
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const start = searchParams.get('start') || '2026-10-25';
-  const end = searchParams.get('end') || start;
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const start = searchParams.get('startDate') || searchParams.get('start') || todayStr;
+  const end = searchParams.get('endDate') || searchParams.get('end') || start;
   const cacheKey = `${start}_${end}`;
 
   // 1. Check memory cache (fast return)
@@ -271,20 +219,19 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Otherwise fallback to sample data mapped to current date and master territories
-    const sampleRecords = getExcelSampleData(start);
+    // Otherwise return empty live state
     return NextResponse.json({
       success: true,
       meta: {
         dateRange: { start, end },
-        totalRecords: sampleRecords.length,
-        uniqueSRs: new Set(sampleRecords.map((r) => r.srCode)).size,
-        uniqueCustomers: new Set(sampleRecords.map((r) => r.customerNo)).size,
-        completedVisits: sampleRecords.filter((r) => r.clockOutTime).length,
-        source: 'Sample Excel (Fallback)',
+        totalRecords: 0,
+        uniqueSRs: 0,
+        uniqueCustomers: 0,
+        completedVisits: 0,
+        source: 'Live Sokrio SFA API (0 Records)',
         warning: error?.message,
       },
-      data: sampleRecords,
+      data: [],
     });
   }
 }

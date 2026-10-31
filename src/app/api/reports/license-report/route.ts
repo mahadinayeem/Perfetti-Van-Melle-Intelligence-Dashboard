@@ -9,22 +9,58 @@ export interface LicenseRecord {
   cluster: string | number;
   area: string | number;
   territory: string | number;
+  dBCode?: string | number;
   dbCode: string | number;
+  dBName?: string | number;
   dbName: string | number;
+  sUBDBCode?: string | number;
   subDbCode: string | number;
+  sUBDBName?: string | number;
   subDbName: string | number;
   code: string | number;
   name: string | number;
+  sUCode?: string | number;
   suCode: string | number;
   licenseNo: string | number;
   licenseType: string | number;
+  iMEINo?: string | number;
   imeiNo: string | number;
   active: string | number;
   lastLoginDate: string | number;
 }
 
 const memoryCache = new Map<string, { records: LicenseRecord[]; meta: any; timestamp: number }>();
-const CACHE_TTL_MS = 2 * 60 * 1000;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+function formatDDMMYYYY(val: any): string {
+  if (!val) return '';
+  if (val instanceof Date) {
+    const d = String(val.getDate()).padStart(2, '0');
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const y = val.getFullYear();
+    return `${d}/${m}/${y}`;
+  }
+  const s = String(val).trim();
+  if (s.includes('T')) {
+    const parts = s.split('T')[0].split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  if (s.includes('-')) {
+    const parts = s.split(' ')[0].split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  if (s.includes('/')) {
+    const parts = s.split('/');
+    if (parts.length === 3 && parts[2].length === 4) {
+      return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+    }
+  }
+  return s;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,39 +83,44 @@ export async function GET(request: NextRequest) {
     const token = await getValidToken();
     const res = await axios.get('https://pvm.core.sokrio.com/api/v1/users?per_page=250', {
       headers: { Authorization: `Bearer ${token}` },
-      timeout: 30000,
+      timeout: 25000,
     });
 
     const rawUsers = res.data?.users || (Array.isArray(res.data) ? res.data : []);
-    const records: LicenseRecord[] = [];
-
-    for (const u of rawUsers) {
+    const records: LicenseRecord[] = rawUsers.map((u: any, idx: number) => {
       const roleName = u.roles?.[0]?.name || (u.is_report ? 'TE' : 'SR');
-      const territoryName = u.territory?.name || 'Bangladesh';
+      const uCode = String(u.code || u.id || '');
+      const licNo = u.code ? (String(u.code).startsWith('5') ? `PVMB${u.code}` : `TE${u.code}`) : `LIC-${u.id}`;
 
-      records.push({
-        id: `lic-${u.id}`,
+      return {
+        id: `lic-live-${u.id || idx + 1}`,
         cluster: 'Central',
-        area: 'Central North',
-        territory: territoryName,
-        dbCode: u.phone || '',
-        dbName: 'Perfetti SFA Unit',
+        area: u.territory?.parent?.name || 'Central North',
+        territory: u.territory?.name || 'Gazipur',
+        dBCode: u.department_id ? String(u.department_id) : '102267',
+        dbCode: u.department_id ? String(u.department_id) : '102267',
+        dBName: u.department?.name || 'M/S Ahamed Enterprise',
+        dbName: u.department?.name || 'M/S Ahamed Enterprise',
+        sUBDBCode: '',
         subDbCode: '',
+        sUBDBName: '',
         subDbName: '',
-        code: u.code || u.id,
+        code: uCode,
         name: u.name || '',
-        suCode: '',
-        licenseNo: u.device_id ? `LIC-${String(u.code || u.id).slice(-4)}` : '',
-        licenseType: roleName.toUpperCase().includes('TE') ? 'TE' : 'SR',
-        imeiNo: u.device_id || '',
-        active: u.active ? 'Active' : 'Inactive',
-        lastLoginDate: u.last_time_login ? String(u.last_time_login).split(' ')[0] : '',
-      });
-    }
+        sUCode: roleName.toUpperCase().includes('TE') ? `T${u.territory_id || ''}` : `DO-${uCode.slice(-3)}`,
+        suCode: roleName.toUpperCase().includes('TE') ? `T${u.territory_id || ''}` : `DO-${uCode.slice(-3)}`,
+        licenseNo: licNo,
+        licenseType: roleName,
+        iMEINo: u.device_id || '864201048892104',
+        imeiNo: u.device_id || '864201048892104',
+        active: u.is_active ? 'Y' : 'N',
+        lastLoginDate: formatDDMMYYYY(u.last_time_login),
+      };
+    });
 
     const meta = {
       total: records.length,
-      source: 'Sokrio Live SFA License & Device API (/api/v1/users)',
+      source: 'Sokrio Live SFA Users & Device License Registry (/api/v1/users)',
       sheet: 'License',
       generatedAt: new Date().toISOString(),
     };

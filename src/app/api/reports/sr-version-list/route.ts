@@ -10,12 +10,19 @@ export interface SrVersionRecord {
   salesRegion: string | number;
   territoryName: string | number;
   areaName: string | number;
+  dBCode?: string | number;
   dbCode: string | number;
+  dBName?: string | number;
   dbName: string | number;
+  sUBDBCode?: string | number;
   subDbCode: string | number;
+  subDBName?: string | number;
   subDbName: string | number;
+  sRCode?: string | number;
   srCode: string | number;
+  sRName?: string | number;
   srName: string | number;
+  sUCode?: string | number;
   suCode: string | number;
   licenseNo: string | number;
   versionNo: string | number;
@@ -61,12 +68,19 @@ export async function GET(request: NextRequest) {
         salesRegion: 'Bangladesh',
         territoryName: u.territory?.name || 'Dhaka',
         areaName: 'Central',
+        dBCode: '102267',
         dbCode: '102267',
+        dBName: 'M/S Ahamed Enterprise',
         dbName: 'M/S Ahamed Enterprise',
+        sUBDBCode: '',
         subDbCode: '',
+        subDBName: '',
         subDbName: '',
+        sRCode: u.code || u.id,
         srCode: u.code || u.id,
+        sRName: u.name || '',
         srName: u.name || '',
+        sUCode: `CTG-${String(u.code || u.id).slice(-3)}`,
         suCode: `CTG-${String(u.code || u.id).slice(-3)}`,
         licenseNo: u.device_id ? `PVMB${String(u.code || u.id).slice(-3)}` : 'PVMB420',
         versionNo: u.app_version || '5.1.2.70.38',

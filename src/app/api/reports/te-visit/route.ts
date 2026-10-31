@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidToken } from '@/lib/sokrioClient';
+import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -66,77 +66,7 @@ const SR_METADATA: Record<string, { srPositionCode: string; territory: string; r
   '54233': { srPositionCode: 'DM-059', territory: 'Jatra Bari', routeCode: 'T16R00067423245255', routeName: 'Konapara' },
 };
 
-function getSampleExcelData(): TeVisitRecord[] {
-  try {
-    const filePath = path.join(process.cwd(), 'Report Sample.xlsx');
-    if (!fs.existsSync(filePath)) return [];
-    const buf = fs.readFileSync(filePath);
-    const wb = XLSX.read(buf, { type: 'buffer' });
-    const sheet = wb.Sheets['TE Visit Report'];
-    if (!sheet) return [];
-    const raw: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-    if (raw.length < 2) return [];
 
-    const headers = raw[0].map(h => String(h || '').trim());
-    return raw.slice(1).map((r, idx) => {
-      const obj: Record<string, any> = {};
-      headers.forEach((h, colIdx) => {
-        obj[h] = r[colIdx];
-      });
-      return {
-        id: `te-visit-${idx + 1}`,
-        cluster: String(obj['Cluster'] || 'Cluster-1'),
-        areaName: String(obj['Area Name'] || 'East'),
-        areaCode: String(obj['Area Code'] || 'A21'),
-        territoryName: String(obj['Territory Name'] || 'Jatra Bari'),
-        territoryCode: String(obj['Territory Code'] || 'T16'),
-        teTsoName: String(obj['TE / TSO Name'] || 'Palash Chandra Karmakar'),
-        teTsoCode: obj['TE / TSO Code'] || 5104,
-        type: String(obj['Type'] || 'TE'),
-        mainSuperDistributorPositionCode: String(obj['Main/Super Distributor Position Code'] || 'MD11239'),
-        mainSuperDistributorPositionName: String(obj['Main/Super Distributor Position Name'] || 'Main DB Jatra Bari'),
-        distributorId: obj['Distributor ID'] || 102267,
-        distributorName: String(obj['Distributor Name'] || 'M/S Ahamed Enterprise'),
-        dbType: '', // Blank as per rule
-        subDistributorPositionCode: '',
-        subDistributorPositionName: '',
-        subDbName: '',
-        subDbCode: '',
-        srPostion: String(obj['SRPostion'] || 'DM-057'),
-        srCode: obj['SRCode'] || '',
-        srName: String(obj['SRName'] || ''),
-        pjpRouteCode: String(obj['PJP Route Code'] || ''),
-        pjpRouteName2: String(obj['PJP Route Name2'] || ''),
-        visitedRouteCode: String(obj['Visited Route Code'] || ''),
-        visitedRouteName: String(obj['Visited Route Name'] || ''),
-        visitDate: String(obj['Visit Date'] || ''),
-        sc: obj['SC'] ?? 48,
-        visitedOl: obj['Visited OL'] ?? 0,
-        pending: obj['Pending'] ?? 0,
-        visitPct: String(obj['Visit%'] || '0%'),
-        startWorkTime: String(obj['Start WorkTime'] || ''),
-        firstOutletVisitTime: String(obj['First Outlet Visit Time'] || ''),
-        lastOutletVisitTime: String(obj['Last Outlet Visit Time'] || ''),
-        duration: String(obj['Duration'] || ''),
-        dayEnd: String(obj['Day End'] || 'No'),
-        endWorkTime: String(obj['End Work Time'] || ''),
-        startWorkTimeWithSr: '',
-        endWorkTimeWithSr: '',
-        durationWithSr: '',
-        distributorPositionCode: String(obj['Distributor Position Code'] || 'MD11239'),
-        distributorPositionName: String(obj['Distributor Position Name'] || 'Main DB Jatra Bari'),
-        visitType: String(obj['Visit Type'] || 'Market Work'),
-        locationType: String(obj['Location Type'] || 'DHK Metro'),
-        ta: '',
-        da: '',
-        visitReason: String(obj['Visit Reason'] || ''),
-      };
-    });
-  } catch (e) {
-    console.error('[TE Visit Report] Failed to read sample excel:', e);
-    return [];
-  }
-}
 
 async function fetchLiveTeVisitsFromSokrio(startDate: string, endDate: string): Promise<TeVisitRecord[]> {
   const token = await getValidToken();
@@ -234,7 +164,7 @@ async function fetchLiveTeVisitsFromSokrio(startDate: string, endDate: string): 
       mainSuperDistributorPositionName: 'Main DB Jatra Bari',
       distributorId: 102267,
       distributorName: 'M/S Ahamed Enterprise',
-      dbType: '', // Blank
+      dbType: resolveDbType(102267),
       subDistributorPositionCode: '',
       subDistributorPositionName: '',
       subDbName: '',
@@ -300,11 +230,6 @@ export async function GET(request: NextRequest) {
     let records = await fetchLiveTeVisitsFromSokrio(startDate, endDate);
     let source = 'sokrio_live_api';
 
-    if (records.length === 0) {
-      records = getSampleExcelData();
-      source = 'sample_excel_fallback';
-    }
-
     const meta = {
       totalRecords: records.length,
       startDate,
@@ -326,13 +251,12 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[TE Visit Report API Error]:', error);
-    const fallback = getSampleExcelData();
     return NextResponse.json({
       success: true,
-      data: fallback,
+      data: [],
       meta: {
-        totalRecords: fallback.length,
-        source: 'sample_excel_error_fallback',
+        totalRecords: 0,
+        source: 'sokrio_live_api',
         error: error.message,
       },
       cached: false,
