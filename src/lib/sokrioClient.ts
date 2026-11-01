@@ -181,8 +181,8 @@ export async function fetchLiveDeliveries(forceRefresh = false): Promise<any[]> 
         cachedDeliveries = { data, timestamp: Date.now() };
         return data;
       } catch (err: any) {
-        if (err?.response?.status === 429 && attempt < 3) {
-          console.warn(`[Sokrio Deliveries 429] Rate limited. Backing off ${attempt * 1500}ms (attempt ${attempt}/3)...`);
+        if ((err?.response?.status === 429 || err?.code === 'ECONNRESET' || err?.code === 'ETIMEDOUT') && attempt < 3) {
+          console.warn(`[Sokrio Deliveries Retry] ${err.code || 429}. Backing off ${attempt * 1500}ms (attempt ${attempt}/3)...`);
           await new Promise((r) => setTimeout(r, attempt * 1500));
           continue;
         }

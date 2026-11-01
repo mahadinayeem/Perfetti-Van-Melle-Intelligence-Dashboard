@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     const records: GeoTagRecord[] = outlets.slice(0, limit).map(([code, meta], idx) => {
       const dbCode = String(meta.dbCode || '102267');
-      const dbType = resolveDbType(dbCode);
+      const dbType = 'Main DB';
       const terrCode = String(meta.routeCode || 'T16R01');
       const terrPrefix = terrCode ? terrCode.slice(0, 3) : 'T16';
       const dbName = String(meta.dbName || 'M/S Ahamed Enterprise');

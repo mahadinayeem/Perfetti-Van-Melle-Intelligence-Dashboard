@@ -2,6 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchLiveDeliveries, resolveDbType } from '@/lib/sokrioClient';
 import dbMaster from '@/lib/dbMaster.json';
 
+function formatDDMMYYYY(val: any): string {
+  if (!val) return '10/09/2026';
+  if (val instanceof Date) {
+    const d = String(val.getDate()).padStart(2, '0');
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const y = val.getFullYear();
+    return `${d}/${m}/${y}`;
+  }
+  const s = String(val).trim();
+  if (s.includes('/')) {
+    const parts = s.split('/');
+    if (parts.length === 3) {
+      if (parts[2].length === 4) return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+      if (parts[0].length === 4) return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  if (s.includes('-')) {
+    const parts = s.split('T')[0].split(' ')[0].split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  return s;
+}
+
 export const dynamic = 'force-dynamic';
 
 const DB_MAP: Record<string, any> = (dbMaster as any).dbs || {};
@@ -87,7 +112,7 @@ export async function GET(request: NextRequest) {
         area: 'Dhaka Central',
       };
       const dbNameResolved = d.seller_name || d.order?.seller_name || dbInfo.dbName || 'M/S Ahamed Enterprise';
-      const dbType = resolveDbType(dbCodeRaw);
+      const dbType = 'Main DB';
       const salesOffice = dbInfo.area || 'Dhaka Central';
       const voidDate = d.updated_at ? String(d.updated_at).split('T')[0] : delDateStr;
       const outlet = d.buyer_id ? String(d.buyer_id) : 'T10-20003431699';
@@ -98,11 +123,11 @@ export async function GET(request: NextRequest) {
         id: `void-tr-${d.id}`,
         orderNo: orderCode,
         orderno: orderCode,
-        orderDate: orderDateStr,
-        orderdate: orderDateStr,
-        deliveryDate: delDateStr,
-        deliverydate: delDateStr,
-        voidDate,
+        orderDate: formatDDMMYYYY(orderDateStr),
+        orderdate: formatDDMMYYYY(orderDateStr),
+        deliveryDate: formatDDMMYYYY(delDateStr),
+        deliverydate: formatDDMMYYYY(delDateStr),
+        voidDate: formatDDMMYYYY(voidDate),
         outlet,
         outletName,
         sRCode: srCode,
@@ -126,9 +151,9 @@ export async function GET(request: NextRequest) {
         amount: d.payable || d.amount || 300,
         orderValue: d.amount || 300,
         orderCashDiscount: 0,
-        createDeliveryDate: delDateStr,
-        createDeliverydate: delDateStr,
-        voidOrderOpeningDate: orderDateStr,
+        createDeliveryDate: formatDDMMYYYY(delDateStr),
+        createDeliverydate: formatDDMMYYYY(delDateStr),
+        voidOrderOpeningDate: formatDDMMYYYY(orderDateStr),
         voidOrderOpeningTime: openTime,
       });
     }

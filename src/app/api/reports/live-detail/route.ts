@@ -134,9 +134,9 @@ function parseTime(val: any): string {
 }
 
 function formatMinutes(minsOrStr: number | string | null | undefined): string {
-  if (!minsOrStr && minsOrStr !== 0) return '-';
+  if (!minsOrStr && minsOrStr !== 0) return '';
   const str = String(minsOrStr).trim();
-  if (str === '-' || str === 'null' || str === 'undefined' || !str) return '-';
+  if (str === '-' || str === 'null' || str === 'undefined' || !str) return '';
 
   if (str.includes(':')) {
     const parts = str.split(':').map((p) => parseInt(p, 10));
@@ -146,7 +146,7 @@ function formatMinutes(minsOrStr: number | string | null | undefined): string {
   }
 
   const mins = typeof minsOrStr === 'number' ? minsOrStr : parseFloat(str) || 0;
-  if (mins <= 0) return '-';
+  if (mins <= 0) return '';
   const h = Math.floor(mins / 60);
   const m = Math.round(mins % 60);
   return `${h}:${String(m).padStart(2, '0')}`;
@@ -446,13 +446,13 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
       ? formatMinutes(att.workingHours)
       : (startWorkTime && endWorkTime
         ? formatMinutes(Math.max(0, Math.round((parseDateToMs(`27/10/2026 ${endWorkTime}`) - parseDateToMs(`27/10/2026 ${startWorkTime}`)) / 60000)))
-        : '-');
+        : '');
 
     const marketWorkMins = (d.minCheckinMs && d.maxCheckinMs)
       ? Math.max(0, Math.round((d.maxCheckinMs - d.minCheckinMs) / 60000))
       : 0;
 
-    const totalMarketWork = d.minCheckinMs && d.maxCheckinMs ? formatMinutes(marketWorkMins) : '-';
+    const totalMarketWork = d.minCheckinMs && d.maxCheckinMs ? formatMinutes(marketWorkMins) : '';
     const totalSpendTimeOrderTaking = d.inOutletMinutes > 0 ? formatDurationWithDash(d.inOutletMinutes) : '00:00';
     const transitMins = Math.max(0, marketWorkMins - d.inOutletMinutes);
     const transitTime = transitMins > 0 ? formatDurationWithDash(transitMins) : '00:00';

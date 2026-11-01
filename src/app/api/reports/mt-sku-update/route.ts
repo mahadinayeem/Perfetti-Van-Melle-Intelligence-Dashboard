@@ -4,6 +4,31 @@ import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import axios from 'axios';
 
+function formatDDMMYYYY(val: any): string {
+  if (!val) return '11/10/2026';
+  if (val instanceof Date) {
+    const d = String(val.getDate()).padStart(2, '0');
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const y = val.getFullYear();
+    return `${d}/${m}/${y}`;
+  }
+  const s = String(val).trim();
+  if (s.includes('/')) {
+    const parts = s.split('/');
+    if (parts.length === 3) {
+      if (parts[2].length === 4) return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+      if (parts[0].length === 4) return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  if (s.includes('-')) {
+    const parts = s.split('T')[0].split(' ')[0].split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  return s;
+}
+
 export const dynamic = 'force-dynamic';
 
 export interface MTSKUUpdateRecord {
@@ -77,9 +102,9 @@ export async function GET(request: NextRequest) {
       const srCode = String(orderedBy.code || d.created_by || '54506');
       const srName = String(orderedBy.name || d.creator_name || 'Mostafizur Rahman');
       const srPositionCode = srCode === '54233' ? 'DM-059' : (srCode === '51639' ? 'DM-217' : (srCode === '53995' ? 'DM-057' : (srCode === '51608' ? 'DM-027' : 'DM-060')));
-      const dbCode = '102267';
-      const dbName = 'M/S Ahamed Enterprise';
-      const dbType = 'MAIN';
+      const dbCode = '100001';
+      const dbName = 'Organized Trade';
+      const dbType = 'Modern Trade';
       const custNo = String(d.buyer_id || '');
       const custName = String(d.order?.buyer_name || d.buyer_name || '');
       const routeCode = String(d.order?.route?.code || d.route_id || '');
@@ -99,8 +124,8 @@ export async function GET(request: NextRequest) {
 
         records.push({
           id: `mt-sku-live-${count}`,
-          docDate,
-          docdate: docDate,
+          docDate: formatDDMMYYYY(docDate),
+          docdate: formatDDMMYYYY(docDate),
           docTime,
           doctime: docTime,
           cluster: 'Central',

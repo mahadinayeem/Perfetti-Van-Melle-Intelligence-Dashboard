@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
 
       const dbCode = String(srMeta?.dbCode || meta.dbCode || '102267');
       const dbName = String(srMeta?.dbName || meta.dbName || 'M/S Ahamed Enterprise');
-      const dbType = resolveDbType(dbCode);
+      const dbType = 'Main DB';
       const territory = String(srMeta?.territory || meta.territory || 'Jatra Bari');
       const area = String(meta.area || 'Central South');
       const cluster = 'Central';

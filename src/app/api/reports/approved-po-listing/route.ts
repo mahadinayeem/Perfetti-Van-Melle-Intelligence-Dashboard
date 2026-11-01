@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         const dateStr = String(order.order_date || inv.created_at || '14-10-2026').split(' ')[0];
         const dbCode = String(inv.seller_id || order.seller_id || '102267');
         const dbName = String(inv.seller_name || 'M/S Ahamed Enterprise');
-        const dbType = resolveDbType(dbCode);
+        const dbType = 'Main DB';
 
         const products = order.latest_revision?.ordered_products || inv.products || [];
         if (products.length > 0) {
