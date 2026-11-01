@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidToken } from '@/lib/sokrioClient';
+import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import axios from 'axios';
 
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
           const itemNo = String(p.product?.base_product?.sku || p.product_id || '').trim();
           if (!itemNo) continue;
 
-          const desc = ((skuCatalogData as any)[itemNo])?.motherSkuName || p.product?.base_product?.name || `SKU ${itemNo}`;
+          const desc = resolveEnglishSkuName(itemNo, p.product?.base_product?.name);
           const tp = parseFloat(p.price) || 0;
           const qty = parseFloat(p.qty) || 0;
           const disc = parseFloat(p.promotion_discount || p.custom_discount) || 0;

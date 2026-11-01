@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveDbType, getValidToken } from '@/lib/sokrioClient';
+import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import axios from 'axios';
 
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
         if (products.length > 0) {
           products.forEach((p: any, pIdx: number) => {
             const sku = String(p.product?.base_product?.sku || p.product_id || '651287');
-            const skuName = String(p.product?.full_name || ((skuCatalogData as any)[sku])?.motherSkuName || 'Perfetti Product');
+            const skuName = resolveEnglishSkuName(sku, p.product?.full_name);
             const qty = Number(p.qty || 1);
             const val = Number(p.price ? p.price * qty : inv.payable || 0);
 

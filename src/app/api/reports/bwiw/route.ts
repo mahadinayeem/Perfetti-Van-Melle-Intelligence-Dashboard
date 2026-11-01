@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchWithAuth, getValidToken, resolveDbType } from '@/lib/sokrioClient';
 import { resolveSubChannel, resolveChannel, resolveOutletEnglishName } from '@/lib/outletResolver';
+import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import territoriesMasterData from '@/lib/territoriesMaster.json';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import motherSkuMasterData from '@/lib/motherSkuMaster.json';
@@ -335,7 +336,7 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
 
         const skuCode = String(base.sku || prod.id || `SKU-${pIdx + 1}`);
         const skuInfo = (skuCatalogData as any)[skuCode] || {};
-        const skuName = String(base.usp || base.name || prod.full_name || 'PVM SKU');
+        const skuName = resolveEnglishSkuName(skuCode, String(base.usp || base.name || prod.full_name || ''));
         const brandName = (base.product_brand && base.product_brand.name) || resolveBrandName(skuName, base.product_brand_id);
         const catName = (base.product_category && base.product_category.name) || resolveCategoryName(skuName, base.product_category_id);
 
@@ -523,7 +524,7 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
       category: ((skuCatalogData as any)[skuCode])?.category || String(r[delCatIdx] || 'Confectionery'),
       brand: ((skuCatalogData as any)[skuCode])?.brand || String(r[delBrandIdx] || 'Center Fruit'),
       skuCode,
-      skuName: MOTHER_SKU_MAP[skuCode] || ((skuCatalogData as any)[skuCode])?.motherSkuName || String(r[delNameIdx] || ''),
+      skuName: resolveEnglishSkuName(skuCode, String(r[delNameIdx] || '')),
       deliveryUom: ((skuCatalogData as any)[skuCode])?.uom || 'PCS',
       noofSKUinCTN: ((skuCatalogData as any)[skuCode])?.piecesPerCtn || 15,
       weightperSKUgm: ((skuCatalogData as any)[skuCode])?.weightGram || 360,

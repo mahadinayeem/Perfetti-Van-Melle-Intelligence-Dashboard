@@ -149,13 +149,12 @@ function resolveTerritoryMeta(customerNo: string, routeCode: string, routeName: 
 function formatTimeToHHMMSS(val: any): string {
   if (!val || val === '-' || val === 'null' || val === 'undefined') return '';
   const s = String(val).trim();
-  const timePart = s.includes(' ') ? s.split(' ')[1] : (s.includes('T') ? s.split('T')[1] : s);
-  const ampmMatch = timePart.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
-  if (ampmMatch) {
-    let [_, hStr, mStr, sStr, ampm] = ampmMatch;
+  const match = s.match(/(?:^|\s|T)(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (match) {
+    let [_, hStr, mStr, sStr, ampm] = match;
     let h = parseInt(hStr, 10);
-    let m = mStr.padStart(2, '0');
-    let sec = (sStr || '00').padStart(2, '0');
+    const m = mStr.padStart(2, '0');
+    const sec = (sStr || '00').padStart(2, '0');
     if (ampm) {
       if (ampm.toLowerCase() === 'pm' && h < 12) h += 12;
       if (ampm.toLowerCase() === 'am' && h === 12) h = 0;
@@ -163,6 +162,14 @@ function formatTimeToHHMMSS(val: any): string {
     return `${String(h).padStart(2, '0')}:${m}:${sec}`;
   }
   return s;
+}
+
+function formatMinsToHHMM(mins: number): string {
+  if (!mins || isNaN(mins) || mins <= 0) return '00:00';
+  const totalMins = Math.round(mins);
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 function formatDDMMYYYY(val: any): string {
@@ -369,7 +376,7 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
     const dept = c['Department Code'] || c['Visited Department'];
     if (dept) grp.visitedOutlets.add(String(dept));
 
-    const checkTime = c['Check in Time '] || c['Time'];
+    const checkTime = c['Check in Time '] || c['Check in Time'] || c['Time'] || c['Checkin Time'];
     if (checkTime) {
       if (!grp.firstCheckin || checkTime < grp.firstCheckin) grp.firstCheckin = String(checkTime);
       if (!grp.lastCheckin || checkTime > grp.lastCheckin) grp.lastCheckin = String(checkTime);
@@ -519,9 +526,7 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
       if (grp.firstCheckin) firstCall = formatTimeToHHMMSS(grp.firstCheckin);
       if (grp.lastCheckin) lastCall = formatTimeToHHMMSS(grp.lastCheckin);
 
-      const inHrs = Math.floor(grp.inOutletMinutes / 60);
-      const inMins = Math.round(grp.inOutletMinutes % 60);
-      totalTimeinOutlet = grp.inOutletMinutes > 0 ? `${inHrs} hr${inHrs !== 1 ? 's' : ''} ${inMins} min${inMins !== 1 ? 's' : ''}` : '-';
+      totalTimeinOutlet = grp.inOutletMinutes > 0 ? formatMinsToHHMM(grp.inOutletMinutes) : '00:00';
 
       const t1 = parseTimeToMinutes(firstCall);
       const t2 = parseTimeToMinutes(lastCall);
@@ -533,14 +538,12 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
       }
 
       if (workedMins > 0) {
-        const wHrs = Math.floor(workedMins / 60);
-        const wMins = Math.round(workedMins % 60);
-        totalTimeWorked = `${wHrs} hr${wHrs !== 1 ? 's' : ''} ${wMins} min${wMins !== 1 ? 's' : ''}`;
-
+        totalTimeWorked = formatMinsToHHMM(workedMins);
         const transitMins = Math.max(0, workedMins - grp.inOutletMinutes);
-        const trHrs = Math.floor(transitMins / 60);
-        const trMins = Math.round(transitMins % 60);
-        totalTrasitTime = transitMins > 0 ? `${trHrs} hr${trHrs !== 1 ? 's' : ''} ${trMins} min${trMins !== 1 ? 's' : ''}` : '-';
+        totalTrasitTime = formatMinsToHHMM(transitMins);
+      } else {
+        totalTimeWorked = '00:00';
+        totalTrasitTime = '00:00';
       }
 
       const avgMins = Math.round(grp.inOutletMinutes / totalCall);

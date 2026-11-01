@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidToken } from '@/lib/sokrioClient';
 import axios from 'axios';
+import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -47,8 +48,7 @@ async function fetchLiveStocksFromSokrio(): Promise<PoCrsRecord[]> {
     if (!skuCode || processedSkus.has(skuCode)) continue;
     processedSkus.add(skuCode);
 
-    const catalog = SKU_CATALOG[skuCode] || {};
-    const skuName = String(baseProd.name || catalog.motherSkuName || `SKU ${skuCode}`);
+    const skuName = resolveEnglishSkuName(skuCode, baseProd.name);
     const dept = st.department || {};
     const distributorId = dept.code || 102267;
     const distributorName = dept.name || 'M/S Ahamed Enterprise';

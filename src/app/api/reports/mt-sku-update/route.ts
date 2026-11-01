@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
+import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import axios from 'axios';
 
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest) {
         const skuCode = String(p.product?.base_product?.sku || p.product_id || '');
         const skuInfo = (skuCatalogData as any)[skuCode] || {};
         const motherCode = skuInfo.motherSkuCode || '';
-        const motherName = skuInfo.motherSkuName || p.product?.base_product?.name || '';
+        const motherName = resolveEnglishSkuName(skuCode, p.product?.base_product?.name);
         const brand = skuInfo.brand || '';
 
         records.push({

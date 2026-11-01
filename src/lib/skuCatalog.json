@@ -6,11 +6,13 @@
     "uom": "JAR",
     "brand": "Alpenliebe Juzt Jelly",
     "piecesPerCtn": 15,
-    "weightGram": 666
+    "weightGram": 666,
+    "skuName": "Alp Juzt Jelly ST 15JX180PX3.7g"
   },
   "651060": {
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "ALP JUZT JELLY ST 15JARX180PX3.7G"
   },
   "651091": {
     "motherSkuCode": "MSKU0046",
@@ -19,7 +21,8 @@
     "uom": "BOX",
     "brand": "Mentos",
     "piecesPerCtn": 32,
-    "weightGram": 275
+    "weightGram": 275,
+    "skuName": "Mentos Roll Mint 12BoxX24RollsX21.6g"
   },
   "651092": {
     "motherSkuCode": "MSKU0057",
@@ -28,7 +31,8 @@
     "uom": "BOX",
     "brand": "Mentos",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "Mentos Roll Orange 12BoxX24RollsX21.6g"
   },
   "651135": {
     "motherSkuCode": "MSKU0061",
@@ -37,7 +41,8 @@
     "uom": "BOX",
     "brand": "Alpenliebe Juzt Jelly",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "ALP JUZT JELLY ST 32BOXx90Px3.7G"
   },
   "651140": {
     "motherSkuCode": "MSKU0075",
@@ -46,17 +51,20 @@
     "uom": "BOX",
     "brand": "Center Fresh",
     "piecesPerCtn": 32,
-    "weightGram": 275
+    "weightGram": 275,
+    "skuName": "CTRFRESH SP STICKPK16BOXx24Px16.8G-6x2.8"
   },
   "651163": {
     "brand": "Center Fruit",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRUIT ST - 15JARx200Px2.8G"
   },
   "651164": {
     "brand": "Center Fruit",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRUIT ST - 32BOXx110Px2.8G"
   },
   "651170": {
     "motherSkuCode": "MSKU0066",
@@ -65,20 +73,24 @@
     "uom": "JAR",
     "brand": "Center Fruit",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRUIT MAX ST-15JARX180PX3.2G"
   },
   "651176": {
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRESH SP 32BOXx110Px2.8G"
   },
   "651177": {
     "brand": "Center Fresh",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRESH SP 32BOXx110Px2.8G"
   },
   "651212": {
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRUIT ST - 32BOXx110Px2.8G-T"
   },
   "651232": {
     "motherSkuCode": "MSKU0074",
@@ -87,11 +99,13 @@
     "uom": "PCH",
     "brand": "Mentos",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "MTS MINT-OR 32PCHx40Px2.7G"
   },
   "651240": {
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CC ROPE ST 24HNGx80Px4.5G"
   },
   "651260": {
     "motherSkuCode": "MSKU0020",
@@ -100,7 +114,8 @@
     "uom": "JAR",
     "brand": "Air Action Mentos",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "MTS AIR ACTION EU - 15JARx225Px2.3G"
   },
   "651270": {
     "motherSkuCode": "MSKU0078",
@@ -109,24 +124,29 @@
     "uom": "PCH",
     "brand": "Chupa Chups Rope",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CC ROPE ST 60PCHx14Px4.5G"
   },
   "651282": {
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRESH SP 15JARX220P"
   },
   "651284": {
     "brand": "Center Fruit",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRUIT ST - 15JARx200Px2.8G-T"
   },
   "651285": {
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRUIT ST 15JARx220P"
   },
   "651286": {
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRUIT ST - 32BOXx110Px2.8G-T"
   },
   "651287": {
     "motherSkuCode": "MSKU0079",
@@ -135,7 +155,8 @@
     "uom": "HNG",
     "brand": "Chupa Chups Bites & Tube",
     "piecesPerCtn": 12,
-    "weightGram": 396
+    "weightGram": 396,
+    "skuName": "CC BITES MF TUBE S-O-A 12HNGx20PCHx19.8G"
   },
   "651288": {
     "motherSkuCode": "MSKU0079",
@@ -144,7 +165,8 @@
     "uom": "HNG",
     "brand": "Chupa Chups Bites & Tube",
     "piecesPerCtn": 24,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CC BITES MIX FRT 12BOX × 8PCH × 61.6G"
   },
   "651289": {
     "motherSkuCode": "MSKU0054",
@@ -153,7 +175,8 @@
     "uom": "TUBE",
     "brand": "Chupa Chups Tube",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CC TUBES ST-OR-GA 12BOX × 8PCH × 61.6G"
   },
   "651293": {
     "motherSkuCode": "MSKU0088",
@@ -162,7 +185,8 @@
     "uom": "JAR",
     "brand": "Alpenliebe Juzt Jelly",
     "piecesPerCtn": 15,
-    "weightGram": 550
+    "weightGram": 550,
+    "skuName": "ALP JUZT JELLY ST 12BOXx8PCHx103.6G"
   },
   "651296": {
     "motherSkuCode": "MSKU0065",
@@ -171,7 +195,8 @@
     "uom": "HNG",
     "brand": "Chupa Chups Rope",
     "piecesPerCtn": 24,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CC ROPE ST-GA-OR 24HNGx80Px4.5G"
   },
   "651300": {
     "motherSkuCode": "MSKU0064",
@@ -180,13 +205,15 @@
     "uom": "BOX",
     "brand": "Center Fruit",
     "piecesPerCtn": 32,
-    "weightGram": 275
+    "weightGram": 275,
+    "skuName": "CTR FRUIT ST 32BOXx110P"
   },
   "651301": {
     "motherSkuName": "CTR FRUIT ST 15JARx200P",
     "brand": "Center Fruit",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRUIT ST 15JARx200P"
   },
   "651302": {
     "motherSkuCode": "MSKU0072",
@@ -195,7 +222,8 @@
     "uom": "JAR",
     "brand": "Center Fruit",
     "piecesPerCtn": 15,
-    "weightGram": 550
+    "weightGram": 550,
+    "skuName": "CTR FRUIT ST 15JARx220P"
   },
   "651303": {
     "motherSkuCode": "MSKU0058",
@@ -204,7 +232,8 @@
     "uom": "HNG",
     "brand": "Alpenliebe Chewy",
     "piecesPerCtn": 18,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "ALP CHEWY CR-STB 4POCKET 18HNGx80P"
   },
   "651305": {
     "motherSkuCode": "MSKU0086",
@@ -213,7 +242,8 @@
     "uom": "BOX",
     "brand": "Alpenliebe Chewy",
     "piecesPerCtn": 32,
-    "weightGram": 275
+    "weightGram": 275,
+    "skuName": "ALP CHEWY CR-STB-12BOXx8PCHx67.5g"
   },
   "651306": {
     "motherSkuCode": "MSKU0068",
@@ -222,7 +252,8 @@
     "uom": "BOX",
     "brand": "Center Fresh",
     "piecesPerCtn": 32,
-    "weightGram": 275
+    "weightGram": 275,
+    "skuName": "CTR FRESH SP 32BOXx110P"
   },
   "651311": {
     "motherSkuCode": "MSKU0018",
@@ -231,7 +262,8 @@
     "uom": "JAR",
     "brand": "Alpenliebe Creamfills",
     "piecesPerCtn": 15,
-    "weightGram": 540
+    "weightGram": 540,
+    "skuName": "ALP CREAMFILLS CR 15JARX180P"
   },
   "651314": {
     "motherSkuCode": "MSKU0020",
@@ -240,7 +272,8 @@
     "uom": "JAR",
     "brand": "Air Action Mentos",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "MTS AIR ACTION EU - 15JARx225Px2.3G"
   },
   "651315": {
     "motherSkuCode": "MSKU0072",
@@ -249,7 +282,8 @@
     "uom": "JAR",
     "brand": "Center Fruit",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRUIT ST 15JARx220P"
   },
   "651316": {
     "motherSkuCode": "MSKU0023",
@@ -258,7 +292,8 @@
     "uom": "JAR",
     "brand": "Alpenliebe Juzt Jelly",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "ALP JUZT JELLY ST 15JARX180PX3.7G TP SC"
   },
   "651318": {
     "motherSkuCode": "MSKU0071",
@@ -267,7 +302,8 @@
     "uom": "JAR",
     "brand": "Center Fresh",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRESH SP 15JARX220P"
   },
   "651319": {
     "motherSkuCode": "MSKU0071",
@@ -276,13 +312,15 @@
     "uom": "JAR",
     "brand": "Center Fresh",
     "piecesPerCtn": 15,
-    "weightGram": 550
+    "weightGram": 550,
+    "skuName": "CTR FRESH SP 15JARX220P"
   },
   "651332": {
     "motherSkuName": "CTR FRESH SP 15JARX200P",
     "brand": "Center Fresh",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CTR FRESH SP 15JARX200P"
   },
   "651352": {
     "motherSkuCode": "MSKU0079",
@@ -291,7 +329,8 @@
     "uom": "HNG",
     "brand": "Chupa Chups Bites & Tube",
     "piecesPerCtn": 12,
-    "weightGram": 396
+    "weightGram": 396,
+    "skuName": "CC BITES MF TUBE SOA 12HNGx20PCHx19.8G3P"
   },
   "651373": {
     "motherSkuCode": "MSKU0097",
@@ -300,6 +339,7 @@
     "uom": "BOX",
     "brand": "Chupa Chups Duo",
     "piecesPerCtn": 15,
-    "weightGram": 360
+    "weightGram": 360,
+    "skuName": "CC DUO WM 15BOXx80Px4.5G"
   }
 }

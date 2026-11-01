@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidToken } from '@/lib/sokrioClient';
 import dbMaster from '@/lib/dbMaster.json';
+import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import axios from 'axios';
 
@@ -85,8 +86,8 @@ export async function GET(request: NextRequest) {
       for (const p of prods) {
         count++;
         const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '650961');
-        const cat = SKU_CATALOG[skuCode] || {};
-        const skuName = p?.product?.base_product?.name || cat.motherSkuName || 'Alp Juzt Jelly ST 15JX180PX3.7g';
+        const cat = (skuCatalogData as any)[skuCode] || {};
+        const skuName = resolveEnglishSkuName(skuCode, p?.product?.base_product?.name);
         const qty = p ? parseFloat(p.qty) || 15 : 15;
 
         records.push({

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchLiveDeliveries } from '@/lib/sokrioClient';
+import { resolveEnglishSkuName } from '@/lib/skuResolver';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       for (const p of prods) {
         count++;
         const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '651286');
-        const skuName = p?.product?.base_product?.name || 'CTR FRUIT ST - 32BOXx110Px2.8G-T';
+        const skuName = resolveEnglishSkuName(skuCode, p?.product?.base_product?.name);
         const qty = p ? parseFloat(p.qty) || 1 : 1;
         const tp = p ? parseFloat(p.price) || 184 : 184;
 

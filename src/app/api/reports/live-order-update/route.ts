@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
 import { resolveChannel, resolveOutletEnglishName } from '@/lib/outletResolver';
+import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import customerMapData from '@/lib/customerMap.json';
 
@@ -206,7 +207,7 @@ async function fetchLiveOrdersFromSokrio(startDate: string, endDate: string): Pr
       motherSkuName: skuInfo?.motherSkuName || String(r['Product Brand'] || 'Perfetti SKU'),
       brand: skuInfo?.brand || String(r['Product Brand'] || ''),
       skuCode,
-      skuName: String(r['Product Name'] || ''),
+      skuName: resolveEnglishSkuName(skuCode, String(r['Product Name'] || '')),
       qty,
       price,
       orderValue: subtotal,

@@ -91,23 +91,17 @@ function parseDateToMs(dateStr: any): number {
 function formatTimeToHHMMSS(val: any): string {
   if (!val || val === '-' || val === 'null' || val === 'undefined') return '';
   const s = String(val).trim();
-  const timePart = s.includes(' ') ? s.split(' ')[1] : (s.includes('T') ? s.split('T')[1] : s);
-  const ampmMatch = timePart.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
-  if (ampmMatch) {
-    let [_, hStr, mStr, sStr, ampm] = ampmMatch;
+  const match = s.match(/(?:^|\s|T)(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (match) {
+    let [_, hStr, mStr, sStr, ampm] = match;
     let h = parseInt(hStr, 10);
-    let m = mStr.padStart(2, '0');
-    let sec = (sStr || '00').padStart(2, '0');
+    const m = mStr.padStart(2, '0');
+    const sec = (sStr || '00').padStart(2, '0');
     if (ampm) {
       if (ampm.toLowerCase() === 'pm' && h < 12) h += 12;
       if (ampm.toLowerCase() === 'am' && h === 12) h = 0;
     }
     return `${String(h).padStart(2, '0')}:${m}:${sec}`;
-  }
-  const isoMatch = timePart.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-  if (isoMatch) {
-    let [_, hStr, mStr, sStr] = isoMatch;
-    return `${hStr.padStart(2, '0')}:${mStr.padStart(2, '0')}:${(sStr || '00').padStart(2, '0')}`;
   }
   return s;
 }
@@ -142,28 +136,27 @@ function parseTime(val: any): string {
 function formatMinutes(minsOrStr: number | string | null | undefined): string {
   if (!minsOrStr && minsOrStr !== 0) return '-';
   const str = String(minsOrStr).trim();
-  if (str === '-' || str === 'null' || str === 'undefined') return '-';
+  if (str === '-' || str === 'null' || str === 'undefined' || !str) return '-';
 
   if (str.includes(':')) {
     const parts = str.split(':').map((p) => parseInt(p, 10));
     const h = parts[0] || 0;
     const m = parts[1] || 0;
-    if (h === 0 && m === 0) return '0 hr 0 min';
-    return `${h} hr${h !== 1 ? 's' : ''} ${m} min${m !== 1 ? 's' : ''}`;
+    return `${h}:${String(m).padStart(2, '0')}`;
   }
 
   const mins = typeof minsOrStr === 'number' ? minsOrStr : parseFloat(str) || 0;
-  if (mins <= 0) return '0 hr 0 min';
+  if (mins <= 0) return '-';
   const h = Math.floor(mins / 60);
   const m = Math.round(mins % 60);
-  return `${h} hr${h !== 1 ? 's' : ''} ${m} min${m !== 1 ? 's' : ''}`;
+  return `${h}:${String(m).padStart(2, '0')}`;
 }
 
 function formatDurationWithDash(mins: number): string {
-  if (!mins || isNaN(mins) || mins <= 0) return '-';
+  if (!mins || isNaN(mins) || mins <= 0) return '00:00';
   const h = Math.floor(mins / 60);
   const m = Math.round(mins % 60);
-  return `${h} hr${h !== 1 ? 's' : ''} ${m} min${m !== 1 ? 's' : ''}`;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 function timeDiffMinutes(t1: string | null, t2: string | null): number {
@@ -444,25 +437,25 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
     const lastSyncTime = d.lastSyncMs ? format24hFromMs(d.lastSyncMs) : lastCallTime;
 
     // Client Requirement:
-    // Start Work time shown based on Day in Time
-    // End work time shown based on Day-out time
-    const startWorkTime = formatTimeToHHMMSS(att?.dayIn) || (firstCallTime ? formatTimeToHHMMSS(firstCallTime) : '');
-    const endWorkTime = formatTimeToHHMMSS(att?.dayOut) || (lastCallTime ? formatTimeToHHMMSS(lastCallTime) : '');
+    // Start Work time shown based on Day in Time (attendance)
+    // End work time shown strictly based on Day-out time (never outlet clock-out)
+    const startWorkTime = formatTimeToHHMMSS(att?.dayIn) || '';
+    const endWorkTime = formatTimeToHHMMSS(att?.dayOut) || '';
 
     const totalWorkingHours = att?.workingHours
       ? formatMinutes(att.workingHours)
       : (startWorkTime && endWorkTime
         ? formatMinutes(Math.max(0, Math.round((parseDateToMs(`27/10/2026 ${endWorkTime}`) - parseDateToMs(`27/10/2026 ${startWorkTime}`)) / 60000)))
-        : (d.minCheckinMs && d.maxCheckinMs ? formatMinutes(Math.max(0, Math.round((d.maxCheckinMs - d.minCheckinMs) / 60000))) : '-'));
+        : '-');
 
     const marketWorkMins = (d.minCheckinMs && d.maxCheckinMs)
       ? Math.max(0, Math.round((d.maxCheckinMs - d.minCheckinMs) / 60000))
       : 0;
 
-    const totalMarketWork = d.minCheckinMs && d.maxCheckinMs ? formatDurationWithDash(marketWorkMins) : '-';
-    const totalSpendTimeOrderTaking = d.inOutletMinutes > 0 ? formatDurationWithDash(d.inOutletMinutes) : '-';
+    const totalMarketWork = d.minCheckinMs && d.maxCheckinMs ? formatMinutes(marketWorkMins) : '-';
+    const totalSpendTimeOrderTaking = d.inOutletMinutes > 0 ? formatDurationWithDash(d.inOutletMinutes) : '00:00';
     const transitMins = Math.max(0, marketWorkMins - d.inOutletMinutes);
-    const transitTime = transitMins > 0 ? formatDurationWithDash(transitMins) : '-';
+    const transitTime = transitMins > 0 ? formatDurationWithDash(transitMins) : '00:00';
 
     records.push({
       id: `live-detail-${idx++}`,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
+import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import axios from 'axios';
 
@@ -154,22 +155,22 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
 
     const ledger = rawReportSummary[skuCode];
 
-    const description = String(baseProd.name || `SKU ${skuCode}`);
+    const description = resolveEnglishSkuName(skuCode, baseProd.name);
     const tpPrice = SKU_PRICE_MAP[skuCode] || 375;
     const dbLandingPrice = roundVal(tpPrice / 1.05);
 
     const floorStock = Number(st.qty ?? 0);
     const pendingDelivery = Number(st.pending_qty ?? 0);
-    const billableStock = floorStock - Math.abs(pendingDelivery);
+    const billableStock = floorStock + Math.abs(pendingDelivery);
 
     const primaryStock = Number(ledger?.primary_lifting ?? 0);
     const deliveredSecondary = Number(ledger?.secondary_sales ?? st.delivered_qty ?? 0);
 
     let openingStock = Number(ledger?.opening_stock ?? 0);
-    if (openingStock <= 0 && floorStock > 0) {
-      openingStock = floorStock + deliveredSecondary - primaryStock;
-      if (openingStock <= 0) openingStock = floorStock;
+    if (openingStock <= 0 || openingStock === floorStock) {
+      openingStock = Math.max(0, floorStock + deliveredSecondary - primaryStock);
     }
+    if (openingStock <= 0) openingStock = floorStock;
     const transit = Number(ledger?.total_transit ?? st.on_transit_receive ?? 0);
     const orderedQty = 0;
     const doReceivingPending = 0;
@@ -234,7 +235,7 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
   for (const [skuCode, ledger] of Object.entries(rawReportSummary)) {
     if (!processedSkus.has(skuCode)) {
       processedSkus.add(skuCode);
-      const description = String(ledger.product_name || `SKU ${skuCode}`);
+      const description = resolveEnglishSkuName(skuCode, ledger.product_name);
       const tpPrice = SKU_PRICE_MAP[skuCode] || 375;
       const dbLandingPrice = roundVal(tpPrice / 1.05);
 
@@ -246,10 +247,10 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
       const transit = Number(ledger.total_transit ?? 0);
 
       let openingStock = Number(ledger.opening_stock ?? 0);
-      if (openingStock <= 0 && floorStock > 0) {
-        openingStock = floorStock + deliveredSecondary - primaryStock;
-        if (openingStock <= 0) openingStock = floorStock;
+      if (openingStock <= 0 || openingStock === floorStock) {
+        openingStock = Math.max(0, floorStock + deliveredSecondary - primaryStock);
       }
+      if (openingStock <= 0) openingStock = floorStock;
 
       const dbCode = 102267;
       result.push({

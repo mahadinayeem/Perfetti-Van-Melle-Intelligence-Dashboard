@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
+import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import territoriesMasterData from '@/lib/territoriesMaster.json';
 import axios from 'axios';
@@ -172,7 +173,7 @@ export async function GET(request: NextRequest) {
         count++;
         const skuCode = String(p.product?.base_product?.sku || p.product_id || '');
         const skuInfo = (skuCatalogData as any)[skuCode] || {};
-        const skuName = skuInfo.motherSkuName || p.product?.base_product?.name || '';
+        const skuName = resolveEnglishSkuName(skuCode, p.product?.base_product?.name);
         const brand = skuInfo.brand || '';
         const qtyPcs = Number(p.qty || 0);
         const pcsPerCtn = Number(skuInfo.piecesPerCtn || 15);

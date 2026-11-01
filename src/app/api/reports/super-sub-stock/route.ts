@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidToken } from '@/lib/sokrioClient';
 import axios from 'axios';
+import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -69,7 +70,7 @@ async function fetchLiveStocksFromSokrio(startDate: string, endDate: string): Pr
     processedSkus.add(skuCode);
 
     const catalog = SKU_CATALOG[skuCode] || {};
-    const skuName = String(baseProd.name || catalog.motherSkuName || `SKU ${skuCode}`);
+    const skuName = resolveEnglishSkuName(skuCode, baseProd.name);
     const brand = catalog.brand || (skuName.split(' ')[0] || 'Perfetti');
     const uom2 = catalog.uom || (skuName.toLowerCase().includes('jar') ? 'JAR' : 'BOX');
     const dept = st.department || {};
