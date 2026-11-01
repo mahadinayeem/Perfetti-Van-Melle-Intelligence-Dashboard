@@ -132,15 +132,6 @@ export async function GET(request: NextRequest) {
         const order = inv.order || {};
         const rawDate = order.order_date || inv.created_at || '2026-10-11';
         const poDate = formatDDMMYYYYWithHyphen(rawDate);
-        const compactDate = getDDMMYYYYCompact(rawDate);
-        
-        // PO Number formatted to match Perfetti ERP specification: PO10_<DDMMYYYY>_<SEQ>
-        const rawCode = String(order.code || inv.code || '');
-        const poNum = rawCode.startsWith('PO10_') 
-          ? rawCode 
-          : `PO10_${compactDate}_${String(inv.id || idx + 1).slice(-4).padStart(4, '0')}`;
-        
-        const poCreationTime = formatTimeTo12h(order.device_order_time || inv.created_at, '03:44 PM');
         const dbInfo = resolveDbCodeAndName(inv.seller_id || order.seller_id, inv.seller_name || order.seller_name);
         const dbType = 'Main DB';
 
@@ -154,9 +145,9 @@ export async function GET(request: NextRequest) {
 
             records.push({
               id: `po-${idx + 1}-${pIdx + 1}`,
-              poNumber: poNum,
+              poNumber: '', // PO does not exist in Sokrio platform -> left blank
               poDate: poDate,
-              poCreationTime: poCreationTime,
+              poCreationTime: '', // Not in Sokrio platform -> left blank
               dBCode: dbInfo.dbCode,
               dbCode: dbInfo.dbCode,
               dBName: dbInfo.dbName,
@@ -169,14 +160,14 @@ export async function GET(request: NextRequest) {
               skuName: skuName,
               poQuantity: qty,
               valueInDbLanding: val,
-              approvedBy: dbInfo.dbCode,
-              approvedDateTime: `${poDate}  ${formatTimeTo12h(order.created_at || inv.created_at, '9:46 AM')}`,
-              status: '',
-              createConfirmDateTime: '',
-              createdFrom: 'WEB',
+              approvedBy: '', // Not in Sokrio platform -> left blank
+              approvedDateTime: '', // Not in Sokrio platform -> left blank
+              status: '', // Not in Sokrio platform -> left blank
+              createConfirmDateTime: '', // Not in Sokrio platform -> left blank
+              createdFrom: '', // Not in Sokrio platform -> left blank
               subDbInvoiceReceivingDate: '',
               subDbInvoiceReceivingTime: '',
-              void: 'Not Void',
+              void: '', // Not in Sokrio platform -> left blank
             });
           });
         }
