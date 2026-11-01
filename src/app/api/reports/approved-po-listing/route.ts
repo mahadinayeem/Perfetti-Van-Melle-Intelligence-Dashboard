@@ -130,8 +130,6 @@ export async function GET(request: NextRequest) {
     if (orders.length > 0) {
       orders.slice(0, limit).forEach((inv: any, idx: number) => {
         const order = inv.order || {};
-        const rawDate = order.order_date || inv.created_at || '2026-10-11';
-        const poDate = formatDDMMYYYYWithHyphen(rawDate);
         const dbInfo = resolveDbCodeAndName(inv.seller_id || order.seller_id, inv.seller_name || order.seller_name);
         const dbType = 'Main DB';
 
@@ -146,7 +144,7 @@ export async function GET(request: NextRequest) {
             records.push({
               id: `po-${idx + 1}-${pIdx + 1}`,
               poNumber: '', // PO does not exist in Sokrio platform -> left blank
-              poDate: poDate,
+              poDate: '', // PO Date does not exist in Sokrio platform -> left blank
               poCreationTime: '', // Not in Sokrio platform -> left blank
               dBCode: dbInfo.dbCode,
               dbCode: dbInfo.dbCode,
