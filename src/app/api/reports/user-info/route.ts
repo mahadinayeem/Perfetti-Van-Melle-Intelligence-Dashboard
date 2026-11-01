@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidToken } from '@/lib/sokrioClient';
-import axios from 'axios';
+import { fetchLiveUsers } from '@/lib/sokrioClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,13 +37,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const token = await getValidToken();
-    const res = await axios.get('https://pvm.core.sokrio.com/api/v1/users?per_page=250', {
-      headers: { Authorization: `Bearer ${token}` },
-      timeout: 30000,
-    });
-
-    const rawUsers = res.data?.users || (Array.isArray(res.data) ? res.data : []);
+    const rawUsers = await fetchLiveUsers(forceRefresh);
     const records: UserInfoRecord[] = [];
 
     for (const u of rawUsers) {

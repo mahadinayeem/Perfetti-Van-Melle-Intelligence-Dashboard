@@ -1,5 +1,20 @@
 import axios from 'axios';
 
+// Automatic retry with exponential backoff on transient HTTP 429 Rate Limits from Sokrio
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error.config;
+    if (error?.response?.status === 429 && config && !config._retryCount) {
+      config._retryCount = 1;
+      console.warn(`[Sokrio 429 Rate Limit] Backing off 1800ms and retrying: ${config.url}`);
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+      return axios(config);
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Default credentials embedded directly so Vercel deployment works with ZERO manual env config
 const DEFAULT_BASE_URL = 'https://pvm.core.sokrio.com';
 const DEFAULT_EMAIL = 'super@pvm.com';
@@ -54,6 +69,24 @@ export async function loginAndGetToken(): Promise<string> {
       console.error('[Sokrio Auth Error]:', error?.response?.data || error.message);
       if (activeToken) {
         return activeToken;
+      }
+      if (error?.response?.status === 429) {
+        console.warn('[Sokrio Auth] Rate limited on login. Backing off 2500ms and retrying once...');
+        await new Promise((r) => setTimeout(r, 2500));
+        try {
+          const retryRes = await axios.post(
+            `${baseUrl}/api/v1/login`,
+            { email, password, device_name: 'pvm-intelligence-dashboard' },
+            { headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, timeout: 25000 }
+          );
+          if (retryRes.data?.token) {
+            activeToken = String(retryRes.data.token).trim();
+            lastTokenTime = Date.now();
+            return activeToken;
+          }
+        } catch (retryErr) {
+          console.error('[Sokrio Auth Retry Failed]:', retryErr);
+        }
       }
       throw error;
     }
@@ -117,6 +150,103 @@ export async function fetchWithAuth(url: string, params: Record<string, any> = {
 
     throw error;
   }
+}
+
+let cachedDeliveries: { data: any[]; timestamp: number } | null = null;
+let inflightDeliveriesPromise: Promise<any[]> | null = null;
+const DELIVERIES_CACHE_TTL_MS = 60 * 1000; // 60 seconds live cache to eliminate 429 rate limiting
+
+/**
+ * Shared live deliveries fetcher with in-flight deduplication & 60s live caching.
+ * Prevents multiple simultaneous reports from hammering Sokrio /deliveries endpoint with 429 errors.
+ */
+export async function fetchLiveDeliveries(forceRefresh = false): Promise<any[]> {
+  if (!forceRefresh && cachedDeliveries && (Date.now() - cachedDeliveries.timestamp < DELIVERIES_CACHE_TTL_MS)) {
+    return cachedDeliveries.data;
+  }
+
+  if (inflightDeliveriesPromise) {
+    return inflightDeliveriesPromise;
+  }
+
+  inflightDeliveriesPromise = (async () => {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const token = await getValidToken();
+        const res = await axios.get('https://pvm.core.sokrio.com/api/v1/deliveries?per_page=150', {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000,
+        });
+        const data = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+        cachedDeliveries = { data, timestamp: Date.now() };
+        return data;
+      } catch (err: any) {
+        if (err?.response?.status === 429 && attempt < 3) {
+          console.warn(`[Sokrio Deliveries 429] Rate limited. Backing off ${attempt * 1500}ms (attempt ${attempt}/3)...`);
+          await new Promise((r) => setTimeout(r, attempt * 1500));
+          continue;
+        }
+        if (cachedDeliveries?.data?.length) {
+          return cachedDeliveries.data;
+        }
+        throw err;
+      } finally {
+        if (attempt === 3) inflightDeliveriesPromise = null;
+      }
+    }
+    inflightDeliveriesPromise = null;
+    return cachedDeliveries?.data || [];
+  })();
+
+  return inflightDeliveriesPromise;
+}
+
+let cachedUsers: { data: any[]; timestamp: number } | null = null;
+let inflightUsersPromise: Promise<any[]> | null = null;
+
+/**
+ * Shared live users fetcher with in-flight deduplication & 60s live caching.
+ * Prevents TE Version, SR Version, License, User Info from triggering 429 rate limits.
+ */
+export async function fetchLiveUsers(forceRefresh = false): Promise<any[]> {
+  if (!forceRefresh && cachedUsers && (Date.now() - cachedUsers.timestamp < DELIVERIES_CACHE_TTL_MS)) {
+    return cachedUsers.data;
+  }
+
+  if (inflightUsersPromise) {
+    return inflightUsersPromise;
+  }
+
+  inflightUsersPromise = (async () => {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const token = await getValidToken();
+        const res = await axios.get('https://pvm.core.sokrio.com/api/v1/users?per_page=250', {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000,
+        });
+        const rawUsers = res.data?.users || (Array.isArray(res.data) ? res.data : []);
+        cachedUsers = { data: rawUsers, timestamp: Date.now() };
+        return rawUsers;
+      } catch (err: any) {
+        if (err?.response?.status === 429 && attempt < 3) {
+          console.warn(`[Sokrio Users 429] Rate limited. Backing off ${attempt * 1500}ms (attempt ${attempt}/3)...`);
+          await new Promise((r) => setTimeout(r, attempt * 1500));
+          continue;
+        }
+        if (cachedUsers?.data?.length) {
+          return cachedUsers.data;
+        }
+        throw err;
+      } finally {
+        if (attempt === 3) inflightUsersPromise = null;
+      }
+    }
+    inflightUsersPromise = null;
+    return cachedUsers?.data || [];
+  })();
+
+  return inflightUsersPromise;
 }
 
 /**

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidToken } from '@/lib/sokrioClient';
-import axios from 'axios';
+import { fetchLiveDeliveries } from '@/lib/sokrioClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,13 +52,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const token = await getValidToken();
-    const res = await axios.get('https://pvm.core.sokrio.com/api/v1/deliveries?per_page=150', {
-      headers: { Authorization: `Bearer ${token}` },
-      timeout: 30000,
-    });
-
-    const deliveries = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+    const deliveries = await fetchLiveDeliveries(forceRefresh);
     const records: FocClaimRecord[] = [];
     let count = 0;
 
