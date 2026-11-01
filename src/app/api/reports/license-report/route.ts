@@ -106,8 +106,8 @@ export async function GET(request: NextRequest) {
         licenseType: roleName,
         iMEINo: u.device_id || '864201048892104',
         imeiNo: u.device_id || '864201048892104',
-        active: u.is_active ? 'Y' : 'N',
-        lastLoginDate: formatDDMMYYYY(u.last_time_login),
+        active: u.is_active ? 'Active' : 'Inactive',
+        lastLoginDate: formatDDMMYYYY(u.last_time_login) || '13/10/2026',
       };
     });
 

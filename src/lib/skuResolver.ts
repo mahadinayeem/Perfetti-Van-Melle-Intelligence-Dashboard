@@ -100,3 +100,4 @@ export function resolveEnglishSkuName(skuCode: string | number, rawName?: string
 
   return s.trim();
 }
+

@@ -1539,18 +1539,27 @@ export default function DashboardPage() {
     if (!record || typeof record !== 'object') return '';
     if (record[key] !== undefined && record[key] !== null && record[key] !== '') return record[key];
 
-    const lower = key.toLowerCase();
-    if (record[lower] !== undefined && record[lower] !== null && record[lower] !== '') return record[lower];
+    const clean = (s: string) => s.toLowerCase().replace(/[\s_\-]/g, '');
+    const cleanKey = clean(key);
+
+    // Direct stripped match
+    for (const prop of Object.keys(record)) {
+      if (clean(prop) === cleanKey) {
+        if (record[prop] !== undefined && record[prop] !== null && record[prop] !== '') {
+          return record[prop];
+        }
+      }
+    }
 
     const keyAliases: Record<string, string[]> = {
-      dbcode: ['dbcode', 'dbsubdbcode', 'distributorid', 'seller_id', 'distributor_id'],
+      dbcode: ['dbcode', 'dbsubdbcode', 'distributorid', 'seller_id', 'distributor_id', 'location'],
       dbname: ['dbname', 'dbsubdbname', 'distributorname', 'seller_name'],
-      dbtype: ['dbtype', 'db_type'],
-      skucode: ['skucode', 'sku_code', 'product_id', 'sku'],
-      skuname: ['skuname', 'sku_name', 'product_name'],
+      dbtype: ['dbtype', 'db_type', 'distributortype'],
+      skucode: ['skucode', 'sku_code', 'product_id', 'sku', 'itemno'],
+      skuname: ['skuname', 'sku_name', 'product_name', 'description'],
       srcode: ['srcode', 'sreccode', 'sr_code', 'user_id', 'created_by'],
       srname: ['srname', 'sr_name', 'user_name'],
-      srpositioncode: ['srpositioncode', 'srpostioncode', 'sr_position_code', 'srposition', 'distributorposition'],
+      srpositioncode: ['srpositioncode', 'srpostioncode', 'sr_position_code', 'srposition', 'distributorposition', 'sucode', 'positioncode'],
       orderno: ['orderno', 'order_no', 'order_code', 'code'],
       orderdate: ['orderdate', 'order_date', 'created_at'],
       deliverydate: ['deliverydate', 'delivery_date', 'deliver_date'],
@@ -1569,26 +1578,31 @@ export default function DashboardPage() {
       distancefromdblocation: ['distancefromdblocation', 'distance_from_db_location', 'distance from db location', 'distance'],
       startworklatitude: ['startworklatitude', 'start_work_latitude', 'start work latitude', 'startlat', 'lat', 'latitude'],
       startworklongitude: ['startworklongitude', 'start_work_longitude', 'start work longitude', 'startlng', 'long', 'longitude'],
-      logintime: ['logintime', 'login_time', 'login time'],
-      endtime: ['endtime', 'end_time', 'end time'],
+      logintime: ['logintime', 'login_time', 'login time', 'startworktime'],
+      endtime: ['endtime', 'end_time', 'end time', 'endworktime'],
       firstcall: ['firstcall', 'first_call', 'first call'],
       lastcall: ['lastcall', 'last_call', 'last call'],
       dayend: ['dayend', 'day_end', 'day end'],
-      password: ['password', 'user_password'],
+      password: ['password', 'user_password', 'pass'],
       positioncode: ['positioncode', 'position_code', 'position code', 'sucode', 'srpositioncode'],
+      town: ['town'],
+      subchannel: ['subchannel', 'sub_channel'],
+      channel: ['channel'],
     };
 
-    const aliases = keyAliases[lower];
+    const aliases = keyAliases[cleanKey];
     if (aliases) {
       for (const a of aliases) {
-        if (record[a] !== undefined && record[a] !== null && record[a] !== '') return record[a];
-        const match = Object.keys(record).find((k) => k.toLowerCase() === a);
-        if (match && record[match] !== undefined && record[match] !== null && record[match] !== '') return record[match];
+        const cleanA = clean(a);
+        for (const prop of Object.keys(record)) {
+          if (clean(prop) === cleanA) {
+            if (record[prop] !== undefined && record[prop] !== null && record[prop] !== '') {
+              return record[prop];
+            }
+          }
+        }
       }
     }
-
-    const found = Object.keys(record).find((k) => k.toLowerCase() === lower);
-    if (found && record[found] !== undefined && record[found] !== null && record[found] !== '') return record[found];
 
     return '';
   };

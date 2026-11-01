@@ -218,31 +218,51 @@ export async function fetchLiveUsers(forceRefresh = false): Promise<any[]> {
   }
 
   inflightUsersPromise = (async () => {
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        const token = await getValidToken();
-        const res = await axios.get('https://pvm.core.sokrio.com/api/v1/users?per_page=250', {
-          headers: { Authorization: `Bearer ${token}` },
-          timeout: 30000,
-        });
-        const rawUsers = res.data?.users || (Array.isArray(res.data) ? res.data : []);
-        cachedUsers = { data: rawUsers, timestamp: Date.now() };
-        return rawUsers;
-      } catch (err: any) {
-        if (err?.response?.status === 429 && attempt < 3) {
-          console.warn(`[Sokrio Users 429] Rate limited. Backing off ${attempt * 1500}ms (attempt ${attempt}/3)...`);
-          await new Promise((r) => setTimeout(r, attempt * 1500));
-          continue;
+    const allUsers: any[] = [];
+    try {
+      const token = await getValidToken();
+
+      for (let page = 1; page <= 6; page++) {
+        try {
+          const res = await axios.get(`https://pvm.core.sokrio.com/api/v1/users?per_page=250&page=${page}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 25000,
+          });
+          const users = res.data?.users || (Array.isArray(res.data) ? res.data : []);
+          if (!users || users.length === 0) break;
+          allUsers.push(...users);
+          if (users.length < 250) break;
+        } catch (pageErr: any) {
+          if (pageErr?.response?.status === 429) {
+            console.warn(`[Sokrio Users] Page ${page} rate limited, waiting...`);
+            await new Promise(r => setTimeout(r, 1500));
+            try {
+              const resRetry = await axios.get(`https://pvm.core.sokrio.com/api/v1/users?per_page=250&page=${page}`, {
+                headers: { Authorization: `Bearer ${token}` },
+                timeout: 25000,
+              });
+              const users = resRetry.data?.users || [];
+              if (users.length > 0) allUsers.push(...users);
+            } catch {}
+          }
+          break;
         }
-        if (cachedUsers?.data?.length) {
-          return cachedUsers.data;
-        }
-        throw err;
-      } finally {
-        if (attempt === 3) inflightUsersPromise = null;
       }
+    } catch (err: any) {
+      if (allUsers.length > 0) {
+        cachedUsers = { data: allUsers, timestamp: Date.now() };
+        return allUsers;
+      }
+      if (cachedUsers?.data?.length) return cachedUsers.data;
+      throw err;
+    } finally {
+      inflightUsersPromise = null;
     }
-    inflightUsersPromise = null;
+
+    if (allUsers.length > 0) {
+      cachedUsers = { data: allUsers, timestamp: Date.now() };
+      return allUsers;
+    }
     return cachedUsers?.data || [];
   })();
 

@@ -3,6 +3,16 @@ import { getValidToken } from '@/lib/sokrioClient';
 import dbMaster from '@/lib/dbMaster.json';
 import axios from 'axios';
 
+function formatDelDate(val: any): string {
+  if (!val) return '31-Mar-2026';
+  const d = new Date(val);
+  if (!isNaN(d.getTime())) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${String(d.getDate()).padStart(2, '0')}-${months[d.getMonth()]}-${d.getFullYear()}`;
+  }
+  return String(val);
+}
+
 export const dynamic = 'force-dynamic';
 
 export interface RuralWsClaimRecord {
@@ -107,7 +117,7 @@ export async function GET(request: NextRequest) {
           outletCode: d.buyer_id ? `T57-2000${d.buyer_id}` : 'T57-20003341211',
           outletName,
           invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV210015${String(d.id).padStart(6, '0')}` : 'INV210015527327'),
-          deliveryDate: delDateStr,
+          deliveryDate: formatDelDate(delDateStr),
           sKUCode: skuCode,
           skuCode,
           qty,

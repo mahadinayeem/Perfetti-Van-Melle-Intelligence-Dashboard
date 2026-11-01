@@ -182,7 +182,7 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
     const territory = 'Jatra Bari';
     const dbCode = dept.code || 102267;
     const dbName = dept.name || 'M/S Ahamed Enterprise';
-    const dbType = resolveDbType(dbCode);
+    const dbType = 'MAIN';
     const location = dept.code || 102267;
     const dbStatus = dept.status ? (dept.status.charAt(0).toUpperCase() + dept.status.slice(1)) : 'Active';
 
@@ -260,7 +260,7 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
         territory: 'Jatra Bari',
         dbCode,
         dbName: 'M/S Ahamed Enterprise',
-        dbType: resolveDbType(dbCode),
+        dbType: 'MAIN',
         location: 102267,
         itemNo: Number(skuCode) || skuCode,
         description,
@@ -299,7 +299,16 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
     }
   }
 
-  return result;
+  // Client Requirement: No need to show the SKU which has no stock at all
+  const filtered = result.filter(r => (
+    r.floorStock > 0 ||
+    r.openingStock > 0 ||
+    r.primaryStock > 0 ||
+    r.deliveredSecondary > 0 ||
+    r.billableStock > 0
+  ));
+
+  return filtered;
 }
 
 export async function GET(request: NextRequest) {

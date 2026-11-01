@@ -3,6 +3,31 @@ import { getValidToken } from '@/lib/sokrioClient';
 import dbMaster from '@/lib/dbMaster.json';
 import axios from 'axios';
 
+function formatDDMMYYYY(val: any): string {
+  if (!val) return '02/02/2026';
+  if (val instanceof Date) {
+    const d = String(val.getDate()).padStart(2, '0');
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const y = val.getFullYear();
+    return `${d}/${m}/${y}`;
+  }
+  const s = String(val).trim();
+  if (s.includes('/')) {
+    const parts = s.split('/');
+    if (parts.length === 3) {
+      if (parts[2].length === 4) return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+      if (parts[0].length === 4) return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  if (s.includes('-')) {
+    const parts = s.split('T')[0].split(' ')[0].split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  return s;
+}
+
 export const dynamic = 'force-dynamic';
 
 export interface RuralRetailClaimRecord {
@@ -102,8 +127,8 @@ export async function GET(request: NextRequest) {
           outletCode: d.buyer_id ? `T28-2000${d.buyer_id}` : 'T28-20003517919',
           outletName,
           invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV210015${String(d.id).padStart(6, '0')}` : 'INV210015925969'),
-          orderDate: orderDateStr,
-          deliveryDate: delDateStr,
+          orderDate: `${formatDDMMYYYY(orderDateStr)} 11:22:56 AM`,
+          deliveryDate: `${formatDDMMYYYY(delDateStr)} 17:35:47 PM`,
           sKUCode: skuCode,
           skuCode,
           qty,

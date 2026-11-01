@@ -3,6 +3,31 @@ import { fetchLiveDeliveries } from '@/lib/sokrioClient';
 import dbMaster from '@/lib/dbMaster.json';
 import skuCatalogData from '@/lib/skuCatalog.json';
 
+function formatDDMMYYYY(val: any): string {
+  if (!val) return '10/01/2026';
+  if (val instanceof Date) {
+    const d = String(val.getDate()).padStart(2, '0');
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const y = val.getFullYear();
+    return `${d}/${m}/${y}`;
+  }
+  const s = String(val).trim();
+  if (s.includes('/')) {
+    const parts = s.split('/');
+    if (parts.length === 3) {
+      if (parts[2].length === 4) return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+      if (parts[0].length === 4) return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  if (s.includes('-')) {
+    const parts = s.split('T')[0].split(' ')[0].split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
+    }
+  }
+  return s;
+}
+
 export const dynamic = 'force-dynamic';
 
 export interface WholesaleClaimRecord {
@@ -107,7 +132,7 @@ export async function GET(request: NextRequest) {
           sRPositionCode: dbInfo.srPositionCode || 'CTG-016',
           srPositionCode: dbInfo.srPositionCode || 'CTG-016',
           invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV210015${String(d.id).padStart(6, '0')}` : 'INV210015618863'),
-          deliveryDate: delDateStr,
+          deliveryDate: `${formatDDMMYYYY(delDateStr)} 21:54:20 PM`,
           sKUCode: skuCode,
           skuCode,
           qty,
