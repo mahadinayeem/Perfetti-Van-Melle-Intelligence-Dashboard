@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveDbType, getValidToken } from '@/lib/sokrioClient';
+import { getValidToken } from '@/lib/sokrioClient';
 import { resolveEnglishSkuName } from '@/lib/skuResolver';
-import skuCatalogData from '@/lib/skuCatalog.json';
+import dbMaster from '@/lib/dbMaster.json';
 import axios from 'axios';
 
 export const dynamic = 'force-dynamic';
@@ -33,12 +33,86 @@ export interface ApprovedPORecord {
   void: string;
 }
 
+const DB_MAP: Record<string, any> = (dbMaster as any).dbs || {};
+
+function formatDDMMYYYYWithHyphen(val: any): string {
+  if (!val) return '10-11-2026';
+  if (val instanceof Date) {
+    const d = String(val.getDate()).padStart(2, '0');
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const y = val.getFullYear();
+    return `${d}-${m}-${y}`;
+  }
+  const s = String(val).trim();
+  if (s.includes('-')) {
+    const parts = s.split('T')[0].split(' ')[0].split('-');
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        // YYYY-MM-DD -> DD-MM-YYYY
+        return `${parts[2].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${parts[0]}`;
+      } else if (parts[2].length === 4) {
+        // DD-MM-YYYY -> already correct
+        return `${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${parts[2]}`;
+      }
+    }
+  }
+  if (s.includes('/')) {
+    const parts = s.split(' ')[0].split('/');
+    if (parts.length === 3) {
+      if (parts[2].length === 4) {
+        // DD/MM/YYYY -> DD-MM-YYYY
+        return `${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${parts[2]}`;
+      } else if (parts[0].length === 4) {
+        // YYYY/MM/DD -> DD-MM-YYYY
+        return `${parts[2].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${parts[0]}`;
+      }
+    }
+  }
+  return s;
+}
+
+function getDDMMYYYYCompact(val: any): string {
+  const formatted = formatDDMMYYYYWithHyphen(val);
+  return formatted.replace(/-/g, '');
+}
+
+function formatTimeTo12h(val: any, fallback = '03:44 PM'): string {
+  if (!val) return fallback;
+  const str = String(val).trim();
+  const timePart = str.includes(' ') ? str.split(' ')[1] : (str.includes('T') ? str.split('T')[1] : str);
+  if (!timePart || !timePart.includes(':')) return fallback;
+  const parts = timePart.split(':');
+  let h = parseInt(parts[0], 10);
+  const m = parts[1] || '00';
+  if (isNaN(h)) return fallback;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+}
+
+function resolveDbCodeAndName(sellerId: any, sellerName: string) {
+  if (sellerId && String(sellerId).length === 6 && DB_MAP[String(sellerId)]) {
+    return { dbCode: String(sellerId), dbName: DB_MAP[String(sellerId)].dbName || sellerName };
+  }
+  if (sellerName) {
+    const sNameNorm = String(sellerName).toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (const [code, info] of Object.entries(DB_MAP)) {
+      const dbNameNorm = String(info.dbName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (sNameNorm && dbNameNorm && (sNameNorm.includes(dbNameNorm) || dbNameNorm.includes(sNameNorm))) {
+        return { dbCode: code, dbName: info.dbName || sellerName };
+      }
+    }
+  }
+  return { dbCode: '102267', dbName: 'M/S Ahamed Enterprise' };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const limit = Number(searchParams.get('limit')) || 200;
 
-    // Load live primary orders from Sokrio invoices or live order summary
+    // Load live primary orders from Sokrio invoices
     let orders: any[] = [];
     try {
       const token = await getValidToken();
@@ -56,41 +130,49 @@ export async function GET(request: NextRequest) {
     if (orders.length > 0) {
       orders.slice(0, limit).forEach((inv: any, idx: number) => {
         const order = inv.order || {};
-        const poNum = String(order.code || inv.code || `PO_${inv.id}`);
-        const dateStr = String(order.order_date || inv.created_at || '14-10-2026').split(' ')[0];
-        const dbCode = String(inv.seller_id || order.seller_id || '102267');
-        const dbName = String(inv.seller_name || 'M/S Ahamed Enterprise');
+        const rawDate = order.order_date || inv.created_at || '2026-10-11';
+        const poDate = formatDDMMYYYYWithHyphen(rawDate);
+        const compactDate = getDDMMYYYYCompact(rawDate);
+        
+        // PO Number formatted to match Perfetti ERP specification: PO10_<DDMMYYYY>_<SEQ>
+        const rawCode = String(order.code || inv.code || '');
+        const poNum = rawCode.startsWith('PO10_') 
+          ? rawCode 
+          : `PO10_${compactDate}_${String(inv.id || idx + 1).slice(-4).padStart(4, '0')}`;
+        
+        const poCreationTime = formatTimeTo12h(order.device_order_time || inv.created_at, '03:44 PM');
+        const dbInfo = resolveDbCodeAndName(inv.seller_id || order.seller_id, inv.seller_name || order.seller_name);
         const dbType = 'Main DB';
 
         const products = order.latest_revision?.ordered_products || inv.products || [];
         if (products.length > 0) {
           products.forEach((p: any, pIdx: number) => {
             const sku = String(p.product?.base_product?.sku || p.product_id || '651287');
-            const skuName = resolveEnglishSkuName(sku, p.product?.full_name);
+            const skuName = resolveEnglishSkuName(sku, p.product?.full_name || p.product?.base_product?.name);
             const qty = Number(p.qty || 1);
             const val = Number(p.price ? p.price * qty : inv.payable || 0);
 
             records.push({
               id: `po-${idx + 1}-${pIdx + 1}`,
               poNumber: poNum,
-              poDate: dateStr,
-              poCreationTime: '03:44 PM',
-              dBCode: dbCode,
-              dbCode,
-              dBName: dbName,
-              dbName,
+              poDate: poDate,
+              poCreationTime: poCreationTime,
+              dBCode: dbInfo.dbCode,
+              dbCode: dbInfo.dbCode,
+              dBName: dbInfo.dbName,
+              dbName: dbInfo.dbName,
               dBType: dbType,
-              dbType,
+              dbType: dbType,
               sKUCode: sku,
               skuCode: sku,
               sKUName: skuName,
-              skuName,
+              skuName: skuName,
               poQuantity: qty,
               valueInDbLanding: val,
-              approvedBy: '102267',
-              approvedDateTime: `${dateStr} 09:46 AM`,
-              status: 'Approved',
-              createConfirmDateTime: `${dateStr} 03:45 PM`,
+              approvedBy: dbInfo.dbCode,
+              approvedDateTime: `${poDate}  ${formatTimeTo12h(order.created_at || inv.created_at, '9:46 AM')}`,
+              status: '',
+              createConfirmDateTime: '',
               createdFrom: 'WEB',
               subDbInvoiceReceivingDate: '',
               subDbInvoiceReceivingTime: '',
