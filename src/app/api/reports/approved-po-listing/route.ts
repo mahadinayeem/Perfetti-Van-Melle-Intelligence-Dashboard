@@ -21,8 +21,8 @@ export interface ApprovedPORecord {
   skuCode: string | number;
   sKUName: string;
   skuName: string;
-  poQuantity: number;
-  valueInDbLanding: number;
+  poQuantity: number | string;
+  valueInDbLanding: number | string;
   approvedBy: string;
   approvedDateTime: string;
   status: string;
@@ -156,8 +156,8 @@ export async function GET(request: NextRequest) {
               skuCode: sku,
               sKUName: skuName,
               skuName: skuName,
-              poQuantity: qty,
-              valueInDbLanding: val,
+              poQuantity: '', // Not in Sokrio platform -> left blank
+              valueInDbLanding: '', // Not in Sokrio platform -> left blank
               approvedBy: '', // Not in Sokrio platform -> left blank
               approvedDateTime: '', // Not in Sokrio platform -> left blank
               status: '', // Not in Sokrio platform -> left blank
