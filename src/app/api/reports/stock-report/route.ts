@@ -145,7 +145,14 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
   const result: StockReportRecord[] = [];
   const processedSkus = new Set<string>();
 
-  for (const st of rawStocks) {
+  // Filter for Distributor stocks (exclude internal Central Warehouse id: 1 / code: 101)
+  const targetStocks = rawStocks.filter((st) => {
+    const dept = st.department || {};
+    return dept.id !== 1 && dept.code != 101 && dept.department_type_id !== 1;
+  });
+  const stocksToProcess = targetStocks.length > 0 ? targetStocks : rawStocks;
+
+  for (const st of stocksToProcess) {
     const baseProd = st.product?.base_product;
     if (!baseProd) continue;
 
@@ -174,7 +181,7 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
     const transit = Number(ledger?.total_transit ?? st.on_transit_receive ?? 0);
     const orderedQty = 0;
     const doReceivingPending = 0;
-    const createDeliveryStock = 0;
+    const createDeliveryStock = Number(st.on_transit_send ?? 0);
 
     const dept = st.department || {};
     const cluster = 'Central';
