@@ -172,6 +172,79 @@ function formatMinsToHHMM(mins: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+// Format date strictly as Month/Date/Year (e.g., 10/04/2026) matching Daily SR Performance sample format
+function formatMMDDYYYY(val: any): string {
+  if (!val) return '';
+  let d = 0, m = 0, y = 0;
+  if (val instanceof Date) {
+    d = val.getDate();
+    m = val.getMonth() + 1;
+    y = val.getFullYear();
+  } else {
+    const s = String(val).trim();
+    if (!s) return '';
+    if (s.includes('/')) {
+      const parts = s.split('/');
+      if (parts.length === 3) {
+        if (parts[2].length === 4) {
+          // DD/MM/YYYY
+          d = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          y = parseInt(parts[2], 10);
+        } else if (parts[0].length === 4) {
+          // YYYY/MM/DD
+          y = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          d = parseInt(parts[2], 10);
+        }
+      }
+    } else if (s.includes('-')) {
+      const parts = s.split('T')[0].split(' ')[0].split('-');
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          // YYYY-MM-DD
+          y = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          d = parseInt(parts[2], 10);
+        } else if (parts[2].length === 4) {
+          // DD-MM-YYYY
+          d = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          y = parseInt(parts[2], 10);
+        }
+      }
+    }
+  }
+  if (d > 0 && m > 0 && y > 0) {
+    return `${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')}/${y}`;
+  }
+  return String(val);
+}
+
+function extractTimeMinutes(val: any): number | null {
+  if (!val) return null;
+  const s = String(val).trim();
+  const match = s.match(/(?:^|\s|T)(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (!match) return null;
+  let h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const sec = parseInt(match[3] || '0', 10);
+  const ampm = (match[4] || '').toLowerCase();
+  if (ampm === 'pm' && h < 12) h += 12;
+  if (ampm === 'am' && h === 12) h = 0;
+  return h * 60 + m + (sec / 60);
+}
+
+function formatMinsToTimeHHMMSS(mins: number | null): string {
+  if (mins === null || isNaN(mins) || mins < 0) return '';
+  const totalSecs = Math.round(mins * 60);
+  const h = Math.floor(totalSecs / 3600);
+  const remSecs = totalSecs % 3600;
+  const m = Math.floor(remSecs / 60);
+  const s = remSecs % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 function formatDDMMYYYY(val: any): string {
   if (!val) return '';
   if (val instanceof Date) {
@@ -232,7 +305,7 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
   let token = await getValidToken();
 
   const makeRequests = async (authToken: string) => {
-    const checkinUrl = `https://pvm.report.sokrio.com/api/v1/checkin-report?range=${startDate}%2C${endDate}&territory_id=1&roles=&type=xlsx&download`;
+    const checkinUrl = `https://pvm.report.sokrio.com/api/v1/checkin-report?range=${startDate}%2C${endDate}&roles=&type=xlsx&download`;
     const orderUrl = `https://pvm.report.sokrio.com/api/v3/order-summary-export?range=${startDate}%2C${endDate}&territory_id=1&download&type=xlsx`;
     const delUrl = `https://pvm.report.sokrio.com/api/v3/delivery-summary-export?range=${startDate}%2C${endDate}&territory_id=2&download&type=xlsx`;
 
@@ -307,8 +380,8 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
     routeName: string;
     calls: number;
     visitedOutlets: Set<string>;
-    firstCheckin: string | null;
-    lastCheckin: string | null;
+    earliestCheckinMins: number | null;
+    latestCheckinMins: number | null;
     inOutletMinutes: number;
     lat: string;
     lng: string;
@@ -343,8 +416,8 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
       routeName: routeName || 'General Route',
       calls: 0,
       visitedOutlets: new Set<string>(),
-      firstCheckin: null,
-      lastCheckin: null,
+      earliestCheckinMins: null,
+      latestCheckinMins: null,
       inOutletMinutes: 0,
       lat: '',
       lng: '',
@@ -377,9 +450,18 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
     if (dept) grp.visitedOutlets.add(String(dept));
 
     const checkTime = c['Check in Time '] || c['Check in Time'] || c['Time'] || c['Checkin Time'];
-    if (checkTime) {
-      if (!grp.firstCheckin || checkTime < grp.firstCheckin) grp.firstCheckin = String(checkTime);
-      if (!grp.lastCheckin || checkTime > grp.lastCheckin) grp.lastCheckin = String(checkTime);
+    const checkOutTime = c['Check Out Time '] || c['Check Out Time'];
+    const inMins = extractTimeMinutes(checkTime);
+    const outMins = extractTimeMinutes(checkOutTime);
+
+    if (inMins !== null) {
+      if (grp.earliestCheckinMins === null || inMins < grp.earliestCheckinMins) {
+        grp.earliestCheckinMins = inMins;
+      }
+      const effectiveOut = outMins !== null ? outMins : inMins;
+      if (grp.latestCheckinMins === null || effectiveOut > grp.latestCheckinMins) {
+        grp.latestCheckinMins = effectiveOut;
+      }
     }
     const mins = parseFloat(c['Time spent(minutes)']) || 0;
     grp.inOutletMinutes += mins;
@@ -464,12 +546,12 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
 
     // Active unique outlets calculated from all visited outlets and ordering outlets
     const uniqueActiveOutlets = new Set([...Array.from(grp.visitedOutlets), ...Array.from(grp.orderCustomers)]).size;
-    const retailOutlet = uniqueActiveOutlets > 0 ? uniqueActiveOutlets : Math.max(grp.calls, grp.orderCustomers.size);
+    const retailOutlet = Math.max(uniqueActiveOutlets, grp.calls, grp.orderCustomers.size);
     const wsOutlet = 0;
     const totalOutlet = retailOutlet + wsOutlet;
 
-    // Calls: retail + ws
-    const retailCall = grp.calls > 0 ? grp.calls : grp.orderCustomers.size;
+    // Calls: retail + ws (every productive call is also an active call)
+    const retailCall = Math.max(grp.calls, uniqueActiveOutlets, grp.orderCustomers.size);
     const wsCall = 0;
     const totalCall = retailCall + wsCall;
 
@@ -489,7 +571,7 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
     // Strike rate & LPC & Drop size
     const strikeRate = totalCall > 0 ? ((totalPC / totalCall) * 100).toFixed(2) + '%' : (totalPC > 0 ? '100.00%' : '0.00%');
     const lpc = totalPC > 0 ? Number((grp.orderLineCount / totalPC).toFixed(2)) : 0;
-    const dropSize = totalPC > 0 ? Math.round(totalValue / totalPC) : 0;
+    const dropSize = totalPC > 0 ? Number((totalValue / totalPC).toFixed(3)) : 0;
 
     // Delivery metrics: calculated from delivery summary
     const retailPCDel = grp.delCustomers.size;
@@ -500,7 +582,7 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
     const wsValDel = 0;
     const totalValDel = retailValDel + wsValDel;
 
-    const deliveryRate = totalValue > 0 ? ((totalValDel / totalValue) * 100).toFixed(2) + '%' : (totalValDel > 0 ? '100.00%' : '0.00%');
+    const deliveryRate = totalValue > 0 ? ((totalValDel / totalValue) * 100).toFixed(6) + '%' : (totalValDel > 0 ? '100.000000%' : '0.000000%');
     const deliveryLPC = totalPCDelivery > 0 ? Number((grp.delLineCount / totalPCDelivery).toFixed(2)) : 0;
 
     // 2 LPC counts: distinct SKUs per order/delivery invoice >= 2
@@ -514,7 +596,7 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
       if (skus.size >= 2) twoLpcDel++;
     });
 
-    // Time calculations calculated dynamically from firstCall, lastCall, and inOutletMinutes
+    // Time calculations calculated dynamically from earliestCheckinMins, latestCheckinMins, and inOutletMinutes
     let firstCall = '';
     let lastCall = '';
     let totalTimeinOutlet = '';
@@ -522,48 +604,31 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
     let totalTrasitTime = '';
     let timePerOutlet = '';
 
-    if (grp.calls > 0 || grp.orderCustomers.size > 0) {
-      if (grp.firstCheckin) firstCall = formatTimeToHHMMSS(grp.firstCheckin);
-      if (grp.lastCheckin) lastCall = formatTimeToHHMMSS(grp.lastCheckin);
+    if (grp.earliestCheckinMins !== null && grp.latestCheckinMins !== null) {
+      firstCall = formatMinsToTimeHHMMSS(grp.earliestCheckinMins);
+      lastCall = formatMinsToTimeHHMMSS(grp.latestCheckinMins);
 
-      totalTimeinOutlet = grp.inOutletMinutes > 0 ? formatMinsToHHMM(grp.inOutletMinutes) : '00:13';
+      totalTimeinOutlet = formatMinsToHHMM(grp.inOutletMinutes);
 
-      const t1 = parseTimeToMinutes(firstCall);
-      const t2 = parseTimeToMinutes(lastCall);
-      let workedMins = 0;
-      if (t1 !== null && t2 !== null && t2 >= t1) {
-        workedMins = Math.max(t2 - t1, grp.inOutletMinutes);
-      } else {
-        workedMins = grp.inOutletMinutes > 0 ? grp.inOutletMinutes : 541; // Default ~9h
-      }
+      const spanMins = Math.max(0, grp.latestCheckinMins - grp.earliestCheckinMins);
+      const workedMins = Math.max(spanMins, grp.inOutletMinutes);
+      totalTimeWorked = formatMinsToHHMM(workedMins);
 
-      if (workedMins > 0) {
-        totalTimeWorked = formatMinsToHHMM(workedMins);
-        const transitMins = Math.max(0, workedMins - grp.inOutletMinutes);
-        totalTrasitTime = formatMinsToHHMM(transitMins);
-      } else {
-        totalTimeWorked = '09:01';
-        totalTrasitTime = '08:48';
-      }
+      const transitMins = Math.max(0, workedMins - grp.inOutletMinutes);
+      totalTrasitTime = formatMinsToHHMM(transitMins);
 
-      const avgMins = grp.calls > 0 ? Math.round(grp.inOutletMinutes / totalCall) : 0;
-      timePerOutlet = `00:${String(avgMins).padStart(2, '0')}:00`;
-    } else {
-      firstCall = '09:34:31';
-      lastCall = '16:13:24';
-      totalTimeWorked = '09:01';
-      totalTimeinOutlet = '00:13';
-      totalTrasitTime = '08:48';
-      timePerOutlet = '00:00:00';
+      const avgMins = grp.calls > 0 ? (grp.inOutletMinutes / grp.calls) : 0;
+      timePerOutlet = formatMinsToTimeHHMMSS(avgMins);
     }
 
     const territory = srMeta?.territory || meta.territory || 'Jatra Bari';
     const town = '';
     const dbType = 'MAIN';
+    const routeChannel = (wsValue > 0 || wsCall > 0) ? (retailValue > 0 ? 'Mix' : 'Wholesale') : 'Retail';
 
     records.push({
       id: `daily-sr-${idx++}`,
-      orderDate: formatDDMMYYYY(orderDate),
+      orderDate: formatMMDDYYYY(orderDate),
       cluster: 'Central',
       area: meta.area || 'Central South',
       territory,
@@ -577,7 +642,7 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
       routeCode: grp.routeCode || meta.routeCode || '',
       routeName: grp.routeName || meta.routeName || '',
       routeDay: dayOfWeek,
-      routeChannel: 'Retail',
+      routeChannel,
       logingStatus: grp.calls > 0 || totalPC > 0 ? 'Yes' : 'No',
       retailOutlet,
       wsOutlet,
@@ -609,7 +674,7 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
       deliveryLPC,
       dropSize,
       noOfRetailScheme: grp.schemeCount > 0 ? grp.schemeCount : (grp.freeQty > 0 ? grp.freeQty : 0),
-      noOfWSScheme: 0,
+      noOfWSScheme: '',
       locationAccuracy: '100%',
       latitude: grp.lat || '',
       longitude: grp.lng || '',
