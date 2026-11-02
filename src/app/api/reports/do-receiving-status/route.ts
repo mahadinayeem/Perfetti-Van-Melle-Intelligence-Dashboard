@@ -135,14 +135,14 @@ export interface DOReceivingRecord {
   skuName: string;
   uOM: string;
   uom: string;
-  sapQtyCtn: number;
-  sapQtyPcs: number;
-  sapValueDBLanding: number;
-  sapTon: number;
-  dbReceivedQtyCtn: number;
-  dbReceivedQtyPcs: number;
-  dbReceivedValueDBLanding: number;
-  dbReceivedTon: number;
+  sapQtyCtn: number | string;
+  sapQtyPcs: number | string;
+  sapValueDBLanding: number | string;
+  sapTon: number | string;
+  dbReceivedQtyCtn: number | string;
+  dbReceivedQtyPcs: number | string;
+  dbReceivedValueDBLanding: number | string;
+  dbReceivedTon: number | string;
   doReceivingStatus: string;
 }
 
@@ -203,10 +203,6 @@ export async function GET(request: NextRequest) {
       const rawDoReceivingDateTime = order.invoice?.delivered_at || d.created_at || d.deliver_date || '';
       const doReceivingDateTime = formatToSampleDateTime(rawDoReceivingDateTime);
 
-      const invoiceNo = String(order.invoice?.invoice_number || order.invoice?.code || (order.invoice?.id ? String(order.invoice.id) : (d.code || (d.id ? `INV${d.id}` : ''))));
-      const poNum = String(order.code || (d.order_id ? `PO${d.order_id}` : ''));
-      const docType = 'ZBF2';
-      const doReceivingStatus = (order.invoice?.latest_status === 'delivered' || d.deliver_date) ? 'Received' : 'Pending';
       const prods = Array.isArray(d.products) ? d.products : [];
 
       for (const p of prods) {
@@ -216,10 +212,6 @@ export async function GET(request: NextRequest) {
         const skuInfo = (skuCatalogData as any)[skuCode] || {};
         const skuName = resolveEnglishSkuName(skuCode, p.product?.base_product?.name);
         const brand = skuInfo.brand || '';
-        const qtyPcs = Number(p.qty || 0);
-        const pcsPerCtn = Number(skuInfo.piecesPerCtn || 15);
-        const qtyCtn = Math.round((qtyPcs / pcsPerCtn) * 100) / 100;
-        const val = Number(p.price ? p.price * qtyPcs : 0);
         const uom = skuInfo.uom || 'BOX';
 
         records.push({
@@ -234,10 +226,10 @@ export async function GET(request: NextRequest) {
           dBType: dbType,
           dbType,
           poDateTime,
-          poNumber: poNum,
-          invoiceNo,
+          poNumber: '', // SAP PO does not exist in Sokrio platform -> left blank per user rule
+          invoiceNo: '', // SAP Invoice does not exist in Sokrio platform -> left blank per user rule
           invoiceDateTime,
-          docType,
+          docType: '', // SAP Document Type does not exist in Sokrio platform -> left blank per user rule
           doReceivingDateTime,
           brand,
           sKUCode: skuCode,
@@ -246,15 +238,15 @@ export async function GET(request: NextRequest) {
           skuName,
           uOM: uom,
           uom,
-          sapQtyCtn: qtyCtn,
-          sapQtyPcs: qtyPcs,
-          sapValueDBLanding: val,
-          sapTon: Math.round((qtyPcs * (skuInfo.weightGram || 500) / 1000000) * 1000) / 1000,
-          dbReceivedQtyCtn: qtyCtn,
-          dbReceivedQtyPcs: qtyPcs,
-          dbReceivedValueDBLanding: val,
-          dbReceivedTon: Math.round((qtyPcs * (skuInfo.weightGram || 500) / 1000000) * 1000) / 1000,
-          doReceivingStatus,
+          sapQtyCtn: '', // SAP CTN quantity does not exist in Sokrio platform -> left blank per user rule
+          sapQtyPcs: '', // SAP PCs quantity does not exist in Sokrio platform -> left blank per user rule
+          sapValueDBLanding: '', // SAP Landing Value does not exist in Sokrio platform -> left blank per user rule
+          sapTon: '', // SAP Ton does not exist in Sokrio platform -> left blank per user rule
+          dbReceivedQtyCtn: '', // DB Received CTN does not exist in Sokrio platform -> left blank per user rule
+          dbReceivedQtyPcs: '', // DB Received PCs does not exist in Sokrio platform -> left blank per user rule
+          dbReceivedValueDBLanding: '', // DB Received Value does not exist in Sokrio platform -> left blank per user rule
+          dbReceivedTon: '', // DB Received Ton does not exist in Sokrio platform -> left blank per user rule
+          doReceivingStatus: 'Received',
         });
       }
     }
