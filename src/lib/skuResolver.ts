@@ -67,37 +67,71 @@ export function resolveEnglishSkuName(skuCode: string | number, rawName?: string
     return code ? `Perfetti SKU ${code}` : 'Perfetti Product';
   }
 
+  // Transliterate Bengali numerals to standard English digits
+  let s = rawName;
+  const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  bnDigits.forEach((d, idx) => {
+    s = s.split(d).join(String(idx));
+  });
+
   // Convert Bengali Perfetti product terms
-  let s = rawName
+  s = s
     .replace(/চুপা\s*চুপস/g, 'Chupa Chups')
-    .replace(/রোপ/g, 'Rope')
-    .replace(/বাইট/g, 'Bites')
+    .replace(/মেন্টস|মেন্তস|মেন্থস/g, 'Mentos')
+    .replace(/অ্যালপেনলিবে|আলপেনলিবে/g, 'Alpenliebe')
+    .replace(/জাস্ট\s*জেলি|জুজ্ট\s*জেলি/g, 'Juzt Jelly')
+    .replace(/ক্রিমফিলস/g, 'Creamfills')
+    .replace(/চিউই/g, 'Chewy')
+    .replace(/সেন্টার\s*ফ্রেশ/g, 'Center Fresh')
+    .replace(/সেন্টার\s*ফ্রূট|সেন্টার\s*ফ্রুট/g, 'Center Fruit')
+    .replace(/স্পিয়ারমিনট|স্পিয়ারমিন্ট|স্পিয়ারমিন্ট/g, 'Spearmint')
+    .replace(/স্ট্রবেরি/g, 'Strawberry')
+    .replace(/বাইট্‌স|বাইট/g, 'Bites')
+    .replace(/মিক্স\s*ফ্রূট|মিক্স\s*ফ্রুট/g, 'Mix Fruit')
     .replace(/টিউব/g, 'Tube')
-    .replace(/মেন্তস/g, 'Mentos')
-    .replace(/মেন্থস/g, 'Mentos')
+    .replace(/রোপ/g, 'Rope')
+    .replace(/হেঙ্গার/g, 'Hanger')
+    .replace(/জার/g, 'Jar')
+    .replace(/বক্স/g, 'Box')
+    .replace(/পাউচ/g, 'Pouch')
+    .replace(/পিসেস|পিস/g, 'Pcs')
     .replace(/রোল/g, 'Roll')
     .replace(/অরেঞ্জ/g, 'Orange')
     .replace(/মিন্ট/g, 'Mint')
-    .replace(/সেন্টার\s*ফ্রেশ/g, 'Center Fresh')
-    .replace(/স্পিয়ারমিন্ট/g, 'Spearmint')
-    .replace(/সেন্টার\s*ফ্রুট/g, 'Center Fruit')
-    .replace(/স্ট্রবেরি/g, 'Strawberry')
-    .replace(/আলপেনলিবে/g, 'Alpenliebe')
-    .replace(/জুজ্ট\s*জেলি/g, 'Juzt Jelly')
-    .replace(/ক্রিমফিলস/g, 'Creamfills')
-    .replace(/জার/g, 'Jar')
-    .replace(/বক্স/g, 'Box')
-    .replace(/পাউচ/g, 'Pch')
-    .replace(/পিস/g, 'Pcs')
+    .replace(/ম্যাক্স/g, 'Max')
+    .replace(/অ্যাসোরটেড/g, 'Assorted')
+    .replace(/স্ন্যাক\s*প্যাক/g, 'Snack Pack')
+    .replace(/গ্রাম/g, 'g')
+    .replace(/পকেট/g, 'Pocket')
+    .replace(/এয়ার\s*অ্যাকশন/g, 'Air Action')
+    .replace(/কফি/g, 'Coffee')
+    .replace(/এসএএস/g, 'SAS')
+    .replace(/এসটিবি/g, 'STB')
     .replace(/এসটি/g, 'ST')
     .replace(/জিএ/g, 'GA')
+    .replace(/এফএসি/g, 'FAC')
+    .replace(/টিপি/g, 'TP')
+    .replace(/এসসি/g, 'SC')
+    .replace(/এলইপি/g, 'LEP')
+    .replace(/এলই/g, 'LE')
+    .replace(/ডিআইএস/g, 'DIS')
+    .replace(/৩পি|3পি/g, '3P')
+    .replace(/পি/g, 'P')
+    .replace(/জি/g, 'G')
     .replace(/টি/g, 'T')
-    .replace(/জি/g, 'G');
+    .replace(/সিআর/g, 'CR')
+    .replace(/বিবি/g, 'BB')
+    .replace(/সিএল/g, 'CL')
+    .replace(/বিএসসিটি/g, 'BSCT')
+    .replace(/ইস্পি|ইসপি/g, 'ISP')
+    .replace(/[\u0980-\u09FF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-  if (/[\u0980-\u09FF]/.test(s)) {
-    return code ? `Perfetti SKU ${code}` : 'Perfetti Product';
+  if (s.length > 2) {
+    return s;
   }
 
-  return s.trim();
+  return code ? `Perfetti SKU ${code}` : 'Perfetti Product';
 }
 

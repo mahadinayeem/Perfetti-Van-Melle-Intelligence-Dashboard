@@ -27,7 +27,8 @@ const CACHE_TTL_MS = 2 * 60 * 1000;
 
 async function fetchLiveStocksFromSokrio(): Promise<PoCrsRecord[]> {
   const token = await getValidToken();
-  const stocksUrl = 'https://pvm.core.sokrio.com/api/v1/stocks?per_page=250';
+  // Fetch live distributor inventory for department 3249 (M/S Ahamed Enterprise - DB Code 102267)
+  const stocksUrl = 'https://pvm.core.sokrio.com/api/v1/stocks?department_id=3249&per_page=250';
 
   const res = await axios.get(stocksUrl, {
     headers: { Authorization: `Bearer ${token}` },
@@ -50,8 +51,9 @@ async function fetchLiveStocksFromSokrio(): Promise<PoCrsRecord[]> {
 
     const skuName = resolveEnglishSkuName(skuCode, baseProd.name);
     const dept = st.department || {};
-    const distributorId = dept.code || 102267;
-    const distributorName = dept.name || 'M/S Ahamed Enterprise';
+    // Ensure distributor ID & Name strictly map to Distributor (not Central Warehouse depot)
+    const distributorId = (dept.code && String(dept.code) !== '101') ? String(dept.code) : '102267';
+    const distributorName = (dept.name && dept.name !== 'Central Warehouse') ? dept.name : 'M/S Ahamed Enterprise';
 
     records.push({
       id: `crs-live-${skuCode}`,
@@ -59,8 +61,8 @@ async function fetchLiveStocksFromSokrio(): Promise<PoCrsRecord[]> {
       distributorName,
       skuCode: Number(skuCode) || skuCode,
       skuName,
-      suggestedQty: '', // SAP CRS suggested qty not in live API -> blank
-      amount: '',       // SAP CRS suggested amount not in live API -> blank
+      suggestedQty: '', // SAP Continuous Replenishment System (CRS) algorithm is ERP-managed -> blank per rule
+      amount: '',       // SAP CRS replenishment value is ERP-managed -> blank per rule
     });
   }
 
