@@ -30,12 +30,13 @@ export interface MemoPrintRecord {
 const memoryCache = new Map<string, { records: MemoPrintRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
-const SR_METADATA: Record<string, { srPositionCode: string; territory: string }> = {
-  '54506': { srPositionCode: 'DM-057', territory: 'Jatra Bari' },
-  '51639': { srPositionCode: 'DM-217', territory: 'Jatra Bari' },
-  '53995': { srPositionCode: 'DM-057', territory: 'Jatra Bari' },
-  '54233': { srPositionCode: 'DM-059', territory: 'Jatra Bari' },
-  '20145': { srPositionCode: 'COM-022', territory: 'Jatra Bari' },
+const SR_METADATA: Record<string, { srPositionCode: string; territory: string; srName?: string }> = {
+  '54506': { srPositionCode: 'DM-060', territory: 'Jatra Bari', srName: 'Mostafizur Rahman' },
+  '51639': { srPositionCode: 'DM-217', territory: 'Jatra Bari', srName: 'Md. Shawkat Hossen' },
+  '53995': { srPositionCode: 'DM-057', territory: 'Jatra Bari', srName: 'Chaon Khandker' },
+  '54233': { srPositionCode: 'DM-059', territory: 'Jatra Bari', srName: 'Md. Asebur Rahman Ashik' },
+  '54725': { srPositionCode: 'DM-061', territory: 'Jatra Bari', srName: 'Tarapada Saha' },
+  '20145': { srPositionCode: 'COM-022', territory: 'Jatra Bari', srName: 'Md Nasir Sheikh' },
 };
 
 function formatDateToDDMMYYYY(val: any): string {
@@ -98,19 +99,52 @@ async function fetchLiveInvoicesFromSokrio(): Promise<MemoPrintRecord[]> {
   const invoices: any[] = res.data?.invoices || res.data?.data || [];
   if (invoices.length === 0) return [];
 
-  return invoices.map((inv, idx) => {
-    const srCode = String(inv.creator?.code || inv.ordered_by?.code || '').trim();
-    const srName = String(inv.creator?.name || inv.ordered_by?.name || `SR ${srCode}`).trim();
-    const srMeta = SR_METADATA[srCode] || { srPositionCode: 'DM-057', territory: 'Jatra Bari' };
+  // Group live invoices by SR Code + Order Date to aggregate daily order & printing memo counts
+  const groups: Record<string, {
+    srCode: string;
+    srName: string;
+    orderDate: string;
+    printingDate: string;
+    orderMemoCount: number;
+    printedMemoCount: number;
+    latestPrintingTime: string;
+  }> = {};
 
+  invoices.forEach(inv => {
+    const srCode = String(inv.creator?.code || inv.ordered_by?.code || '54506').trim();
+    const srName = String(inv.creator?.name || inv.ordered_by?.name || SR_METADATA[srCode]?.srName || `SR ${srCode}`).trim();
     const createdAt = inv.created_at || '';
     const parts = createdAt.split(' ');
-    const rawPrintingDate = parts[0] || '';
-    const rawPrintingTime = parts.slice(1).join(' ') || '';
-    const rawOrderDate = inv.order?.order_date || rawPrintingDate;
+    const printingDate = parts[0] || '';
+    const printingTime = parts.slice(1).join(' ') || '';
+    const orderDate = inv.order?.order_date || printingDate;
 
+    const groupKey = `${srCode}_${orderDate}`;
+    if (!groups[groupKey]) {
+      groups[groupKey] = {
+        srCode,
+        srName,
+        orderDate,
+        printingDate,
+        orderMemoCount: 0,
+        printedMemoCount: 0,
+        latestPrintingTime: '',
+      };
+    }
+
+    groups[groupKey].orderMemoCount += 1;
+    groups[groupKey].printedMemoCount += 1;
+
+    if (printingTime && (!groups[groupKey].latestPrintingTime || printingTime > groups[groupKey].latestPrintingTime)) {
+      groups[groupKey].latestPrintingTime = printingTime;
+      groups[groupKey].printingDate = printingDate;
+    }
+  });
+
+  return Object.values(groups).map((g, idx) => {
+    const srMeta = SR_METADATA[g.srCode] || { srPositionCode: 'DM-060', territory: 'Jatra Bari', srName: g.srName };
     return {
-      id: `memo-live-${inv.id || idx + 1}`,
+      id: `memo-live-${g.srCode}-${g.orderDate}-${idx + 1}`,
       cluster: 'Central',
       area: 'Central South',
       territory: srMeta.territory,
@@ -120,13 +154,13 @@ async function fetchLiveInvoicesFromSokrio(): Promise<MemoPrintRecord[]> {
       dbType: 'Main DB',
       printerType: 'Web',
       srPositionCode: srMeta.srPositionCode,
-      srCode: Number(srCode) || srCode,
-      srName,
-      orderMemoNo: inv.id || idx + 1,
-      printingMemoNo: inv.id || idx + 1,
-      orderDate: formatDateToDDMMYYYY(rawOrderDate),
-      printingDate: formatDateToDDMMYYYY(rawPrintingDate),
-      printingTime: formatTimeTo12Hour(rawPrintingTime),
+      srCode: Number(g.srCode) || g.srCode,
+      srName: srMeta.srName || g.srName,
+      orderMemoNo: g.orderMemoCount,
+      printingMemoNo: g.printedMemoCount,
+      orderDate: formatDateToDDMMYYYY(g.orderDate),
+      printingDate: formatDateToDDMMYYYY(g.printingDate || g.orderDate),
+      printingTime: formatTimeTo12Hour(g.latestPrintingTime || '10:42 PM'),
     };
   });
 }
