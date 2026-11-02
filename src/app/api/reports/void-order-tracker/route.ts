@@ -3,7 +3,7 @@ import { fetchLiveDeliveries, resolveDbType } from '@/lib/sokrioClient';
 import dbMaster from '@/lib/dbMaster.json';
 
 function formatDDMMYYYY(val: any): string {
-  if (!val) return '10/09/2026';
+  if (!val) return '';
   if (val instanceof Date) {
     const d = String(val.getDate()).padStart(2, '0');
     const m = String(val.getMonth() + 1).padStart(2, '0');
@@ -105,19 +105,15 @@ export async function GET(request: NextRequest) {
       const outletName = d.order?.buyer_name || d.buyer_name || '';
       const srName = d.order?.creator_name || d.creator_name || '';
       const orderCode = d.order?.code || d.code || (d.id ? `PB${d.id}` : '');
-      const dbCodeRaw = d.seller_id ? String(d.seller_id) : '102267';
-      const dbInfo = DB_MAP[dbCodeRaw] || {
-        dbCode: dbCodeRaw,
-        dbName: 'M/S Ahamed Enterprise',
-        area: 'Dhaka Central',
-      };
-      const dbNameResolved = d.seller_name || d.order?.seller_name || dbInfo.dbName || 'M/S Ahamed Enterprise';
-      const dbType = 'Main DB';
-      const salesOffice = dbInfo.area || 'Dhaka Central';
+      const dbCodeRaw = d.seller_id ? String(d.seller_id) : (d.seller?.code ? String(d.seller.code) : '');
+      const dbInfo = DB_MAP[dbCodeRaw] || {};
+      const dbNameResolved = d.seller_name || d.order?.seller_name || dbInfo.dbName || '';
+      const dbType = resolveDbType(dbCodeRaw);
+      const salesOffice = dbInfo.area || '';
       const voidDate = d.updated_at ? String(d.updated_at).split('T')[0] : delDateStr;
-      const outlet = d.buyer_id ? String(d.buyer_id) : 'T10-20003431699';
-      const srCode = d.created_by ? String(d.created_by) : '54506';
-      const openTime = d.created_at ? (String(d.created_at).includes('T') ? String(d.created_at).split('T')[1].slice(0, 8) : String(d.created_at).split(' ')[1] || '10:00:00') : '10:00:00';
+      const outlet = d.buyer_id ? String(d.buyer_id) : (d.buyer?.code ? String(d.buyer.code) : '');
+      const srCode = d.created_by ? String(d.created_by) : (d.order?.creator_code ? String(d.order.creator_code) : '');
+      const openTime = d.created_at ? (String(d.created_at).includes('T') ? String(d.created_at).split('T')[1].slice(0, 8) : String(d.created_at).split(' ')[1] || '') : '';
 
       records.push({
         id: `void-tr-${d.id}`,

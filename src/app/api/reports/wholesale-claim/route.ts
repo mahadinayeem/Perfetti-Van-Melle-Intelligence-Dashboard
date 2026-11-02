@@ -4,7 +4,7 @@ import dbMaster from '@/lib/dbMaster.json';
 import skuCatalogData from '@/lib/skuCatalog.json';
 
 function formatDDMMYYYY(val: any): string {
-  if (!val) return '10/01/2026';
+  if (!val) return '';
   if (val instanceof Date) {
     const d = String(val.getDate()).padStart(2, '0');
     const m = String(val.getMonth() + 1).padStart(2, '0');
@@ -108,35 +108,38 @@ export async function GET(request: NextRequest) {
 
       for (const p of prods) {
         count++;
-        const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '651240');
-        const qty = p ? parseFloat(p.qty) || 24 : 24;
+        const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '');
+        const qty = p ? parseFloat(p.qty) || 0 : 0;
         const promo = PROMOS[count % PROMOS.length] || { id: 'ADMPP01735', name: 'CC Rope B24 HNG G100tk off -UR WS' };
         const claimAmount = Math.round(qty * 4.16);
+        const outletCode = d.buyer_id ? String(d.buyer_id) : (d.buyer?.code ? String(d.buyer.code) : '');
+        const invNo = d.order?.invoice?.invoice_number || d.code || (d.id ? `INV-${d.id}` : '');
+        const srPos = dbInfo.srPositionCode || '';
 
         records.push({
           id: `ws-claim-${count}`,
           cluster: dbInfo.cluster || 'Cluster-1',
           area: dbInfo.area || 'East',
-          territory: dbInfo.territory || d.order?.buyer_territory_name || 'Cumilla',
+          territory: dbInfo.territory || d.order?.buyer_territory_name || '',
           dBCode: dbCodeRaw,
           dbCode: dbCodeRaw,
-          dBName: dbInfo.dbName,
-          dbName: dbInfo.dbName,
+          dBName: dbInfo.dbName || '',
+          dbName: dbInfo.dbName || '',
           promoID: promo.id,
           promoId: promo.id,
           promoName: promo.name,
-          outletCode: d.buyer_id ? `T37-2000${d.buyer_id}` : 'T37-20003382741',
+          outletCode,
           outletName,
           sRName: srName,
           srName,
-          sRPositionCode: dbInfo.srPositionCode || 'CTG-016',
-          srPositionCode: dbInfo.srPositionCode || 'CTG-016',
-          invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV210015${String(d.id).padStart(6, '0')}` : 'INV210015618863'),
-          deliveryDate: `${formatDDMMYYYY(delDateStr)} 21:54:20 PM`,
+          sRPositionCode: srPos,
+          srPositionCode: srPos,
+          invoiceNo: invNo,
+          deliveryDate: delDateStr ? formatDDMMYYYY(delDateStr) : '',
           sKUCode: skuCode,
           skuCode,
           qty,
-          claimAmount: claimAmount || 100,
+          claimAmount: claimAmount || 0,
         });
       }
     }

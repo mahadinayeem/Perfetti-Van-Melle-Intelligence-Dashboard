@@ -3,7 +3,7 @@ import { fetchLiveDeliveries } from '@/lib/sokrioClient';
 import dbMaster from '@/lib/dbMaster.json';
 
 function formatDDMMYYYY(val: any): string {
-  if (!val) return '10/09/2026';
+  if (!val) return '';
   if (val instanceof Date) {
     const d = String(val.getDate()).padStart(2, '0');
     const m = String(val.getMonth() + 1).padStart(2, '0');
@@ -101,17 +101,14 @@ export async function GET(request: NextRequest) {
       const outletName = d.order?.buyer_name || d.buyer_name || '';
       const srName = d.order?.creator_name || d.creator_name || '';
       const orderCode = d.order?.code || d.code || (d.id ? `PB${d.id}` : '');
-      const dbCodeRaw = d.seller_id ? String(d.seller_id) : '102267';
-      const dbInfo = DB_MAP[dbCodeRaw] || {
-        dbCode: dbCodeRaw,
-        dbName: 'M/S Ahamed Enterprise',
-        area: 'Dhaka Central',
-      };
-      const dbNameResolved = d.seller_name || d.order?.seller_name || dbInfo.dbName || 'M/S Ahamed Enterprise';
-      const salesOffice = dbInfo.area || 'Dhaka Central';
+      const dbCodeRaw = d.seller_id ? String(d.seller_id) : (d.seller?.code ? String(d.seller.code) : '');
+      const dbInfo = DB_MAP[dbCodeRaw] || {};
+      const dbNameResolved = d.seller_name || d.order?.seller_name || dbInfo.dbName || '';
+      const salesOffice = dbInfo.area || '';
       const voidDate = d.updated_at ? String(d.updated_at).split('T')[0] : delDateStr;
-      const outlet = d.buyer_id ? String(d.buyer_id) : 'T10-20003431699';
-      const srCode = d.created_by ? String(d.created_by) : '54506';
+      const outlet = d.buyer_id ? String(d.buyer_id) : (d.buyer?.code ? String(d.buyer.code) : '');
+      const srCode = d.created_by ? String(d.created_by) : (d.order?.creator_code ? String(d.order.creator_code) : '');
+      const skuCount = d.total_sku || (Array.isArray(d.products) ? d.products.length : 0);
 
       records.push({
         id: `void-${d.id}`,
@@ -136,8 +133,8 @@ export async function GET(request: NextRequest) {
         salesofficeid: dbCodeRaw,
         salesOfficeName: salesOffice,
         salesofficename: salesOffice,
-        sKUQuantity: d.total_sku || (Array.isArray(d.products) ? d.products.length : 1),
-        skuQuantity: d.total_sku || (Array.isArray(d.products) ? d.products.length : 1),
+        sKUQuantity: skuCount,
+        skuQuantity: skuCount,
         lineAmount: d.amount || 300,
         discount: d.discount || 0,
         amount: d.payable || d.amount || 300,

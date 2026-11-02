@@ -5,7 +5,7 @@ import skuCatalogData from '@/lib/skuCatalog.json';
 import axios from 'axios';
 
 function formatDDMMYYYY(val: any): string {
-  if (!val) return '11/10/2026';
+  if (!val) return '';
   if (val instanceof Date) {
     const d = String(val.getDate()).padStart(2, '0');
     const m = String(val.getMonth() + 1).padStart(2, '0');
@@ -99,9 +99,9 @@ export async function GET(request: NextRequest) {
       if (count >= limit) break;
       const prods = Array.isArray(d.products) ? d.products : [];
       const orderedBy = d.ordered_by || {};
-      const srCode = String(orderedBy.code || d.created_by || '54506');
-      const srName = String(orderedBy.name || d.creator_name || 'Mostafizur Rahman');
-      const srPositionCode = srCode === '54233' ? 'DM-059' : (srCode === '51639' ? 'DM-217' : (srCode === '53995' ? 'DM-057' : (srCode === '51608' ? 'DM-027' : 'DM-060')));
+      const srCode = String(orderedBy.code || d.created_by || '');
+      const srName = String(orderedBy.name || d.creator_name || '');
+      const srPositionCode = srCode === '54233' ? 'DM-059' : (srCode === '51639' ? 'DM-217' : (srCode === '53995' ? 'DM-057' : (srCode === '51608' ? 'DM-027' : (srCode === '54506' ? 'DM-060' : ''))));
       const dbCode = '100001';
       const dbName = 'Organized Trade';
       const dbType = 'Modern Trade';

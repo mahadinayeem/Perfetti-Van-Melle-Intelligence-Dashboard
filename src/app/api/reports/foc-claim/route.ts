@@ -3,7 +3,7 @@ import { fetchLiveDeliveries } from '@/lib/sokrioClient';
 import { resolveEnglishSkuName } from '@/lib/skuResolver';
 
 function formatDDMMYYYY(val: any): string {
-  if (!val) return '11/10/2026';
+  if (!val) return '';
   if (val instanceof Date) {
     const d = String(val.getDate()).padStart(2, '0');
     const m = String(val.getMonth() + 1).padStart(2, '0');
@@ -93,10 +93,15 @@ export async function GET(request: NextRequest) {
 
       for (const p of prods) {
         count++;
-        const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '651286');
+        const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '');
         const skuName = resolveEnglishSkuName(skuCode, p?.product?.base_product?.name);
-        const qty = p ? parseFloat(p.qty) || 1 : 1;
-        const tp = p ? parseFloat(p.price) || 184 : 184;
+        const qty = p ? parseFloat(p.qty) || 0 : 0;
+        const tp = p ? parseFloat(p.price) || 0 : 0;
+
+        const outletCode = d.buyer_id ? String(d.buyer_id) : (d.buyer?.code ? String(d.buyer.code) : '');
+        const routeCode = d.buyer?.route?.code || d.order?.route?.code || '';
+        const routeName = d.buyer?.route?.name || d.order?.buyer_territory_name || '';
+        const invNo = d.order?.invoice?.invoice_number || d.code || (d.id ? `INV-${d.id}` : '');
 
         records.push({
           id: `foc-${count}`,
@@ -106,12 +111,12 @@ export async function GET(request: NextRequest) {
           territory: territoryName,
           dbCode,
           dbName,
-          outletsCat: 'Gold',
-          outletCode: d.buyer_id ? `T10-2000${d.buyer_id}` : 'T10-20003431699',
+          outletsCat: d.buyer?.badge?.name || d.buyer?.category?.name || '',
+          outletCode,
           outletName,
-          routeCode: 'T10R00067423240816',
-          routeName: 'Sadorghat',
-          invNo: d.order?.invoice?.invoice_number || (d.id ? `INV210015${String(d.id).padStart(6, '0')}` : 'INV210015527327'),
+          routeCode,
+          routeName,
+          invNo,
           skuCode,
           skuName,
           uom: 'BOX',

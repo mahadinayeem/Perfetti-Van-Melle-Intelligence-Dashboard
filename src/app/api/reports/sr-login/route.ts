@@ -62,7 +62,7 @@ async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): 
 
   const makeRequests = async (authToken: string) => {
     const attendanceUrl = `https://pvm.report.sokrio.com/api/v1/attendance-report?range=${startDate}%2C${endDate}&type=xlsx&download`;
-    const checkinUrl = `https://pvm.report.sokrio.com/api/v1/checkin-report?range=${startDate}%2C${endDate}&territory_id=1&roles=&type=xlsx&download`;
+    const checkinUrl = `https://pvm.report.sokrio.com/api/v1/checkin-report?range=${startDate}%2C${endDate}&roles=&type=xlsx&download`;
 
     return await Promise.all([
       axios.get(attendanceUrl, {
@@ -156,15 +156,15 @@ async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): 
     const srMeta = SR_METADATA_MAP[code];
 
     const srName = srMeta?.srName || att?.name || `SR ${code}`;
-    const rawDayIn = att?.dayIn || chk?.checkinTime || '06:57:22';
-    const loginTime = formatTimeToHHMMSS(rawDayIn) || '06:57:22';
+    const rawDayIn = att?.dayIn || chk?.checkinTime || '';
+    const loginTime = formatTimeToHHMMSS(rawDayIn) || '';
     const rawDayOut = att?.dayOut && att.dayOut !== '-' ? att.dayOut : '';
     const endTime = rawDayOut ? formatTimeToHHMMSS(rawDayOut) : '';
     const dayEnd = endTime ? 'Yes' : 'No';
 
-    const distance = chk?.distance || '144.71';
-    const lat = chk?.lat || 23.710048;
-    const lng = chk?.lng || 90.490910;
+    const distance = chk?.distance || '';
+    const lat = chk?.lat || '';
+    const lng = chk?.lng || '';
 
     records.push({
       id: `sr-login-live-${idx++}`,

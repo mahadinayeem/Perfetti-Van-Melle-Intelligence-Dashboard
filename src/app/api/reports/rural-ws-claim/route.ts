@@ -4,7 +4,7 @@ import dbMaster from '@/lib/dbMaster.json';
 import axios from 'axios';
 
 function formatDelDate(val: any): string {
-  if (!val) return '31-Mar-2026';
+  if (!val) return '';
   const d = new Date(val);
   if (!isNaN(d.getTime())) {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -97,35 +97,37 @@ export async function GET(request: NextRequest) {
       for (const p of prods) {
         count++;
         const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '651286');
-        const qty = p ? parseFloat(p.qty) || 15 : 15;
-        const tp = p ? parseFloat(p.price) || 184 : 184;
+        const qty = p ? parseFloat(p.qty) || 0 : 0;
+        const tp = p ? parseFloat(p.price) || 0 : 0;
         const discVal = Math.round(qty * tp * 0.03);
+        const outletCode = d.buyer_id ? String(d.buyer_id) : (d.buyer?.code ? String(d.buyer.code) : '');
+        const invNo = d.order?.invoice?.invoice_number || d.code || (d.id ? `INV-${d.id}` : '');
 
         records.push({
           id: `rural-ws-${count}`,
           cluster: dbInfo.cluster || 'Cluster-1',
           area: dbInfo.area || 'North',
-          territory: dbInfo.territory || 'Pabna',
+          territory: dbInfo.territory || '',
           dBCode: dbCodeRaw,
           dbCode: dbCodeRaw,
-          dBName: dbInfo.dbName,
-          dbName: dbInfo.dbName,
+          dBName: dbInfo.dbName || '',
+          dbName: dbInfo.dbName || '',
           promoID: 'ADMPP01803',
           promoId: 'ADMPP01803',
           promoName: 'ALP CREAMFILLS Box (Min Ord Qty 15pcs) get-3% discount',
           disPer: '3%',
-          outletCode: d.buyer_id ? `T57-2000${d.buyer_id}` : 'T57-20003341211',
+          outletCode,
           outletName,
-          invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV210015${String(d.id).padStart(6, '0')}` : 'INV210015527327'),
+          invoiceNo: invNo,
           deliveryDate: formatDelDate(delDateStr),
           sKUCode: skuCode,
           skuCode,
           qty,
           percentageDiscount: '3%',
-          totalInvoiceDiscount: discVal || 82,
+          totalInvoiceDiscount: discVal,
           totalInvoiceAmount: Math.round(qty * tp),
           amount: Math.round(qty * tp),
-          claimAmount: discVal || 82,
+          claimAmount: discVal,
         });
       }
     }

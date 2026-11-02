@@ -36,7 +36,7 @@ export interface ApprovedPORecord {
 const DB_MAP: Record<string, any> = (dbMaster as any).dbs || {};
 
 function formatDDMMYYYYWithHyphen(val: any): string {
-  if (!val) return '10-11-2026';
+  if (!val) return '';
   if (val instanceof Date) {
     const d = String(val.getDate()).padStart(2, '0');
     const m = String(val.getMonth() + 1).padStart(2, '0');
@@ -76,7 +76,7 @@ function getDDMMYYYYCompact(val: any): string {
   return formatted.replace(/-/g, '');
 }
 
-function formatTimeTo12h(val: any, fallback = '03:44 PM'): string {
+function formatTimeTo12h(val: any, fallback = ''): string {
   if (!val) return fallback;
   const str = String(val).trim();
   const timePart = str.includes(' ') ? str.split(' ')[1] : (str.includes('T') ? str.split('T')[1] : str);

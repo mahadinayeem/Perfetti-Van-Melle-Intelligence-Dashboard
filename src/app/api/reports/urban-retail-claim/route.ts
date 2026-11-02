@@ -3,7 +3,7 @@ import { getValidToken } from '@/lib/sokrioClient';
 import dbMaster from '@/lib/dbMaster.json';
 
 function formatDDMMYYYY(val: any): string {
-  if (!val) return '03/01/2026';
+  if (!val) return '';
   if (val instanceof Date) {
     const d = String(val.getDate()).padStart(2, '0');
     const m = String(val.getMonth() + 1).padStart(2, '0');
@@ -114,30 +114,33 @@ export async function GET(request: NextRequest) {
 
       for (const p of prods) {
         count++;
-        const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '651286');
-        const qty = p ? parseFloat(p.qty) || 2 : 2;
+        const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '');
+        const qty = p ? parseFloat(p.qty) || 0 : 0;
+        const outletCode = d.buyer_id ? String(d.buyer_id) : (d.buyer?.code ? String(d.buyer.code) : '');
+        const invNo = d.order?.invoice?.invoice_number || d.code || (d.id ? `INV-${d.id}` : '');
+        const srPos = dbInfo.srPositionCode || '';
 
         records.push({
           id: `urban-rt-${count}`,
           cluster: dbInfo.cluster || 'Central',
           area: dbInfo.area || 'Central South',
-          territory: dbInfo.territory || 'Gulshan',
+          territory: dbInfo.territory || '',
           dBCode: dbCodeRaw,
           dbCode: dbCodeRaw,
-          dBName: dbInfo.dbName,
-          dbName: dbInfo.dbName,
+          dBName: dbInfo.dbName || '',
+          dbName: dbInfo.dbName || '',
           promoID: 'ADMPP01784',
           promoId: 'ADMPP01784',
           promoName: 'Any Jar 2/Any 2 Hng - 10tk off (Urban RT)',
-          outletCode: d.buyer_id ? `T19-2000${d.buyer_id}` : 'T19-20003554748',
+          outletCode,
           outletName,
           sRName: srName,
           srName,
-          sRPositionCode: dbInfo.srPositionCode || 'DM-027',
-          srPositionCode: dbInfo.srPositionCode || 'DM-027',
-          invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV210015${String(d.id).padStart(6, '0')}` : 'INV210015527327'),
-          deliveryDate: `${formatDDMMYYYY(delDateStr)} 22:00:58 PM`,
-        orderDate: formatDDMMYYYY(delDateStr),
+          sRPositionCode: srPos,
+          srPositionCode: srPos,
+          invoiceNo: invNo,
+          deliveryDate: delDateStr ? formatDDMMYYYY(delDateStr) : '',
+          orderDate: delDateStr ? formatDDMMYYYY(delDateStr) : '',
           sKUCode: skuCode,
           skuCode,
           qty,

@@ -88,32 +88,34 @@ export async function GET(request: NextRequest) {
         const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '650961');
         const cat = (skuCatalogData as any)[skuCode] || {};
         const skuName = resolveEnglishSkuName(skuCode, p?.product?.base_product?.name);
-        const qty = p ? parseFloat(p.qty) || 15 : 15;
+        const qty = p ? parseFloat(p.qty) || 0 : 0;
+        const invNo = d.order?.invoice?.invoice_number || d.code || (d.id ? `INV-${d.id}` : '');
+        const poNum = d.order?.code || '';
 
         records.push({
           id: `freight-${count}`,
           date: orderDateStr,
           dBCode: dbCodeRaw,
           dbCode: dbCodeRaw,
-          dBName: dbInfo.dbName,
-          dbName: dbInfo.dbName,
-          sUBDBCode: 'SD0164',
-          subDbCode: 'SD0164',
-          sUBDBName: 'M/S Sabera Traders',
-          subDbName: 'M/S Sabera Traders',
+          dBName: dbInfo.dbName || '',
+          dbName: dbInfo.dbName || '',
+          sUBDBCode: '',
+          subDbCode: '',
+          sUBDBName: '',
+          subDbName: '',
           sKUCode: skuCode,
           skuCode,
           sKUName: skuName,
           skuName,
-          invoiceNo: d.order?.invoice?.invoice_number || (d.id ? `INV210018${String(d.id).padStart(6, '0')}` : 'INV210018841957'),
+          invoiceNo: invNo,
           deliveryDate: delDateStr,
           salesQtyLoose: qty,
-          salesQtyInCTN: Math.round((qty / (cat.piecesPerCtn || 15)) * 100) / 100,
+          salesQtyInCTN: qty > 0 ? Math.round((qty / (cat.piecesPerCtn || 15)) * 100) / 100 : 0,
           amount: Math.round(qty * (cat.price || 375)),
           isConfirmed: 'Yes',
           isconfirmed: 'Yes',
-          pONo: d.order?.code || `PO_${d.order_id || d.id || count}`,
-          poNo: d.order?.code || `PO_${d.order_id || d.id || count}`,
+          pONo: poNum,
+          poNo: poNum,
         });
       }
     }

@@ -63,20 +63,20 @@ async function fetchLiveInvoicesFromSokrio(): Promise<InvoiceListRecord[]> {
   let rowId = 1;
 
   for (const inv of invoices) {
-    const invoiceNo = inv.order?.invoice?.invoice_number || (inv.id ? `INV210015${String(inv.id).padStart(6, '0')}` : 'INV210015527327');
-    const custNo = inv.order?.buyer_id || inv.buyer_id || 102267;
+    const invoiceNo = inv.order?.invoice?.invoice_number || inv.code || (inv.id ? `INV-${inv.id}` : '');
+    const custNo = inv.order?.buyer_id || inv.buyer_id || (inv.buyer?.code ? String(inv.buyer.code) : '');
     const createdAt = inv.deliver_date || inv.order?.order_date || inv.created_at || '';
     const invoiceDate = createdAt.includes(' ') ? createdAt.split(' ')[0] : (createdAt.includes('T') ? createdAt.split('T')[0] : createdAt);
-    const custReferenceNo = String(inv.order?.code || inv.code || `PB${inv.id || ''}`);
+    const custReferenceNo = String(inv.order?.code || inv.code || (inv.id ? `PB${inv.id}` : ''));
     const poDate = String(inv.order?.order_date || invoiceDate);
-    const totalAmt = Number(inv.payable_amount || inv.payable || inv.total_price || inv.amount || 300);
+    const totalAmt = Number(inv.payable_amount || inv.payable || inv.total_price || inv.amount || 0);
 
     const products = inv.order?.latest_revision?.ordered_products || inv.products || [];
     if (products.length > 0) {
       products.forEach((p: any, pIdx: number) => {
-        const itemNo = String(p.product?.base_product?.sku || p.product_id || '651286').trim();
-        const qty = Number(p.qty || 1);
-        const price = Number(p.price || 184);
+        const itemNo = String(p.product?.base_product?.sku || p.product_id || '').trim();
+        const qty = Number(p.qty || 0);
+        const price = Number(p.price || 0);
 
         let uom = 'BOX';
         const fullName = String(p.product?.full_name || p.product?.base_product?.name || '').toLowerCase();

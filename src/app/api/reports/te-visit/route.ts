@@ -134,13 +134,13 @@ async function fetchLiveTeVisitsFromSokrio(startDate: string, endDate: string): 
       routeName: g.routeName,
     };
 
-    const sc = 48; // Standard schedule call per SR per day
     const visitedOl = g.visitedCount;
-    const pending = Math.max(0, sc - visitedOl);
-    const visitPct = `${Math.min(100, Math.round((visitedOl / sc) * 100))}%`;
+    const sc = visitedOl;
+    const pending = 0;
+    const visitPct = sc > 0 ? `${Math.min(100, Math.round((visitedOl / sc) * 100))}%` : '0%';
 
     // Compute duration in hours/minutes
-    let durationStr = '8 hrs';
+    let durationStr = '';
     if (g.firstTime && g.lastTime && g.firstTime !== g.lastTime) {
       const p1 = g.firstTime.split(':').map(Number);
       const p2 = g.lastTime.split(':').map(Number);
@@ -160,8 +160,8 @@ async function fetchLiveTeVisitsFromSokrio(startDate: string, endDate: string): 
       teTsoName: 'Palash Chandra Karmakar',
       teTsoCode: 5104,
       type: 'TE',
-      mainSuperDistributorPositionCode: 'MD11239',
-      mainSuperDistributorPositionName: 'Main DB Jatra Bari',
+      mainSuperDistributorPositionCode: '',
+      mainSuperDistributorPositionName: '',
       distributorId: 102267,
       distributorName: 'M/S Ahamed Enterprise',
       dbType: resolveDbType(102267),
