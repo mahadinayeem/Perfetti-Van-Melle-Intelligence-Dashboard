@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
         const products = order.latest_revision?.ordered_products || inv.products || [];
         if (products.length > 0) {
           products.forEach((p: any, pIdx: number) => {
-            const sku = String(p.product?.base_product?.sku || p.product_id || '651287');
+            const sku = String(p.product?.base_product?.sku || p.product_id || '').trim();
             const skuName = resolveEnglishSkuName(sku, p.product?.full_name || p.product?.base_product?.name);
             const qty = Number(p.qty || 1);
             const val = Number(p.price ? p.price * qty : inv.payable || 0);

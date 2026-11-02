@@ -439,17 +439,8 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
     const totalOrderVal = retailVal + wsVal;
 
     // Today's RR Target: Sokrio API does not provide daily revenue targets.
-    // Rule: "যেইটা নাই ওইটা ফাঁকা রাখো" - do not fabricate dummy 16000.
-    // If date is specifically sample date 2026-10-14, retain sample targets:
-    const SAMPLE_TARGETS: Record<string, number> = {
-      '51639': 16560,
-      '53995': 20369,
-      '54233': 14303,
-      '54506': 17775,
-    };
-    const target = (startDate === '2026-10-14' || endDate === '2026-10-14') && SAMPLE_TARGETS[srCode]
-      ? SAMPLE_TARGETS[srCode]
-      : '';
+    // Rule: "dummy data use na kore faka rakho" -> left blank
+    const target = '';
 
     let twoLpcCount = 0;
     for (const [, lineCount] of d.invoices.entries()) {

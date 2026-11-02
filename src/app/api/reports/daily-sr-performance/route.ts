@@ -638,7 +638,7 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
       dbType,
       srCode: grp.srCode,
       srName: srMeta?.srName || grp.srName,
-      srPositionCode: srMeta?.srPositionCode || meta.srPositionCode || 'DM-057',
+      srPositionCode: srMeta?.srPositionCode || meta.srPositionCode || '',
       routeCode: grp.routeCode || meta.routeCode || '',
       routeName: grp.routeName || meta.routeName || '',
       routeDay: dayOfWeek,

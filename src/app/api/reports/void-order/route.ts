@@ -96,6 +96,10 @@ export async function GET(request: NextRequest) {
     const records: VoidOrderRecord[] = [];
 
     for (const d of deliveries) {
+      const st = String(d.status || d.delivery_status || d.order?.status || '').toLowerCase();
+      // Only include actual void, cancelled, or returned orders
+      if (!st.includes('void') && !st.includes('cancel') && !st.includes('return')) continue;
+
       const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : '';
       const orderDateStr = d.order?.order_date ? String(d.order.order_date).split(' ')[0] : (d.created_at ? String(d.created_at).split('T')[0] : '');
       const outletName = d.order?.buyer_name || d.buyer_name || '';
@@ -109,6 +113,10 @@ export async function GET(request: NextRequest) {
       const outlet = d.buyer_id ? String(d.buyer_id) : (d.buyer?.code ? String(d.buyer.code) : '');
       const srCode = d.created_by ? String(d.created_by) : (d.order?.creator_code ? String(d.order.creator_code) : '');
       const skuCount = d.total_sku || (Array.isArray(d.products) ? d.products.length : 0);
+
+      const lineAmount = parseFloat(d.amount) || 0;
+      const discount = parseFloat(d.discount) || 0;
+      const payableAmount = parseFloat(d.payable) || lineAmount;
 
       records.push({
         id: `void-${d.id}`,
@@ -135,10 +143,10 @@ export async function GET(request: NextRequest) {
         salesofficename: salesOffice,
         sKUQuantity: skuCount,
         skuQuantity: skuCount,
-        lineAmount: d.amount || 300,
-        discount: d.discount || 0,
-        amount: d.payable || d.amount || 300,
-        orderValue: d.amount || 300,
+        lineAmount,
+        discount,
+        amount: payableAmount,
+        orderValue: lineAmount,
         orderCashDiscount: 0,
         createDeliveryDate: formatDDMMYYYY(delDateStr),
         createDeliverydate: formatDDMMYYYY(delDateStr),

@@ -121,7 +121,8 @@ async function fetchLiveInvoicesFromSokrio(): Promise<MemoPrintRecord[]> {
   }> = {};
 
   invoices.forEach(inv => {
-    const srCode = String(inv.creator?.code || inv.ordered_by?.code || '54506').trim();
+    const srCode = String(inv.creator?.code || inv.ordered_by?.code || '').trim();
+    if (!srCode) return;
     const srName = String(inv.creator?.name || inv.ordered_by?.name || SR_METADATA[srCode]?.srName || `SR ${srCode}`).trim();
     const createdAt = inv.created_at || '';
     const parts = createdAt.split(' ');

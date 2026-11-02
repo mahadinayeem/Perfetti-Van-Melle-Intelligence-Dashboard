@@ -75,8 +75,8 @@ export async function GET(request: NextRequest) {
         srName: u.name || '',
         sUCode: `CTG-${String(u.code || u.id).slice(-3)}`,
         suCode: `CTG-${String(u.code || u.id).slice(-3)}`,
-        licenseNo: u.device_id ? `PVMB${String(u.code || u.id).slice(-3)}` : 'PVMB420',
-        versionNo: u.app_version || '5.1.2.70.38',
+        licenseNo: u.code ? `PVMB${u.code}` : (u.device_id ? `PVMB${String(u.id)}` : ''),
+        versionNo: u.app_version || '',
       });
     }
 

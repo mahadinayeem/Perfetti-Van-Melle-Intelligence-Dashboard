@@ -95,16 +95,16 @@ export async function GET(request: NextRequest) {
     for (const d of deliveries) {
       const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : todayStr;
       const orderDateStr = d.order?.order_date ? String(d.order.order_date).split(' ')[0] : delDateStr;
-      const dbCodeRaw = d.seller_id ? String(d.seller_id) : 'SD0302';
+      const dbCodeRaw = (d.seller_id && String(d.seller_id) === '3249') ? '102267' : (d.seller?.code ? String(d.seller.code) : '102267');
       const dbInfo = DB_MAP[dbCodeRaw] || {
         dbCode: dbCodeRaw,
-        dbName: 'M/S Jakir Enterprise',
+        dbName: d.seller_name || 'M/S Ahamed Enterprise',
         cluster: 'Central',
-        area: 'Central North',
-        territory: 'Tangail',
+        area: 'Central South',
+        territory: d.order?.buyer_territory_name || 'Jatra Bari',
       };
 
-      const outletName = d.order?.buyer_name || 'jewel store';
+      const outletName = d.order?.buyer_name || d.buyer_name || '';
       const prods = Array.isArray(d.products) && d.products.length > 0 ? d.products : [null];
 
       for (const p of prods) {

@@ -83,9 +83,9 @@ export async function GET(request: NextRequest) {
       const terrCode = String(meta.routeCode || 'T16R01');
       const terrPrefix = terrCode ? terrCode.slice(0, 3) : 'T16';
       const dbName = String(meta.dbName || 'M/S Ahamed Enterprise');
-      const srCode = String(meta.srCode || '54506');
-      const srName = String(meta.srName || 'Mostafizur Rahman');
-      const srPos = String(meta.srPositionCode || 'DM-060');
+      const srCode = String(meta.srCode || '');
+      const srName = String(meta.srName || '');
+      const srPos = String(meta.srPositionCode || '');
 
       return {
         id: `geo-${idx + 1}`,

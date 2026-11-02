@@ -333,61 +333,15 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
 
     const dbCode = String(srMeta?.dbCode || meta.dbCode || '102267');
     const dbName = String(srMeta?.dbName || meta.dbName || 'M/S Ahamed Enterprise');
-    const srName = String(orderedBy.name || srMeta?.srName || 'Mostafizur Rahman');
-    const srPositionCode = String(srMeta?.srPositionCode || meta.srPositionCode || 'DM-060');
+    const srName = String(orderedBy.name || srMeta?.srName || (srCode ? `SR ${srCode}` : ''));
+    const srPositionCode = String(srMeta?.srPositionCode || meta.srPositionCode || '');
     const territory = String(srMeta?.territory || meta.territory || 'Jatra Bari');
     const territoryCode = String(srMeta?.territoryCode || meta.territoryCode || 'T16');
     const inv = del.order?.invoice || del.invoice || {};
     const liveInvoiceVal = inv.invoice_number || del.order?.tracking_id || del.order?.order_number || del.order?.code || del.id || '';
     const invoiceNo = formatInvoiceNo(liveInvoiceVal);
 
-    if (products.length === 0) {
-      records.push({
-        id: `live-del-${del.id}`,
-        orderDate: formatDDMMYYYY(orderDate),
-        cluster: 'Central',
-        area: meta.area || 'Central South',
-        territory,
-        territoryCode,
-        town: '',
-        dbCode,
-        dbName,
-        dbType: 'MAIN',
-        srCode,
-        srName,
-        srPositionCode,
-        routeCode,
-        routeName,
-        customerCode: custNo,
-        customerName: resolveOutletEnglishName(custNo, custName),
-        channel: resolveChannel(custNo, buyer?.department_type_id, 'Retail'),
-        subChannel: resolveSubChannel(custNo, buyer?.department_category_id, 'General & Grocery Store'),
-        invoiceNo,
-        category: 'Confectionery',
-        brand: 'Perfetti Van Melle',
-        skuCode: 'SKU-001',
-        skuName: 'PVM Product Line',
-        deliveryUom: 'PCS',
-        noofSKUinCTN: '',
-        weightperSKUgm: '',
-        skutp: Number(del.amount || 0),
-        orderQty: 1,
-        orderVol: '',
-        orderValue: Number(del.amount || 0),
-        orderCashDiscount: Number(del.discount || 0) > 0 ? Number(del.discount) : '',
-        deliveryConfirmationDate: deliveryDate ? formatMonthDayYear(deliveryDate) : '',
-        deliveryDate: deliveryDate ? formatMonthDayYear(deliveryDate) : '',
-        deliveryQty: 1,
-        deliveryVol: '',
-        deliveryValue: Number(del.payable || del.amount || 0),
-        deliveryCashDiscount: Number(del.discount || 0) > 0 ? Number(del.discount) : '',
-        freeQuantity: '',
-        deliveryValueAfterDiscount: Number(del.payable || del.amount || 0),
-        wsCashDiscount: '',
-        motherSkuCode: '',
-        createDeliveryDate: deliveryDate ? formatDDMMYYYY(deliveryDate) : '',
-      });
-    } else {
+    if (products.length > 0) {
       products.forEach((pItem: any, pIdx: number) => {
         const prod = pItem.product || {};
         const base = prod.base_product || {};
@@ -545,8 +499,8 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
 
     const dbCode = String(srMeta?.dbCode || meta.dbCode || '102267');
     const dbName = String(srMeta?.dbName || meta.dbName || 'M/S Ahamed Enterprise');
-    const srName = String(r[delCreatorNameIdx] || srMeta?.srName || 'Mostafizur Rahman');
-    const srPositionCode = srMeta?.srPositionCode || meta.srPositionCode || 'DM-057';
+    const srName = String(r[delCreatorNameIdx] || srMeta?.srName || (srCode ? `SR ${srCode}` : ''));
+    const srPositionCode = srMeta?.srPositionCode || meta.srPositionCode || '';
     const territory = srMeta?.territory || meta.territory || 'Jatra Bari';
     const territoryCode = srMeta?.territoryCode || meta.territoryCode || (rawTerritoryCode ? rawTerritoryCode.substring(0, 3) : 'T16');
 

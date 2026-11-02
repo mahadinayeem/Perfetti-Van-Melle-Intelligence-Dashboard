@@ -55,9 +55,9 @@ export async function GET(request: NextRequest) {
         areaName: 'Central South',
         teCode: u.code || u.id,
         teName: u.name || '',
-        territoryCode: u.territory?.code ? `T${u.territory.code}` : 'T01',
-        licenseNo: u.device_id ? `TE-${String(u.code || u.id).slice(-3)}` : 'TE01',
-        versionNo: u.app_version || '5.1.2.70.39',
+        territoryCode: u.territory?.code ? `T${u.territory.code}` : '',
+        licenseNo: u.code ? `TE${u.code}` : '',
+        versionNo: u.app_version || '',
       });
     }
 

@@ -128,7 +128,7 @@ async function fetchLiveTeVisitsFromSokrio(startDate: string, endDate: string): 
 
   const records: TeVisitRecord[] = Object.values(grouped).map((g, idx) => {
     const srMeta = SR_METADATA[g.srCode] || {
-      srPositionCode: 'DM-057',
+      srPositionCode: '',
       territory: 'Jatra Bari',
       routeCode: g.routeCode,
       routeName: g.routeName,

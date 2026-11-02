@@ -82,21 +82,21 @@ export async function GET(request: NextRequest) {
 
     for (const d of deliveries) {
       const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : todayStr;
-      const dbCodeRaw = d.seller_id ? String(d.seller_id) : 'SD0006';
+      const dbCodeRaw = (d.seller_id && String(d.seller_id) === '3249') ? '102267' : (d.seller?.code ? String(d.seller.code) : '102267');
       const dbInfo = DB_MAP[dbCodeRaw] || {
         dbCode: dbCodeRaw,
-        dbName: 'Molla Shoping center',
-        cluster: 'Cluster-1',
-        area: 'North',
-        territory: 'Pabna',
+        dbName: d.seller_name || 'M/S Ahamed Enterprise',
+        cluster: 'Central',
+        area: 'Central South',
+        territory: d.order?.buyer_territory_name || 'Jatra Bari',
       };
 
-      const outletName = d.order?.buyer_name || 'khaled store';
+      const outletName = d.order?.buyer_name || d.buyer_name || '';
       const prods = Array.isArray(d.products) && d.products.length > 0 ? d.products : [null];
 
       for (const p of prods) {
         count++;
-        const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '651286');
+        const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '');
         const qty = p ? parseFloat(p.qty) || 0 : 0;
         const tp = p ? parseFloat(p.price) || 0 : 0;
         const discVal = Math.round(qty * tp * 0.03);
@@ -105,14 +105,14 @@ export async function GET(request: NextRequest) {
 
         records.push({
           id: `rural-ws-${count}`,
-          cluster: dbInfo.cluster || 'Cluster-1',
-          area: dbInfo.area || 'North',
+          cluster: dbInfo.cluster || 'Central',
+          area: dbInfo.area || 'Central South',
           territory: dbInfo.territory || '',
           dBCode: dbCodeRaw,
           dbCode: dbCodeRaw,
           dBName: dbInfo.dbName || '',
           dbName: dbInfo.dbName || '',
-          promoID: 'ADMPP01803',
+          promoID: '',
           promoId: 'ADMPP01803',
           promoName: 'ALP CREAMFILLS Box (Min Ord Qty 15pcs) get-3% discount',
           disPer: '3%',

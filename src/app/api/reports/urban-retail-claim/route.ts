@@ -98,18 +98,18 @@ export async function GET(request: NextRequest) {
 
     for (const d of deliveries) {
       const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : todayStr;
-      const dbCodeRaw = d.seller_id ? String(d.seller_id) : '101820';
+      const dbCodeRaw = (d.seller_id && String(d.seller_id) === '3249') ? '102267' : (d.seller?.code ? String(d.seller.code) : '102267');
       const dbInfo = DB_MAP[dbCodeRaw] || {
         dbCode: dbCodeRaw,
-        dbName: 'Sara Enterprise',
+        dbName: d.seller_name || 'M/S Ahamed Enterprise',
         cluster: 'Central',
         area: 'Central South',
-        territory: 'Gulshan',
-        srPositionCode: 'DM-027',
+        territory: d.order?.buyer_territory_name || 'Jatra Bari',
+        srPositionCode: '',
       };
 
-      const outletName = d.order?.buyer_name || 'Erina Mart';
-      const srName = d.order?.creator_name || 'Md. Jakir Hossain';
+      const outletName = d.order?.buyer_name || d.buyer_name || '';
+      const srName = d.order?.creator_name || d.creator_name || '';
       const prods = Array.isArray(d.products) && d.products.length > 0 ? d.products : [null];
 
       for (const p of prods) {

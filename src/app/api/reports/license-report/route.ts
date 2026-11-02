@@ -104,10 +104,10 @@ export async function GET(request: NextRequest) {
         suCode: roleName.toUpperCase().includes('TE') ? `T${u.territory_id || ''}` : `DO-${uCode.slice(-3)}`,
         licenseNo: licNo,
         licenseType: roleName,
-        iMEINo: u.device_id || '864201048892104',
-        imeiNo: u.device_id || '864201048892104',
+        iMEINo: u.device_id || '',
+        imeiNo: u.device_id || '',
         active: u.is_active ? 'Active' : 'Inactive',
-        lastLoginDate: formatDDMMYYYY(u.last_time_login) || '13/10/2026',
+        lastLoginDate: formatDDMMYYYY(u.last_time_login) || '',
       };
     });
 

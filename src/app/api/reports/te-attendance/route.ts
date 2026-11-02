@@ -106,9 +106,9 @@ async function fetchLiveTeAttendanceFromSokrio(startDate: string, endDate: strin
         visitType: 'StockiestVisit',
         startWorkDate: loginDate,
         startWorkTime: loginTime,
-        distanceFromDbLocation: 1,
-        startWorkLatitude: 23.710048,
-        startWorkLongitude: 90.490909,
+        distanceFromDbLocation: '',
+        startWorkLatitude: '',
+        startWorkLongitude: '',
       });
     }
   }

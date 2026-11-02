@@ -80,40 +80,43 @@ export async function GET(request: NextRequest) {
       const dDate = new Date(delDateStr);
       const dayName = !isNaN(dDate.getTime()) ? DAYS[dDate.getDay()] : 'Monday';
 
-      const dbCodeRaw = d.seller_id ? String(d.seller_id) : 'ST1051';
+      const dbCodeRaw = (d.seller_id && String(d.seller_id) === '3249') ? '102267' : (d.seller?.code ? String(d.seller.code) : '102267');
       const dbInfo = DB_MAP[dbCodeRaw] || {
         dbCode: dbCodeRaw,
-        dbName: 'M/S N S Store',
-        cluster: 'Cluster-1',
-        area: 'North',
-        territory: d.order?.buyer_territory_name || 'Pabna',
-        srPositionCode: 'BOG-383',
+        dbName: d.seller_name || 'M/S Ahamed Enterprise',
+        cluster: 'Central',
+        area: 'Central South',
+        territory: 'Jatra Bari',
+        srPositionCode: '',
       };
 
       const totalDeliveredQty = Array.isArray(d.products)
         ? d.products.reduce((acc: number, p: any) => acc + (parseFloat(p.qty) || 0), 0)
-        : (d.total_sku || 1);
+        : (d.total_sku || 0);
 
-      const orderPcVal = d.total_sku || 1;
-      const totalOrderVal = d.amount || 2500;
-      const delVal = d.payable || d.amount || 2500;
+      const orderPcVal = d.total_sku || 0;
+      const totalOrderVal = parseFloat(d.amount) || parseFloat(d.payable) || 0;
+      const delVal = parseFloat(d.payable) || parseFloat(d.amount) || 0;
+
+      const srCode = d.order?.creator_code || d.created_by ? String(d.order?.creator_code || d.created_by) : '';
+      const srName = d.order?.creator_name || d.creator_name || (srCode ? `SR ${srCode}` : '');
 
       records.push({
         id: `del-conf-${d.id}`,
-        cluster: dbInfo.cluster || 'Cluster-1',
-        area: dbInfo.area || 'North',
-        territory: dbInfo.territory || d.order?.buyer_territory_name || 'Pabna',
+        cluster: dbInfo.cluster || 'Central',
+        area: dbInfo.area || 'Central South',
+        territory: dbInfo.territory || d.order?.buyer_territory_name || 'Jatra Bari',
         uniqueLocationCode: `LOC-${dbCodeRaw}`,
         dBSUBDBCode: dbCodeRaw,
         dbSubDbCode: dbCodeRaw,
         dBSUBDBName: dbInfo.dbName,
         dbSubDbName: dbInfo.dbName,
-        sRPositionCode: dbInfo.srPositionCode || 'BOG-383',
-        srPositionCode: dbInfo.srPositionCode || 'BOG-383',
-        sRECCode: d.created_by ? String(d.created_by) : '10510',
-        srEcCode: d.created_by ? String(d.created_by) : '10510',
-        sRName: d.order?.creator_name || 'MD.Khalek',
-        srName: d.order?.creator_name || 'MD.Khalek',
+        sRPositionCode: dbInfo.srPositionCode || '',
+        srPositionCode: dbInfo.srPositionCode || '',
+        sRECCode: srCode,
+        srEcCode: srCode,
+        sRName: srName,
+        srName: srName,
         orderDate: orderDateStr,
         day: dayName,
         orderPC: orderPcVal,

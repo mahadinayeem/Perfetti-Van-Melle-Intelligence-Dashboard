@@ -85,10 +85,10 @@ export async function GET(request: NextRequest) {
     for (const d of deliveries) {
       const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : todayStr;
       const orderDateStr = d.order?.order_date ? String(d.order.order_date).split(' ')[0] : delDateStr;
-      const outletName = d.order?.buyer_name || 'Chadpur Store';
-      const territoryName = d.order?.buyer_territory_name || 'Chawkbazar';
-      const dbCode = d.seller_id ? String(d.seller_id) : '102042';
-      const dbName = 'Ms Hasan Brothers Corporation';
+      const outletName = d.order?.buyer_name || d.buyer_name || '';
+      const territoryName = d.order?.buyer_territory_name || 'Jatra Bari';
+      const dbCode = (d.seller_id && String(d.seller_id) === '3249') ? '102267' : (d.seller?.code ? String(d.seller.code) : '102267');
+      const dbName = d.seller_name || 'M/S Ahamed Enterprise';
       const prods = Array.isArray(d.products) && d.products.length > 0 ? d.products : [null];
 
       for (const p of prods) {
