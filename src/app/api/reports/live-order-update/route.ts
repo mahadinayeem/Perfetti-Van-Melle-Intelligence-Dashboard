@@ -63,41 +63,18 @@ function formatDDMMMYYYY(val: any): string {
 }
 
 /**
- * Perfetti Handheld Device Terminal Code prefix mapping per SR.
- * Pattern: PB + [Beat / Handheld Device ID] + O + [6-digit Tracking ID / Sequence]
- * e.g., SR 54506 -> PB259O029378
+ * Direct Live Order Number: Uses live Order Reference if present,
+ * or the exact live Tracking ID directly from Sokrio server as-is.
+ * Leaves empty if neither is available (no dummy data).
  */
-const SR_ORDER_PREFIX_MAP: Record<string, string> = {
-  '54506': 'PB259O',
-  '51639': 'PB025O',
-  '53995': 'PB1824O',
-  '54233': 'PB1558O',
-  '52454': 'PB1756O',
-  '54725': 'PB1730O',
-};
-
-/**
- * Format Order Number according to Perfetti terminal standard.
- * Uses live Order Reference if present, or dynamically combines the SR device terminal code
- * with the live Tracking ID. Leaves empty if neither is available (no dummy data).
- */
-function formatOrderNo(orderRef: any, trackingId: any, srCode: string): string {
+function formatOrderNo(orderRef: any, trackingId: any): string {
   const refStr = String(orderRef || '').trim();
-  if (refStr && refStr.toUpperCase().startsWith('PB')) {
+  if (refStr && refStr !== '-' && refStr !== 'null' && refStr !== 'undefined') {
     return refStr;
   }
   const trackStr = String(trackingId || '').trim();
   if (trackStr && trackStr !== '-' && trackStr !== 'null' && trackStr !== 'undefined') {
-    if (trackStr.toUpperCase().startsWith('PB')) return trackStr;
-    const prefix = SR_ORDER_PREFIX_MAP[srCode] || (srCode ? `PB${srCode.slice(-3)}O` : 'PBO');
-    if (/^\d+$/.test(trackStr)) {
-      const padded = trackStr.length < 6 ? trackStr.padStart(6, '0') : trackStr;
-      return `${prefix}${padded}`;
-    }
-    return `${prefix}${trackStr}`;
-  }
-  if (refStr && refStr !== '-' && refStr !== 'null' && refStr !== 'undefined') {
-    return refStr;
+    return trackStr;
   }
   return '';
 }
@@ -286,7 +263,7 @@ async function fetchLiveOrdersFromSokrio(startDate: string, endDate: string): Pr
       routeName: String(r['Buyer Territory Name'] || '').trim(),
       customerNo: custNo,
       customerName: resolveOutletEnglishName(custNo, toEnglishOutletName(String(r['Buyer Department Name'] || ''), custNo)),
-      orderNo: formatOrderNo(r['Order Reference'], r['Tracking ID'], srCode),
+      orderNo: formatOrderNo(r['Order Reference'], r['Tracking ID']),
       category: skuInfo?.category || String(r['Product Category'] || '').trim(),
       motherSkuCode: skuInfo?.motherSkuCode || (skuCode ? `MSKU00${skuCode.slice(-2)}` : ''),
       motherSkuName: skuInfo?.motherSkuName || String(r['Product Brand'] || '').trim(),
