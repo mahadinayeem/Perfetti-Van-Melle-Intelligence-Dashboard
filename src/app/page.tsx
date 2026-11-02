@@ -1787,6 +1787,7 @@ export default function DashboardPage() {
     }
 
     if (col.pillType === 'success') {
+      const isYes = String(val).toLowerCase() === 'yes';
       return (
         <span style={{
           display: 'inline-flex',
@@ -1795,9 +1796,9 @@ export default function DashboardPage() {
           borderRadius: '9999px',
           fontSize: '11px',
           fontWeight: 700,
-          background: '#ecfdf5',
-          color: '#047857',
-          border: '1px solid #a7f3d0'
+          background: isYes ? '#ecfdf5' : '#f1f5f9',
+          color: isYes ? '#047857' : '#64748b',
+          border: `1px solid ${isYes ? '#a7f3d0' : '#e2e8f0'}`
         }}>
           {String(val)}
         </span>
@@ -1957,7 +1958,7 @@ export default function DashboardPage() {
         return [
           { title: 'Attendance Logs', val: records.length.toLocaleString(), sub: 'Daily Punch Records', color: 'blue', icon: LogIn },
           { title: 'Unique SRs Logged', val: new Set(records.map(r => r.srCode).filter(Boolean)).size.toLocaleString(), sub: 'Present in Field', color: 'green', icon: UserCheck },
-          { title: 'Day End Completed', val: records.filter(r => r.dayEnd).length.toLocaleString(), sub: 'Market Closed Logs', color: 'purple', icon: Clock },
+          { title: 'Day End Completed', val: records.filter(r => r.dayEnd === 'Yes').length.toLocaleString(), sub: 'Market Closed Logs', color: 'purple', icon: Clock },
           { title: 'Covered DBs', val: new Set(records.map(r => r.dbCode).filter(Boolean)).size.toLocaleString(), sub: 'Distribution Points', color: 'amber', icon: Store },
         ];
       case 'summary_print':
