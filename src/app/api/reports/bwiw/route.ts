@@ -144,6 +144,58 @@ function formatDDMMYYYY(val: any): string {
   return s;
 }
 
+// Format date strictly as Month/Date/Year (e.g., 10/8/26) matching Perfetti sample format
+function formatMonthDayYear(val: any): string {
+  if (!val) return '';
+  let d = 0, m = 0, y = 0;
+  if (val instanceof Date) {
+    d = val.getDate();
+    m = val.getMonth() + 1;
+    y = val.getFullYear();
+  } else {
+    const s = String(val).trim();
+    if (!s) return '';
+    if (s.includes('/')) {
+      const parts = s.split('/');
+      if (parts.length === 3) {
+        if (parts[2].length === 4) {
+          // DD/MM/YYYY
+          d = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          y = parseInt(parts[2], 10);
+        } else if (parts[0].length === 4) {
+          // YYYY/MM/DD
+          y = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          d = parseInt(parts[2], 10);
+        } else {
+          return s;
+        }
+      }
+    } else if (s.includes('-')) {
+      const parts = s.split('T')[0].split(' ')[0].split('-');
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          // YYYY-MM-DD
+          y = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          d = parseInt(parts[2], 10);
+        } else if (parts[2].length === 4) {
+          // DD-MM-YYYY
+          d = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          y = parseInt(parts[2], 10);
+        }
+      }
+    }
+  }
+  if (d > 0 && m > 0 && y > 0) {
+    const yy = String(y).slice(-2);
+    return `${m}/${d}/${yy}`;
+  }
+  return String(val);
+}
+
 function toStandardDate(val: any): string {
   if (!val) return '';
   if (val instanceof Date) return val.toISOString().split('T')[0];
@@ -277,7 +329,12 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
     const srPositionCode = String(srMeta?.srPositionCode || meta.srPositionCode || 'DM-060');
     const territory = String(srMeta?.territory || meta.territory || 'Jatra Bari');
     const territoryCode = String(srMeta?.territoryCode || meta.territoryCode || 'T16');
-    const invoiceNo = String(order.code || `INV-${del.id}`);
+    const inv = del.order?.invoice || del.invoice || {};
+    const rawInvNum = String(inv.invoice_number || '').trim();
+    const cleanInvId = (rawInvNum || String(inv.id || del.id || '')).replace(/\D/g, '');
+    const invoiceNo = rawInvNum.startsWith('INV21')
+      ? rawInvNum
+      : `INV210018${(cleanInvId || '1').slice(-6).padStart(6, '0')}`;
 
     if (products.length === 0) {
       records.push({
@@ -313,8 +370,8 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
         orderVol: '',
         orderValue: Number(del.amount || 0),
         orderCashDiscount: Number(del.discount || 0) > 0 ? Number(del.discount) : '',
-        deliveryConfirmationDate: deliveryDate ? formatDDMMYYYY(deliveryDate) : '',
-        deliveryDate: deliveryDate ? formatDDMMYYYY(deliveryDate) : '',
+        deliveryConfirmationDate: deliveryDate ? formatMonthDayYear(deliveryDate) : '',
+        deliveryDate: deliveryDate ? formatMonthDayYear(deliveryDate) : '',
         deliveryQty: 1,
         deliveryVol: '',
         deliveryValue: Number(del.payable || del.amount || 0),
@@ -373,8 +430,8 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
           orderVol: (skuInfo.weightGram ? (qty * skuInfo.weightGram / 1000000) : (qty * 0.00036)).toFixed(6),
           orderValue: lineVal,
           orderCashDiscount: disc,
-          deliveryConfirmationDate: deliveryDate ? formatDDMMYYYY(deliveryDate) : '',
-          deliveryDate: deliveryDate ? formatDDMMYYYY(deliveryDate) : '',
+          deliveryConfirmationDate: deliveryDate ? formatMonthDayYear(deliveryDate) : '',
+          deliveryDate: deliveryDate ? formatMonthDayYear(deliveryDate) : '',
           deliveryQty: qty,
           deliveryVol: (skuInfo.weightGram ? (qty * skuInfo.weightGram / 1000000) : (qty * 0.00036)).toFixed(6),
           deliveryValue: lineVal,
@@ -466,6 +523,7 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
   const delCatIdx = delHeader.indexOf('Product Category');
   const delBrandIdx = delHeader.indexOf('Product Brand');
   const delNameIdx = delHeader.indexOf('Product Name');
+  const delInvIdx = delHeader.findIndex((h: any) => /invoice/i.test(String(h)));
 
   const records: BWIWRecord[] = [];
   for (let idx = 0; idx < delRows.length - 4; idx++) {
@@ -495,7 +553,14 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
     const qty = Number(r[delQtyIdx] || 0);
     const unitPrice = Number(r[delPriceIdx] || 0);
     const val = Number(r[delAmountIdx] || (qty * unitPrice));
-    const invNo = trackingId ? `INV-${trackingId}` : `INV-${1000 + idx}`;
+    const rawInvVal = delInvIdx !== -1 ? String(r[delInvIdx] || '').trim() : '';
+    let invNo = '';
+    if (rawInvVal.startsWith('INV21')) {
+      invNo = rawInvVal;
+    } else {
+      const cleanNum = (rawInvVal || trackingId).replace(/\D/g, '') || String(idx + 1);
+      invNo = `INV210018${cleanNum.slice(-6).padStart(6, '0')}`;
+    }
 
     const orderQty = Number(orderItem?.orderQty ?? qty);
     const orderVal = Number(orderItem?.orderValue ?? val);
@@ -533,8 +598,8 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
       orderVol: (((skuCatalogData as any)[skuCode])?.weightGram ? (orderQty * ((skuCatalogData as any)[skuCode])?.weightGram / 1000000) : (orderQty * 0.00036)).toFixed(6),
       orderValue: orderVal,
       orderCashDiscount: 0,
-      deliveryConfirmationDate: delDate ? formatDDMMYYYY(delDate) : '',
-      deliveryDate: delDate ? formatDDMMYYYY(delDate) : '',
+      deliveryConfirmationDate: delDate ? formatMonthDayYear(delDate) : '',
+      deliveryDate: delDate ? formatMonthDayYear(delDate) : '',
       deliveryQty: qty,
       deliveryVol: (((skuCatalogData as any)[skuCode])?.weightGram ? (qty * ((skuCatalogData as any)[skuCode])?.weightGram / 1000000) : (qty * 0.00036)).toFixed(6),
       deliveryValue: val,
