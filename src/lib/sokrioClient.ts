@@ -269,6 +269,146 @@ export async function fetchLiveUsers(forceRefresh = false): Promise<any[]> {
   return inflightUsersPromise;
 }
 
+let cachedTerritories: { data: any[]; timestamp: number } | null = null;
+let inflightTerritoriesPromise: Promise<any[]> | null = null;
+
+/**
+ * Shared live territories fetcher with in-flight deduplication & 10m live caching.
+ */
+export async function fetchLiveTerritories(forceRefresh = false): Promise<any[]> {
+  if (!forceRefresh && cachedTerritories && Date.now() - cachedTerritories.timestamp < 10 * 60 * 1000) {
+    return cachedTerritories.data;
+  }
+
+  if (inflightTerritoriesPromise) {
+    return inflightTerritoriesPromise;
+  }
+
+  inflightTerritoriesPromise = (async () => {
+    try {
+      const token = await getValidToken();
+      const allTerritories: any[] = [];
+      for (let page = 1; page <= 5; page++) {
+        try {
+          const res = await axios.get(`https://pvm.core.sokrio.com/api/v1/territories?per_page=100&page=${page}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            timeout: 25000,
+          });
+          const ters = res.data?.territories || [];
+          if (!ters.length) break;
+          allTerritories.push(...ters);
+          if (ters.length < 100) break;
+        } catch {
+          break;
+        }
+      }
+      if (allTerritories.length > 0) {
+        cachedTerritories = { data: allTerritories, timestamp: Date.now() };
+        return allTerritories;
+      }
+      return cachedTerritories?.data || [];
+    } finally {
+      inflightTerritoriesPromise = null;
+    }
+  })();
+
+  return inflightTerritoriesPromise;
+}
+
+export interface SrOrgInfo {
+  srCode: string;
+  srName: string;
+  positionCode: string;
+  dbCode: string;
+  dbName: string;
+  dbType: string;
+  territory: string;
+  territoryCode: string;
+  area: string;
+  areaCode: string;
+  cluster: string;
+  dbLat: number;
+  dbLng: number;
+}
+
+let cachedSrOrgMap: { data: Map<string, SrOrgInfo>; timestamp: number } | null = null;
+
+/**
+ * Dynamic Entity-Relationship Resolver:
+ * Maps SR Code -> Live User -> Position (Level 7) -> DB (Level 6) -> Territory (Level 5) -> Area (Level 4) -> Cluster (Level 3)
+ */
+export async function fetchLiveSrOrganizationMap(forceRefresh = false): Promise<Map<string, SrOrgInfo>> {
+  if (!forceRefresh && cachedSrOrgMap && Date.now() - cachedSrOrgMap.timestamp < 5 * 60 * 1000) {
+    return cachedSrOrgMap.data;
+  }
+
+  const [users, territories] = await Promise.all([
+    fetchLiveUsers(forceRefresh),
+    fetchLiveTerritories(forceRefresh),
+  ]);
+
+  const terMap = new Map<number, any>();
+  territories.forEach((t) => terMap.set(t.id, t));
+
+  const orgMap = new Map<string, SrOrgInfo>();
+
+  users.forEach((u) => {
+    const srCode = String(u.code || '').trim();
+    if (!srCode) return;
+
+    const pos = u.territory_id ? terMap.get(u.territory_id) : null;
+    let db: any = null;
+    let territory: any = null;
+    let area: any = null;
+    let cluster: any = null;
+
+    let cur = pos;
+    while (cur) {
+      const typeName = cur.territory_type?.name?.toLowerCase() || '';
+      if (typeName === 'db') {
+        db = cur;
+      } else if (typeName === 'territory') {
+        territory = cur;
+      } else if (typeName === 'area') {
+        area = cur;
+      } else if (typeName === 'cluster') {
+        cluster = cur;
+      }
+      cur = cur.parent_id ? terMap.get(cur.parent_id) : null;
+    }
+
+    const dbCode = db?.code || '102267';
+    const dbName = db?.name || 'M/S Ahamed Enterprise';
+    const dbType = resolveDbType(dbCode) === 'SUB' ? 'Sub DB' : 'Main DB';
+
+    let dbLat = 23.7102676;
+    let dbLng = 90.4895088;
+    if (dbCode === '101820') {
+      dbLat = 23.7788;
+      dbLng = 90.4285;
+    }
+
+    orgMap.set(srCode, {
+      srCode,
+      srName: u.name,
+      positionCode: pos?.code || '',
+      dbCode,
+      dbName,
+      dbType,
+      territory: territory?.name || 'Jatra Bari',
+      territoryCode: territory?.code || 'T16',
+      area: area?.name || 'Central South',
+      areaCode: area?.code || 'A20',
+      cluster: cluster?.name || 'Central',
+      dbLat,
+      dbLng,
+    });
+  });
+
+  cachedSrOrgMap = { data: orgMap, timestamp: Date.now() };
+  return orgMap;
+}
+
 /**
  * Resolves authentic PVM DB Type:
  * - SUB: Sub-distributor prefix 'SD' or 'ST' (TypeID 9)
