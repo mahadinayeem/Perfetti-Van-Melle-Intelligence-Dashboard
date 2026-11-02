@@ -39,28 +39,38 @@ const SR_METADATA: Record<string, { srPositionCode: string; territory: string; s
   '20145': { srPositionCode: 'COM-022', territory: 'Jatra Bari', srName: 'Md Nasir Sheikh' },
 };
 
-function formatDateToDDMMYYYY(val: any): string {
+function formatDateToMMDDYYYY(val: any): string {
   if (!val) return '';
   const s = String(val).trim();
-  if (s.includes('/')) {
-    const p = s.split('/');
-    if (p.length === 3) {
-      if (p[0].length === 4) return `${p[2].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[0]}`;
-      return `${p[0].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[2]}`;
-    }
-  }
   if (s.includes('-')) {
     const p = s.split(' ')[0].split('-');
     if (p.length === 3) {
-      if (p[0].length === 4) return `${p[2].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[0]}`;
-      return `${p[0].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[2]}`;
+      if (p[0].length === 4) {
+        // YYYY-MM-DD -> MM/DD/YYYY
+        return `${p[1].padStart(2, '0')}/${p[2].padStart(2, '0')}/${p[0]}`;
+      } else if (p[2].length === 4) {
+        // DD-MM-YYYY -> MM/DD/YYYY
+        return `${p[1].padStart(2, '0')}/${p[0].padStart(2, '0')}/${p[2]}`;
+      }
+    }
+  }
+  if (s.includes('/')) {
+    const p = s.split(' ')[0].split('/');
+    if (p.length === 3) {
+      if (p[0].length === 4) {
+        // YYYY/MM/DD -> MM/DD/YYYY
+        return `${p[1].padStart(2, '0')}/${p[2].padStart(2, '0')}/${p[0]}`;
+      } else if (p[2].length === 4) {
+        // Assume already MM/DD/YYYY or DD/MM/YYYY
+        return `${p[0].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[2]}`;
+      }
     }
   }
   const d = new Date(val);
   if (!isNaN(d.getTime())) {
-    const dd = String(d.getDate()).padStart(2, '0');
     const mm = String(d.getMonth() + 1).padStart(2, '0');
-    return `${dd}/${mm}/${d.getFullYear()}`;
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${mm}/${dd}/${d.getFullYear()}`;
   }
   return s;
 }
@@ -158,8 +168,8 @@ async function fetchLiveInvoicesFromSokrio(): Promise<MemoPrintRecord[]> {
       srName: srMeta.srName || g.srName,
       orderMemoNo: g.orderMemoCount,
       printingMemoNo: g.printedMemoCount,
-      orderDate: formatDateToDDMMYYYY(g.orderDate),
-      printingDate: formatDateToDDMMYYYY(g.printingDate || g.orderDate),
+      orderDate: formatDateToMMDDYYYY(g.orderDate),
+      printingDate: formatDateToMMDDYYYY(g.printingDate || g.orderDate),
       printingTime: formatTimeTo12Hour(g.latestPrintingTime || '10:42 PM'),
     };
   });
