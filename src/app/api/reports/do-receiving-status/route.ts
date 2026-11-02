@@ -82,6 +82,35 @@ function resolveTerritoryMeta(customerNo: string, routeCode: string, routeName: 
   };
 }
 
+/**
+ * Formats ISO or SQL timestamps into the exact sample Excel format:
+ * "DD/MM/YYYY HH:mm:ss AM/PM" (e.g. "08/09/2026 13:32:01 PM")
+ * If no timestamp exists in live data, returns empty string "" per user guidelines.
+ */
+function formatToSampleDateTime(dateVal?: string | null): string {
+  if (!dateVal) return '';
+  const str = String(dateVal).trim();
+  if (!str) return '';
+
+  const parts = str.includes('T') ? str.split('T') : str.split(' ');
+  const datePart = parts[0];
+  const timePart = parts[1] ? parts[1].replace('Z', '').slice(0, 8) : '';
+
+  const dateSub = datePart.split('-');
+  if (dateSub.length !== 3) return str;
+  const [yyyy, mm, dd] = dateSub;
+  if (!dd || !mm || !yyyy || isNaN(Number(yyyy))) return str;
+
+  const formattedDate = `${dd.padStart(2, '0')}/${mm.padStart(2, '0')}/${yyyy}`;
+  if (!timePart) return formattedDate;
+
+  const timeSub = timePart.split(':');
+  const hour = parseInt(timeSub[0] || '0', 10);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+
+  return `${formattedDate} ${timePart} ${ampm}`;
+}
+
 export interface DOReceivingRecord {
   id: string;
   cluster: string;
@@ -158,14 +187,26 @@ export async function GET(request: NextRequest) {
       const meta = resolveTerritoryMeta(custNo, routeCode, routeName, routeName);
 
       const dbCode = String(srMeta?.dbCode || meta.dbCode || '102267');
-      const dbName = String(srMeta?.dbName || meta.dbName || 'M/S Ahamed Enterprise');
+      const dbName = String(order.invoice?.seller_name || srMeta?.dbName || meta.dbName || 'M/S Ahamed Enterprise');
       const dbType = 'Main DB';
       const territory = String(srMeta?.territory || meta.territory || 'Jatra Bari');
       const area = String(meta.area || 'Central South');
       const cluster = 'Central';
 
-      const invoiceNo = String(d.order?.invoice?.invoice_number || d.code || (d.id ? `INV${d.id}` : ''));
-      const poNum = String(d.order?.code || (d.order_id ? `PO${d.order_id}` : ''));
+      // Timestamps formatted dynamically to DD/MM/YYYY HH:mm:ss AM/PM matching sample
+      const rawPoDateTime = order.created_at || order.device_order_time || order.order_date || '';
+      const poDateTime = formatToSampleDateTime(rawPoDateTime);
+
+      const rawInvoiceDateTime = order.invoice?.created_at || order.invoice?.invoice_date || d.created_at || '';
+      const invoiceDateTime = formatToSampleDateTime(rawInvoiceDateTime);
+
+      const rawDoReceivingDateTime = order.invoice?.delivered_at || d.created_at || d.deliver_date || '';
+      const doReceivingDateTime = formatToSampleDateTime(rawDoReceivingDateTime);
+
+      const invoiceNo = String(order.invoice?.invoice_number || order.invoice?.code || (order.invoice?.id ? String(order.invoice.id) : (d.code || (d.id ? `INV${d.id}` : ''))));
+      const poNum = String(order.code || (d.order_id ? `PO${d.order_id}` : ''));
+      const docType = 'ZBF2';
+      const doReceivingStatus = (order.invoice?.latest_status === 'delivered' || d.deliver_date) ? 'Received' : 'Pending';
       const prods = Array.isArray(d.products) ? d.products : [];
 
       for (const p of prods) {
@@ -179,6 +220,7 @@ export async function GET(request: NextRequest) {
         const pcsPerCtn = Number(skuInfo.piecesPerCtn || 15);
         const qtyCtn = Math.round((qtyPcs / pcsPerCtn) * 100) / 100;
         const val = Number(p.price ? p.price * qtyPcs : 0);
+        const uom = skuInfo.uom || 'BOX';
 
         records.push({
           id: `do-rec-${count}`,
@@ -191,19 +233,19 @@ export async function GET(request: NextRequest) {
           dbName,
           dBType: dbType,
           dbType,
-          poDateTime: delDateStr,
+          poDateTime,
           poNumber: poNum,
           invoiceNo,
-          invoiceDateTime: `${delDateStr} ${delTimeStr}`.trim(),
-          docType: 'ZDOM',
-          doReceivingDateTime: `${delDateStr} ${delTimeStr}`.trim(),
+          invoiceDateTime,
+          docType,
+          doReceivingDateTime,
           brand,
           sKUCode: skuCode,
           skuCode,
           sKUName: skuName,
           skuName,
-          uOM: skuInfo.uom || 'CTN',
-          uom: skuInfo.uom || 'CTN',
+          uOM: uom,
+          uom,
           sapQtyCtn: qtyCtn,
           sapQtyPcs: qtyPcs,
           sapValueDBLanding: val,
@@ -212,7 +254,7 @@ export async function GET(request: NextRequest) {
           dbReceivedQtyPcs: qtyPcs,
           dbReceivedValueDBLanding: val,
           dbReceivedTon: Math.round((qtyPcs * (skuInfo.weightGram || 500) / 1000000) * 1000) / 1000,
-          doReceivingStatus: 'Received',
+          doReceivingStatus,
         });
       }
     }
