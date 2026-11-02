@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
+import { getValidToken, resolveDbType, fetchLiveSrOrganizationMap } from '@/lib/sokrioClient';
 import axios from 'axios';
-import * as fs from 'fs';
-import * as path from 'path';
 import * as XLSX from 'xlsx';
 
 export const dynamic = 'force-dynamic';
@@ -28,36 +26,37 @@ export interface SummaryPrintRecord {
 const memoryCache = new Map<string, { records: SummaryPrintRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
-const SR_METADATA: Record<string, { srPositionCode: string; territory: string }> = {
-  '54506': { srPositionCode: 'DM-057', territory: 'Jatra Bari' },
-  '51639': { srPositionCode: 'DM-217', territory: 'Jatra Bari' },
-  '53995': { srPositionCode: 'DM-057', territory: 'Jatra Bari' },
-  '54233': { srPositionCode: 'DM-059', territory: 'Jatra Bari' },
-  '20145': { srPositionCode: 'COM-022', territory: 'Jatra Bari' },
-};
-
-function formatDateToDDMMYYYY(val: any): string {
+function formatDateToMMDDYYYY(val: any): string {
   if (!val) return '';
   const s = String(val).trim();
-  if (s.includes('/')) {
-    const p = s.split('/');
-    if (p.length === 3) {
-      if (p[0].length === 4) return `${p[2].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[0]}`;
-      return `${p[0].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[2]}`;
-    }
-  }
   if (s.includes('-')) {
     const p = s.split(' ')[0].split('-');
     if (p.length === 3) {
-      if (p[0].length === 4) return `${p[2].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[0]}`;
-      return `${p[0].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[2]}`;
+      if (p[0].length === 4) {
+        // YYYY-MM-DD -> MM/DD/YYYY
+        return `${p[1].padStart(2, '0')}/${p[2].padStart(2, '0')}/${p[0]}`;
+      } else if (p[2].length === 4) {
+        // DD-MM-YYYY -> MM/DD/YYYY
+        return `${p[1].padStart(2, '0')}/${p[0].padStart(2, '0')}/${p[2]}`;
+      }
+    }
+  }
+  if (s.includes('/')) {
+    const p = s.split(' ')[0].split('/');
+    if (p.length === 3) {
+      if (p[0].length === 4) {
+        // YYYY/MM/DD -> MM/DD/YYYY
+        return `${p[1].padStart(2, '0')}/${p[2].padStart(2, '0')}/${p[0]}`;
+      } else if (p[2].length === 4) {
+        return `${p[0].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[2]}`;
+      }
     }
   }
   const d = new Date(val);
   if (!isNaN(d.getTime())) {
-    const dd = String(d.getDate()).padStart(2, '0');
     const mm = String(d.getMonth() + 1).padStart(2, '0');
-    return `${dd}/${mm}/${d.getFullYear()}`;
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${mm}/${dd}/${d.getFullYear()}`;
   }
   return s;
 }
@@ -82,16 +81,17 @@ function formatTimeTo12Hour(val: any): string {
   return s;
 }
 
-
-
-async function fetchLiveSummaryPrintsFromSokrio(): Promise<SummaryPrintRecord[]> {
+async function fetchLiveSummaryPrintsFromSokrio(startDate?: string, endDate?: string): Promise<SummaryPrintRecord[]> {
   const token = await getValidToken();
   const url = 'https://pvm.core.sokrio.com/api/v1/invoices?per_page=150';
 
-  const res = await axios.get(url, {
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    timeout: 30000,
-  });
+  const [res, orgMap] = await Promise.all([
+    axios.get(url, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      timeout: 30000,
+    }),
+    fetchLiveSrOrganizationMap().catch(() => new Map<string, any>()),
+  ]);
 
   const invoices: any[] = res.data?.invoices || res.data?.data || [];
   if (invoices.length === 0) return [];
@@ -103,33 +103,50 @@ async function fetchLiveSummaryPrintsFromSokrio(): Promise<SummaryPrintRecord[]>
     const srCode = String(inv.creator?.code || inv.ordered_by?.code || '').trim();
     if (!srCode) return;
 
-    const srName = String(inv.creator?.name || inv.ordered_by?.name || `SR ${srCode}`).trim();
-    const srMeta = SR_METADATA[srCode] || { srPositionCode: '', territory: 'Jatra Bari' };
-
     const createdAt = inv.created_at || '';
     const parts = createdAt.split(' ');
     const rawPrintingDate = parts[0] || '';
     const rawPrintingTime = parts.slice(1).join(' ') || '';
     const rawOrderDate = inv.order?.order_date || rawPrintingDate;
 
+    // Filter by date range if provided
+    if (startDate && endDate) {
+      const checkDate = rawPrintingDate || rawOrderDate;
+      if (checkDate && (checkDate < startDate || checkDate > endDate)) {
+        return;
+      }
+    }
+
     const groupKey = `${srCode}_${rawOrderDate}_${rawPrintingDate}`;
 
     if (!grouped[groupKey]) {
-      grouped[groupKey] = {
-        id: `summary-print-live-${idx + 1}`,
+      const rawSrName = String(inv.creator?.name || inv.ordered_by?.name || '').trim();
+      const org = orgMap.get(srCode) || {
         cluster: 'Central',
         area: 'Central South',
-        territory: srMeta.territory,
-        dbCodeAutogenerated: srMeta.territory || 'Jatra Bari',
+        territory: 'Jatra Bari',
         dbCode: 102267,
         dbName: 'M/S Ahamed Enterprise',
         dbType: 'Main DB',
+        positionCode: 'DM-060',
+        srName: rawSrName || `SR ${srCode}`,
+      };
+
+      grouped[groupKey] = {
+        id: `summary-print-live-${idx + 1}`,
+        cluster: org.cluster || 'Central',
+        area: org.cluster || 'Central', // Sample Excel sets Area to Cluster ('Central')
+        territory: org.area || 'Central South', // Sample Excel sets Territory to Area ('Central South')
+        dbCodeAutogenerated: org.territory || 'Jatra Bari', // Sample Excel sets autogenerated to Territory ('Jatra Bari')
+        dbCode: Number(org.dbCode) || org.dbCode || 102267,
+        dbName: org.dbName || 'M/S Ahamed Enterprise',
+        dbType: org.dbType || 'Main DB',
         printerType: 'Web',
-        srPositionCode: srMeta.srPositionCode,
+        srPositionCode: org.positionCode || 'DM-060',
         srCode: Number(srCode) || srCode,
-        srName,
-        orderDate: formatDateToDDMMYYYY(rawOrderDate),
-        printingDate: formatDateToDDMMYYYY(rawPrintingDate),
+        srName: rawSrName || org.srName,
+        orderDate: formatDateToMMDDYYYY(rawOrderDate),
+        printingDate: formatDateToMMDDYYYY(rawPrintingDate),
         printingTime: formatTimeTo12Hour(rawPrintingTime),
       };
     }
@@ -162,7 +179,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    let records = await fetchLiveSummaryPrintsFromSokrio();
+    let records = await fetchLiveSummaryPrintsFromSokrio(startDate, endDate);
     let source = 'sokrio_live_api';
 
     const meta = {
