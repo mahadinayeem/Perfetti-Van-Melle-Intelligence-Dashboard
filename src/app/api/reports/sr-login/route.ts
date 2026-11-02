@@ -1,31 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
+import { getValidToken } from '@/lib/sokrioClient';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
-
-function formatTimeToHHMMSS(val: any): string {
-  if (!val || val === '-' || val === 'null' || val === 'undefined') return '';
-  const s = String(val).trim();
-  const timePart = s.includes(' ') ? s.split(' ')[1] : (s.includes('T') ? s.split('T')[1] : s);
-  const ampmMatch = timePart.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
-  if (ampmMatch) {
-    let [_, hStr, mStr, sStr, ampm] = ampmMatch;
-    let h = parseInt(hStr, 10);
-    let m = mStr.padStart(2, '0');
-    let sec = (sStr || '00').padStart(2, '0');
-    if (ampm) {
-      if (ampm.toLowerCase() === 'pm' && h < 12) h += 12;
-      if (ampm.toLowerCase() === 'am' && h === 12) h = 0;
-    }
-    return `${String(h).padStart(2, '0')}:${m}:${sec}`;
-  }
-  const isoMatch = timePart.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-  if (isoMatch) {
-    let [_, hStr, mStr, sStr] = isoMatch;
-    return `${hStr.padStart(2, '0')}:${mStr.padStart(2, '0')}:${(sStr || '00').padStart(2, '0')}`;
-  }
-  return s;
-}
 
 export const dynamic = 'force-dynamic';
 
@@ -50,18 +26,55 @@ export interface SrLoginRecord {
 const memoryCache = new Map<string, { records: SrLoginRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
-const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; territory: string; territoryCode: string; dbCode: string; dbName: string }> = {
-  '54506': { srPositionCode: 'DM-060', srName: 'Mostafizur Rahman', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
-  '53995': { srPositionCode: 'DM-057', srName: 'Chaon Khandker', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
-  '54233': { srPositionCode: 'DM-059', srName: 'Md. Asebur Rahman Ashik', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
-  '51639': { srPositionCode: 'DM-217', srName: 'Md. Shawkat Hossen', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
-};
+// Distributor DB GPS Coordinates for Haversine Distance Calculation (M/S Ahamed Enterprise - DB 102267)
+const DB_LAT = 23.7102676;
+const DB_LNG = 90.4895088;
+
+function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3; // meters
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function formatTimeToHHMMSS(val: any): string {
+  if (!val || val === '-' || val === 'null' || val === 'undefined') return '';
+  const s = String(val).trim();
+  const timePart = s.includes(' ') ? s.split(' ').slice(1).join(' ') : (s.includes('T') ? s.split('T')[1] : s);
+  const ampmMatch = timePart.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (ampmMatch) {
+    let [_, hStr, mStr, sStr, ampm] = ampmMatch;
+    let h = parseInt(hStr, 10);
+    let m = mStr.padStart(2, '0');
+    let sec = (sStr || '00').padStart(2, '0');
+    if (ampm) {
+      if (ampm.toLowerCase() === 'pm' && h < 12) h += 12;
+      if (ampm.toLowerCase() === 'am' && h === 12) h = 0;
+    }
+    return `${String(h).padStart(2, '0')}:${m}:${sec}`;
+  }
+  const isoMatch = timePart.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (isoMatch) {
+    let [_, hStr, mStr, sStr] = isoMatch;
+    return `${hStr.padStart(2, '0')}:${mStr.padStart(2, '0')}:${(sStr || '00').padStart(2, '0')}`;
+  }
+  return s;
+}
 
 async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): Promise<SrLoginRecord[]> {
   let token = await getValidToken();
 
   const makeRequests = async (authToken: string) => {
-    const attendanceUrl = `https://pvm.report.sokrio.com/api/v1/attendance-report?range=${startDate}%2C${endDate}&type=xlsx&download`;
+    // Live Day In / Day Out Attendance Report (API v3)
+    const attendanceUrl = `https://pvm.report.sokrio.com/api/v3/daily-attendance?range=${startDate}%2C${endDate}&territory_id=1&roles=7%2C6%2C5%2C4%2C3%2C2%2C1&download`;
+    // Live Checkin Report (API v1)
     const checkinUrl = `https://pvm.report.sokrio.com/api/v1/checkin-report?range=${startDate}%2C${endDate}&roles=&type=xlsx&download`;
 
     return await Promise.all([
@@ -88,103 +101,139 @@ async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): 
       token = await getValidToken(true);
       [attendanceRes, checkinRes] = await makeRequests(token);
     } else {
-      throw err;
+      console.warn('[SR Login] Live attendance API error, proceeding:', err.message);
     }
-  }
-
-  // 1. Parse checkins for Lat, Lon, Distance
-  const checkinMap = new Map<string, { lat: number | string; lng: number | string; distance: string; checkinTime: string }>();
-  if (checkinRes?.data) {
-    try {
-      const wb = XLSX.read(checkinRes.data, { type: 'buffer' });
-      const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]) || [];
-      rows.forEach(c => {
-        const code = String(c['Employee Code'] || '').trim();
-        if (!code) return;
-        if (!checkinMap.has(code)) {
-          checkinMap.set(code, {
-            lat: c['Latitude'] || 23.710048,
-            lng: c['Longitude'] || 90.490910,
-            distance: String(c['Distance from DB'] || c['Distance'] || '144.71'),
-            checkinTime: String(c['Check in Time '] || c['Time'] || ''),
-          });
-        }
-      });
-    } catch (e) {
-      console.warn('[SR Login] Error parsing checkins:', e);
-    }
-  }
-
-  // 2. Parse attendance for Day In (loginTime), Day Out (endTime), DayEnd
-  const attendanceMap = new Map<string, { name: string; dayIn: string; dayOut: string }>();
-  if (attendanceRes?.data) {
-    try {
-      const wb = XLSX.read(attendanceRes.data, { type: 'buffer' });
-      const rows: any[][] = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 }) || [];
-      if (rows.length > 3) {
-        const headers = (rows[3] || []).map((h: any) => String(h || '').trim().toLowerCase());
-        const empCodeIdx = headers.findIndex((h: string) => h.includes('employee code') || h.includes('emp code') || h.includes('user code'));
-        const dayInIdx = headers.findIndex((h: string) => h.includes('day in time') || h.includes('day-in') || h.includes('day in'));
-        const dayOutIdx = headers.findIndex((h: string) => h.includes('day out time') || h.includes('day-out') || h.includes('day out'));
-        const nameIdx = headers.findIndex((h: string) => h.includes('name'));
-
-        rows.slice(4).forEach(r => {
-          const code = String(r[empCodeIdx >= 0 ? empCodeIdx : 3] || '').trim();
-          if (!code) return;
-          attendanceMap.set(code, {
-            name: String(r[nameIdx >= 0 ? nameIdx : 2] || '').trim(),
-            dayIn: String(r[dayInIdx >= 0 ? dayInIdx : 4] || ''),
-            dayOut: String(r[dayOutIdx >= 0 ? dayOutIdx : 8] || ''),
-          });
-        });
-      }
-    } catch (e) {
-      console.warn('[SR Login] Error parsing attendance:', e);
-    }
-  }
-
-  const allCodes = new Set([...Array.from(attendanceMap.keys()), ...Array.from(checkinMap.keys())]);
-  if (allCodes.size === 0) {
-    ['51639', '53995', '54233', '54506'].forEach(c => allCodes.add(c));
   }
 
   const records: SrLoginRecord[] = [];
+  const processedKeys = new Set<string>();
   let idx = 1;
-  for (const code of allCodes) {
-    const att = attendanceMap.get(code);
-    const chk = checkinMap.get(code);
-    const srMeta = SR_METADATA_MAP[code];
 
-    const srName = srMeta?.srName || att?.name || `SR ${code}`;
-    const rawDayIn = att?.dayIn || chk?.checkinTime || '';
-    const loginTime = formatTimeToHHMMSS(rawDayIn) || '';
-    const rawDayOut = att?.dayOut && att.dayOut !== '-' ? att.dayOut : '';
-    const endTime = rawDayOut ? formatTimeToHHMMSS(rawDayOut) : '';
-    const dayEnd = endTime ? 'Yes' : 'No';
+  // 1. Primary Source: Parse live Day In / Day Out Report from API v3
+  if (attendanceRes?.data) {
+    try {
+      const wb = XLSX.read(attendanceRes.data, { type: 'buffer' });
+      const sheetName = wb.SheetNames[0];
+      const rows: any[][] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1 }) || [];
 
-    const distance = chk?.distance || '';
-    const lat = chk?.lat || '';
-    const lng = chk?.lng || '';
+      if (rows.length > 4) {
+        const dataRows = rows.slice(4);
+        dataRows.forEach((r) => {
+          const orderDate = String(r[1] || '').trim();
+          const srName = String(r[2] || '').trim();
+          const srCode = String(r[3] || '').trim();
+          const rawDayIn = String(r[4] || '').trim();
+          const dayInLatLong = String(r[6] || '').trim();
+          const rawDayOut = String(r[8] || '').trim();
 
-    records.push({
-      id: `sr-login-live-${idx++}`,
-      orderDate: startDate,
-      area: 'Central South',
-      territory: srMeta?.territory || 'Jatra Bari',
-      dbCode: srMeta?.dbCode || 102267,
-      dbName: srMeta?.dbName || 'M/S Ahamed Enterprise',
-      dbType: 'Main DB',
-      srCode: Number(code) || code,
-      srName,
-      loginTime,
-      endTime,
-      distanceFromDbLocation: distance,
-      dayEnd,
-      startWorkLatitude: lat,
-      startWorkLongitude: lng,
-    });
+          if (!srCode) return;
+
+          const key = `${srCode}-${orderDate}`;
+          if (processedKeys.has(key)) return;
+          processedKeys.add(key);
+
+          const loginTime = formatTimeToHHMMSS(rawDayIn);
+          const endTime = rawDayOut && rawDayOut !== '-' ? formatTimeToHHMMSS(rawDayOut) : '';
+          const dayEnd = endTime ? 'Yes' : 'No';
+
+          let lat: number | string = '';
+          let lng: number | string = '';
+          let distance: number | string = '';
+
+          if (dayInLatLong && dayInLatLong.includes(',')) {
+            const parts = dayInLatLong.split(',');
+            const pLat = parseFloat(parts[0]);
+            const pLng = parseFloat(parts[1]);
+            if (!isNaN(pLat) && !isNaN(pLng)) {
+              lat = pLat;
+              lng = pLng;
+              distance = haversineMeters(DB_LAT, DB_LNG, pLat, pLng).toFixed(2);
+            }
+          }
+
+          records.push({
+            id: `sr-login-${idx++}`,
+            orderDate,
+            area: 'Central South',
+            territory: 'Jatra Bari',
+            dbCode: '102267',
+            dbName: 'M/S Ahamed Enterprise',
+            dbType: 'Main DB',
+            srCode: Number(srCode) || srCode,
+            srName,
+            loginTime,
+            endTime,
+            distanceFromDbLocation: distance,
+            dayEnd,
+            startWorkLatitude: lat,
+            startWorkLongitude: lng,
+          });
+        });
+      }
+    } catch (e: any) {
+      console.warn('[SR Login] Error parsing attendance workbook:', e.message);
+    }
   }
 
+  // 2. Secondary Fallback Source: Parse live check-ins for any SRs who checked in to retail outlets
+  if (checkinRes?.data) {
+    try {
+      const wb = XLSX.read(checkinRes.data, { type: 'buffer' });
+      const sheetName = wb.SheetNames[0];
+      const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName]) || [];
+
+      rows.forEach((c) => {
+        const srCode = String(c['Employee Code'] || '').trim();
+        const orderDate = String(c['Date'] || '').trim();
+        if (!srCode) return;
+
+        const key = `${srCode}-${orderDate}`;
+        if (processedKeys.has(key)) return;
+        processedKeys.add(key);
+
+        const srName = String(c['Name'] || `SR ${srCode}`).trim();
+        const rawCheckin = String(c['Check in Time '] || c['Time'] || '').trim();
+        const rawCheckout = String(c['Check Out Time '] || '').trim();
+        const loginTime = formatTimeToHHMMSS(rawCheckin);
+        const endTime = rawCheckout && rawCheckout !== '-' ? formatTimeToHHMMSS(rawCheckout) : '';
+        const dayEnd = endTime ? 'Yes' : 'No';
+
+        const pLat = parseFloat(c['Latitude']);
+        const pLng = parseFloat(c['Longitude']);
+        let lat: number | string = '';
+        let lng: number | string = '';
+        let distance: number | string = '';
+
+        if (!isNaN(pLat) && !isNaN(pLng)) {
+          lat = pLat;
+          lng = pLng;
+          distance = haversineMeters(DB_LAT, DB_LNG, pLat, pLng).toFixed(2);
+        }
+
+        records.push({
+          id: `sr-login-${idx++}`,
+          orderDate,
+          area: 'Central South',
+          territory: 'Jatra Bari',
+          dbCode: '102267',
+          dbName: 'M/S Ahamed Enterprise',
+          dbType: 'Main DB',
+          srCode: Number(srCode) || srCode,
+          srName,
+          loginTime,
+          endTime,
+          distanceFromDbLocation: distance,
+          dayEnd,
+          startWorkLatitude: lat,
+          startWorkLongitude: lng,
+        });
+      });
+    } catch (e: any) {
+      console.warn('[SR Login] Error parsing checkin workbook:', e.message);
+    }
+  }
+
+  // No fake or dummy records fallback: return authentic live records
   return records;
 }
 
