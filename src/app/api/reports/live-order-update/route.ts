@@ -6,8 +6,6 @@ import skuCatalogData from '@/lib/skuCatalog.json';
 import customerMapData from '@/lib/customerMap.json';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
-import path from 'path';
-import fs from 'fs';
 
 const CUSTOMER_MAP: Record<string, string> = customerMapData as Record<string, string>;
 
@@ -17,7 +15,7 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
  * Format any date value into DD-MMM-YYYY (e.g., 11-Oct-2026) matching sample format.
  * Returns empty string if no date value is provided (no dummy fallback).
  */
-export function formatDDMMMYYYY(val: any): string {
+function formatDDMMMYYYY(val: any): string {
   if (!val) return '';
   const str = String(val).trim();
   if (!str) return '';
@@ -83,7 +81,7 @@ const SR_ORDER_PREFIX_MAP: Record<string, string> = {
  * Uses live Order Reference if present, or dynamically combines the SR device terminal code
  * with the live Tracking ID. Leaves empty if neither is available (no dummy data).
  */
-export function formatOrderNo(orderRef: any, trackingId: any, srCode: string): string {
+function formatOrderNo(orderRef: any, trackingId: any, srCode: string): string {
   const refStr = String(orderRef || '').trim();
   if (refStr && refStr.toUpperCase().startsWith('PB')) {
     return refStr;
@@ -211,77 +209,6 @@ const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; 
 
 const SKU_CATALOG: Record<string, { motherSkuCode: string; motherSkuName: string; category: string; uom: string; brand: string }> = skuCatalogData as any;
 
-/**
- * Load official sample data from Report Sample.xlsx for 100% fidelity on sample dates / offline fallbacks
- */
-function loadSampleLiveOrders(): LiveOrderUpdateRecord[] {
-  try {
-    const sampleFilePath = path.join(process.cwd(), 'Report Sample.xlsx');
-    if (!fs.existsSync(sampleFilePath)) return [];
-
-    const buf = fs.readFileSync(sampleFilePath);
-    const wb = XLSX.read(buf, { type: 'buffer' });
-    const sheet = wb.Sheets['Live Order Update Report'];
-    if (!sheet) return [];
-
-    const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
-    if (rawData.length < 2) return [];
-
-    const headers = (rawData[0] || []).map((h) => String(h || '').trim());
-    const rows = rawData.slice(1);
-
-    return rows.map((r, idx) => {
-      const obj: Record<string, any> = {};
-      headers.forEach((h, colIdx) => {
-        obj[h] = r[colIdx];
-      });
-
-      const territoryVal = String(obj['1'] || obj['Territory'] || 'Jatra Bari').trim();
-      const srCode = String(obj['SR Code'] || '').trim();
-      const skuCode = String(obj['SKU Code'] || '').trim();
-      const custNo = String(obj['Customer No'] || '').trim();
-      const orderDate = formatDDMMMYYYY(obj['Order Date'] || '11-Oct-2026');
-
-      return {
-        id: `sample-order-${idx + 1}`,
-        cluster: String(obj['Cluster'] || 'Central').trim(),
-        area: String(obj['Area'] || 'Central South').trim(),
-        territory: territoryVal,
-        dbCode: String(obj['DB Code'] || '102267').trim(),
-        dbName: String(obj['DB Name'] || 'M/S Ahamed Enterprise').trim(),
-        dbType: String(obj['DB Type'] || 'MAIN DB').trim(),
-        srPosition: String(obj['SR Position'] || '').trim(),
-        srCode,
-        srName: String(obj['SR Name'] || '').trim(),
-        orderDate,
-        routeCode: String(obj['Route Code'] || '').trim(),
-        routeName: String(obj['Route Name'] || '').trim(),
-        customerNo: custNo,
-        customerName: String(obj['Customer Name'] || '').trim(),
-        orderNo: String(obj['Order No'] || '').trim(),
-        category: String(obj['Category'] || '').trim(),
-        motherSkuCode: String(obj['Mother SKU Code'] || '').trim(),
-        motherSkuName: String(obj['Mother SKU Name'] || '').trim(),
-        brand: String(obj['Brand'] || '').trim(),
-        skuCode,
-        skuName: String(obj['SKU Name'] || '').trim(),
-        qty: Number(obj['Qty'] || 0),
-        price: Number(obj['Price'] || 0),
-        orderValue: Number(obj['Order Value'] || 0),
-        discountValue: Number(obj['Discount Value'] || 0),
-        cashDiscount: Number(obj['Cash Discount'] || 0),
-        valueAfterDiscount: Number(obj['Value After Discount'] || 0),
-        orderStatus: String(obj['Order Status'] || '').trim(),
-        uom: String(obj['UOM'] || 'PCS').trim(),
-        channel: String(obj['Channel'] || 'Retail').trim(),
-      };
-    });
-  } catch (err: any) {
-    console.warn('[Live Order Update] Failed to load sample Excel data:', err.message);
-    return [];
-  }
-}
-
 async function fetchLiveOrdersFromSokrio(startDate: string, endDate: string): Promise<LiveOrderUpdateRecord[]> {
   let token = await getValidToken();
 
@@ -400,22 +327,10 @@ export async function GET(req: NextRequest) {
     let records: LiveOrderUpdateRecord[] = [];
     let source = 'sokrio_live_api';
 
-    // If querying sample date explicitly, return sample data directly
-    if (startDate === '2026-10-11' && endDate === '2026-10-11') {
-      records = loadSampleLiveOrders();
-      source = 'sample_excel';
-    } else {
-      try {
-        records = await fetchLiveOrdersFromSokrio(startDate, endDate);
-      } catch (err: any) {
-        console.warn('[Live Order Update] Live API fetch failed:', err.message);
-      }
-
-      // If live API returned zero records (e.g. weekend/no activity), provide sample data as fallback
-      if (records.length === 0) {
-        records = loadSampleLiveOrders();
-        source = 'sample_excel_fallback';
-      }
+    try {
+      records = await fetchLiveOrdersFromSokrio(startDate, endDate);
+    } catch (err: any) {
+      console.warn('[Live Order Update] Live API fetch failed:', err.message);
     }
 
     const totalOrders = new Set(records.map((r) => r.orderNo).filter(Boolean)).size;
