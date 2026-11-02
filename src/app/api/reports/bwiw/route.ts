@@ -196,6 +196,14 @@ function formatMonthDayYear(val: any): string {
   return String(val);
 }
 
+// Ensure invoice numbers start with INV prefix using purely live system data without artificial padding
+function formatInvoiceNo(val: any): string {
+  const s = String(val || '').trim();
+  if (!s) return '';
+  if (s.toUpperCase().startsWith('INV')) return s;
+  return `INV-${s}`;
+}
+
 function toStandardDate(val: any): string {
   if (!val) return '';
   if (val instanceof Date) return val.toISOString().split('T')[0];
@@ -330,11 +338,8 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
     const territory = String(srMeta?.territory || meta.territory || 'Jatra Bari');
     const territoryCode = String(srMeta?.territoryCode || meta.territoryCode || 'T16');
     const inv = del.order?.invoice || del.invoice || {};
-    const rawInvNum = String(inv.invoice_number || '').trim();
-    const cleanInvId = (rawInvNum || String(inv.id || del.id || '')).replace(/\D/g, '');
-    const invoiceNo = rawInvNum.startsWith('INV21')
-      ? rawInvNum
-      : `INV210018${(cleanInvId || '1').slice(-6).padStart(6, '0')}`;
+    const liveInvoiceVal = inv.invoice_number || del.order?.tracking_id || del.order?.order_number || del.order?.code || del.id || '';
+    const invoiceNo = formatInvoiceNo(liveInvoiceVal);
 
     if (products.length === 0) {
       records.push({
@@ -554,13 +559,8 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
     const unitPrice = Number(r[delPriceIdx] || 0);
     const val = Number(r[delAmountIdx] || (qty * unitPrice));
     const rawInvVal = delInvIdx !== -1 ? String(r[delInvIdx] || '').trim() : '';
-    let invNo = '';
-    if (rawInvVal.startsWith('INV21')) {
-      invNo = rawInvVal;
-    } else {
-      const cleanNum = (rawInvVal || trackingId).replace(/\D/g, '') || String(idx + 1);
-      invNo = `INV210018${cleanNum.slice(-6).padStart(6, '0')}`;
-    }
+    const liveInvId = rawInvVal || trackingId || '';
+    const invNo = formatInvoiceNo(liveInvId);
 
     const orderQty = Number(orderItem?.orderQty ?? qty);
     const orderVal = Number(orderItem?.orderValue ?? val);
