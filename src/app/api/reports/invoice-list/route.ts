@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getValidToken } from '@/lib/sokrioClient';
 import axios from 'axios';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as XLSX from 'xlsx';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,8 +25,6 @@ export interface InvoiceListRecord {
 const memoryCache = new Map<string, { records: InvoiceListRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
-
-
 function formatDateToMMDDYYYY(rawDate: string): string {
   if (!rawDate) return '';
   const clean = rawDate.split('T')[0].split(' ')[0].trim();
@@ -39,20 +34,20 @@ function formatDateToMMDDYYYY(rawDate: string): string {
       return `${parts[1]}/${parts[2]}/${parts[0]}`;
     }
     if (parts[2].length === 4) {
-      return `${parts[1]}/${parts[0]}/${parts[2]}`;
+      return `${parts[0]}/${parts[1]}/${parts[2]}`;
     }
   }
   return clean;
 }
 
-async function fetchLiveInvoicesFromSokrio(): Promise<InvoiceListRecord[]> {
+async function fetchLiveInvoicesFromSokrio(startDate?: string, endDate?: string): Promise<InvoiceListRecord[]> {
   const token = await getValidToken();
   let invoices: any[] = [];
   try {
     const url = 'https://pvm.core.sokrio.com/api/v1/invoices?per_page=150';
     const res = await axios.get(url, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      timeout: 20000,
+      timeout: 25000,
     });
     invoices = res.data?.invoices || res.data?.data || [];
   } catch (e: any) {
@@ -64,7 +59,7 @@ async function fetchLiveInvoicesFromSokrio(): Promise<InvoiceListRecord[]> {
       const delUrl = 'https://pvm.core.sokrio.com/api/v1/deliveries?per_page=150';
       const delRes = await axios.get(delUrl, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-        timeout: 20000,
+        timeout: 25000,
       });
       invoices = delRes.data?.data || (Array.isArray(delRes.data) ? delRes.data : []);
     } catch (e: any) {
@@ -78,25 +73,40 @@ async function fetchLiveInvoicesFromSokrio(): Promise<InvoiceListRecord[]> {
   let rowId = 1;
 
   for (const inv of invoices) {
-    const invoiceNo = inv.order?.invoice?.invoice_number || inv.code || (inv.id ? `INV-${inv.id}` : '');
-    const custNo = inv.seller?.code || inv.department?.code || inv.order?.buyer_id || inv.buyer_id || (inv.buyer?.code ? String(inv.buyer.code) : '');
-    const rawCreatedAt = inv.deliver_date || inv.order?.order_date || inv.created_at || '';
-    const invoiceDate = formatDateToMMDDYYYY(rawCreatedAt);
-    const custReferenceNo = String(inv.order?.code || inv.code || (inv.id ? `PB${inv.id}` : ''));
-    const poDate = formatDateToMMDDYYYY(inv.order?.order_date || rawCreatedAt);
-    const totalAmt = Number(inv.payable_amount || inv.payable || inv.total_price || inv.amount || 0);
+    const rawCreatedAt = inv.delivered_at || inv.deliver_date || inv.created_at || inv.order?.order_date || '';
+    const dateStr = rawCreatedAt.split('T')[0].split(' ')[0].trim();
+    if (startDate && endDate && dateStr) {
+      if (dateStr < startDate || dateStr > endDate) continue;
+    }
 
-    const products = inv.order?.latest_revision?.ordered_products || inv.products || [];
+    const invoiceNo = inv.order?.invoice?.invoice_number || inv.code || (inv.id ? `INV-${inv.id}` : '');
+    const custNo = (inv.seller_id === 3249 || inv.seller?.code === '102267') ? '102267' : (inv.seller?.code || inv.buyer?.code || inv.buyer_id || '102267');
+    const invoiceDate = formatDateToMMDDYYYY(rawCreatedAt);
+    const custReferenceNo = String(inv.order?.code || inv.code || (inv.id ? `PO${inv.id}` : ''));
+    const poDate = formatDateToMMDDYYYY(inv.order?.order_date || rawCreatedAt);
+    const externalDocNo = ''; // Blank in sample Excel
+    const docType = 'ZBF2'; // Matching sample Excel (ZBF2)
+    const receivingDt = rawCreatedAt ? rawCreatedAt.replace('T', ' ').split('.')[0].trim() : invoiceDate;
+    const invoiceGrandTotal = Number(inv.payable || inv.payable_amount || inv.amount || inv.total_price || 0);
+
+    const products = inv.latest_revision?.invoiced_products 
+      || (Array.isArray(inv.products) && inv.products.length > 0 ? inv.products : null)
+      || inv.order?.latest_revision?.ordered_products 
+      || inv.order?.latest_revision?.invoiced_products
+      || [];
+
     if (products.length > 0) {
       products.forEach((p: any, pIdx: number) => {
         const itemNo = String(p.product?.base_product?.sku || p.product_id || '').trim();
-        const qty = Number(p.qty || 0);
-        const price = Number(p.price || 0);
+        const qty = Number(p.qty || 1);
+        const unitPrice = Number(p.price || 0);
+        const lineNetPrice = Math.round(qty * unitPrice * 100) / 100;
+        const totalAmt = invoiceGrandTotal > 0 ? invoiceGrandTotal : lineNetPrice;
 
-        let uom = 'BOX';
+        let uom = 'CT';
         const fullName = String(p.product?.full_name || p.product?.base_product?.name || '').toLowerCase();
         if (fullName.includes('jar')) uom = 'JAR';
-        else if (fullName.includes('ctn') || fullName.includes('cartoon')) uom = 'CT';
+        else if (fullName.includes('box')) uom = 'BOX';
 
         records.push({
           id: `inv-item-${rowId++}`,
@@ -105,14 +115,14 @@ async function fetchLiveInvoicesFromSokrio(): Promise<InvoiceListRecord[]> {
           invoiceDate,
           custReferenceNo,
           poDate,
-          externalDocNo: custReferenceNo,
-          docType: 'ZDOM',
-          receivingDt: invoiceDate,
+          externalDocNo,
+          docType,
+          receivingDt,
           lineNo: pIdx + 1,
           itemNo: Number(itemNo) || itemNo,
           quantity: qty,
-          netPrice: price,
-          totalAmt: Math.round(qty * price),
+          netPrice: lineNetPrice,
+          totalAmt,
           uom,
         });
       });
@@ -124,15 +134,15 @@ async function fetchLiveInvoicesFromSokrio(): Promise<InvoiceListRecord[]> {
         invoiceDate,
         custReferenceNo,
         poDate,
-        externalDocNo: custReferenceNo,
-        docType: 'ZDOM',
-        receivingDt: invoiceDate,
+        externalDocNo,
+        docType,
+        receivingDt,
         lineNo: 1,
         itemNo: '',
         quantity: 1,
-        netPrice: totalAmt,
-        totalAmt: Math.round(totalAmt),
-        uom: 'BOX',
+        netPrice: invoiceGrandTotal,
+        totalAmt: invoiceGrandTotal,
+        uom: 'CT',
       });
     }
   }
@@ -164,7 +174,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    let records = await fetchLiveInvoicesFromSokrio();
+    let records = await fetchLiveInvoicesFromSokrio(startDate, endDate);
     let source = 'sokrio_live_api';
 
     const meta = {
