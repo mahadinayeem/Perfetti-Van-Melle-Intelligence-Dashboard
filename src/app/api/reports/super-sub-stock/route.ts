@@ -181,7 +181,7 @@ async function fetchLiveStocksFromSokrio(startDate: string, endDate: string): Pr
       brand,
       superDbUniqueLocationCode: '', // Super DB location code not active in pilot -> left blank
       superDbLocationName: '', // Super DB location name not active in pilot -> left blank
-      tsoPositionCode: 'TSO-009',
+      tsoPositionCode: '', // Sokrio pilot has no TSO role; blank in sample for Tangail
       tsoCode: '', // Blank in sample Excel
       tsoName: '', // Blank in sample Excel
       primarySkuQtyInTons,
