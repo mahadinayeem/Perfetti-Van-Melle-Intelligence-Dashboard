@@ -15,7 +15,7 @@ export interface StockistSecondaryRecord {
   teTsoName: string;
   teTsoCode: string | number;
   type: string;
-  superDbCode: string;
+  superDbCode: string | number;
   superDbName: string;
   stockiestPositionCode: string;
   stockiestPositionName: string;
@@ -93,6 +93,55 @@ const SKU_PRICE_MAP: Record<string, number> = {
   '651373': 335,
 };
 
+// Accurate unit weight in grams matching Report Sample.xlsx
+const SKU_WEIGHT_MAP: Record<string, number> = {
+  '650961': 666,
+  '651060': 666,
+  '651135': 333,
+  '651163': 560,
+  '651164': 308,
+  '651170': 576,
+  '651176': 308,
+  '651177': 308,
+  '651211': 360,
+  '651212': 308,
+  '651216': 518.4,
+  '651230': 360,
+  '651231': 360,
+  '651232': 108,
+  '651240': 360,
+  '651260': 517.5,
+  '651270': 252,
+  '651272': 518.4,
+  '651273': 518.4,
+  '651281': 500,
+  '651282': 550,
+  '651283': 275,
+  '651284': 560,
+  '651285': 550,
+  '651286': 308,
+  '651287': 396,
+  '651288': 492.8,
+  '651289': 492.8,
+  '651293': 828.8,
+  '651296': 360,
+  '651300': 275,
+  '651301': 500,
+  '651302': 550,
+  '651303': 320,
+  '651305': 500,
+  '651306': 275,
+  '651311': 540,
+  '651314': 540,
+  '651315': 550,
+  '651316': 666,
+  '651318': 540,
+  '651319': 550,
+  '651332': 500,
+  '651352': 500,
+  '651373': 360,
+};
+
 /**
  * Format date to DD-MMM-YYYY matching Report Sample.xlsx (e.g. 28-Sep-2026)
  */
@@ -165,7 +214,7 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
     const roleName = (u.roles?.[0]?.name || '').toLowerCase();
     const terName = (u.territory?.name || '').toLowerCase();
     if (roleName.includes('admin') || terName === 'bangladesh' || u.territory_id === 1) return false;
-    return roleName.includes('te') || roleName.includes('tm') || String(u.code) === '5104';
+    return roleName.includes('te') || roleName.includes('tm') || roleName.includes('tso');
   });
 
   const teTsoName = tmUser ? tmUser.name : '';
@@ -195,11 +244,13 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
   deliveries.forEach((del: any) => {
     const delDateRaw = del.deliver_date || del.order?.order_date || del.created_at || '';
     const delDateStr = delDateRaw.split('T')[0].split(' ')[0];
-    if (startDate && endDate && delDateStr) {
-      if (delDateStr < startDate || delDateStr > endDate) return;
+    if (startDate && endDate) {
+      if (!delDateStr || delDateStr < startDate || delDateStr > endDate) return;
     }
 
-    const products = del.order?.latest_revision?.ordered_products || del.products || del.delivered_products || [];
+    const products = (Array.isArray(del.products) && del.products.length > 0) 
+      ? del.products 
+      : (del.order?.latest_revision?.ordered_products || del.delivered_products || []);
     products.forEach((p: any) => {
       const sku = String(p.product?.base_product?.sku || p.product_id || '').trim();
       const qty = Number(p.qty || p.quantity || 1);
@@ -227,10 +278,10 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
   const firstStockDept = stocks[0]?.department || {};
   const superDbCode = (firstStockDept.code && String(firstStockDept.code) !== '101') 
     ? (Number(firstStockDept.code) || firstStockDept.code) 
-    : (defaultDbCode || 102267);
+    : (defaultDbCode || '');
   const superDbName = (firstStockDept.name && firstStockDept.name !== 'Central Warehouse') 
     ? firstStockDept.name 
-    : (defaultDbName || 'M/S Ahamed Enterprise');
+    : (defaultDbName || '');
 
   for (const st of stocks) {
     const baseProd = st.product?.base_product;
@@ -243,7 +294,9 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
     const catalog = SKU_CATALOG[skuCode] || {};
     const skuName = resolveEnglishSkuName(skuCode, baseProd.name);
     const brand = resolveBrandName(skuName, catalog.brand, baseProd.product_brand?.name);
-    const uom = catalog.uom || (skuName.toLowerCase().includes('jar') ? 'JAR' : 'BOX');
+    const uom = (['651300', '651306', '651164', '651177', '651176', '651212', '651283', '651286'].includes(skuCode) || skuName.toUpperCase().includes('BOX')) 
+      ? 'BOX' 
+      : (catalog.uom || (skuName.toLowerCase().includes('jar') ? 'JAR' : 'BOX'));
 
     // Real-time stock & sales ledger (Stock must never be negative)
     const rawClosing = Number(st.available_qty || st.qty || 0);
@@ -255,8 +308,8 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
     const secondarySalesValue = secondarySales > 0 ? (sales.value > 0 ? Math.round(sales.value) : secondarySales * unitPrice) : 0;
     const openingStock = closingStock + secondarySales;
 
-    // Weight per unit for ton calculation
-    const weightGm = catalog.weightGram || catalog.weightperSKUgm || (uom === 'JAR' ? 560 : 350);
+    // Weight per unit for ton calculation matching sample Excel
+    const weightGm = SKU_WEIGHT_MAP[skuCode] || catalog.weightGram || catalog.weightperSKUgm || (uom === 'JAR' ? 560 : 308);
     const secondarySalesTon = secondarySales > 0 
       ? Number(((secondarySales * weightGm) / 1000000).toFixed(6)) 
       : 0;
@@ -272,7 +325,7 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
       teTsoName,
       teTsoCode,
       type: teType,
-      superDbCode: String(superDbCode),
+      superDbCode: (Number(superDbCode) || superDbCode || ''),
       superDbName: String(superDbName),
       stockiestPositionCode: '', // Sub-distributors not active in Sokrio pilot -> left blank
       stockiestPositionName: '', // Sub-distributors not active in Sokrio pilot -> left blank
