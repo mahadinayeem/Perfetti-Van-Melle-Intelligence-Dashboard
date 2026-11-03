@@ -98,10 +98,26 @@ const SKU_PRICE_MAP: Record<string, number> = {
  */
 function formatDateToDDMMMYYYY(val: any): string {
   if (!val) return '';
+  const str = String(val).split('T')[0].split(' ')[0].trim();
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  // Already DD-MMM-YYYY (e.g. 28-Sep-2026)
+  if (/^\d{2}-[A-Za-z]{3}-\d{4}$/.test(str)) return str;
+
+  // YYYY-MM-DD
+  const parts = str.split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    const year = parts[0];
+    const monthIdx = parseInt(parts[1], 10) - 1;
+    const day = parts[2].padStart(2, '0');
+    if (monthIdx >= 0 && monthIdx < 12) {
+      return `${day}-${months[monthIdx]}-${year}`;
+    }
+  }
+
   const d = new Date(val);
   if (isNaN(d.getTime())) return String(val);
   const day = String(d.getDate()).padStart(2, '0');
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const month = months[d.getMonth()];
   const year = d.getFullYear();
   return `${day}-${month}-${year}`;
@@ -175,7 +191,7 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
   }
 
   // 4. Calculate real-time secondary sales per SKU from live deliveries in date range
-  const salesMap = new Map<string, { qty: number; value: number }>();
+  const salesMap = new Map<string, { qty: number; value: number; lastDate: string }>();
   deliveries.forEach((del: any) => {
     const delDateRaw = del.deliver_date || del.order?.order_date || del.created_at || '';
     const delDateStr = delDateRaw.split('T')[0].split(' ')[0];
@@ -190,10 +206,13 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
       const price = Number(p.price || p.product?.mrp || SKU_PRICE_MAP[sku] || 0);
       const val = price * qty;
       if (sku) {
-        if (!salesMap.has(sku)) salesMap.set(sku, { qty: 0, value: 0 });
+        if (!salesMap.has(sku)) salesMap.set(sku, { qty: 0, value: 0, lastDate: delDateStr });
         const cur = salesMap.get(sku)!;
         cur.qty += qty;
         cur.value += val;
+        if (delDateStr && (!cur.lastDate || delDateStr > cur.lastDate)) {
+          cur.lastDate = delDateStr;
+        }
       }
     });
   });
@@ -230,7 +249,7 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
     const rawClosing = Number(st.available_qty || st.qty || 0);
     const closingStock = Math.max(0, rawClosing);
 
-    const sales = salesMap.get(skuCode) || { qty: 0, value: 0 };
+    const sales = salesMap.get(skuCode) || { qty: 0, value: 0, lastDate: '' };
     const secondarySales = sales.qty;
     const unitPrice = SKU_PRICE_MAP[skuCode] || (secondarySales > 0 && sales.value > 0 ? Math.round(sales.value / secondarySales) : (catalog.mrp || 375));
     const secondarySalesValue = secondarySales > 0 ? (sales.value > 0 ? Math.round(sales.value) : secondarySales * unitPrice) : 0;
@@ -242,9 +261,11 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
       ? Number(((secondarySales * weightGm) / 1000000).toFixed(6)) 
       : 0;
 
+    const itemDate = sales.lastDate ? formatDateToDDMMMYYYY(sales.lastDate) : formattedDate;
+
     records.push({
       id: `stk-sec-live-${skuCode}`,
-      date: formattedDate,
+      date: itemDate,
       cluster,
       area,
       territory,
