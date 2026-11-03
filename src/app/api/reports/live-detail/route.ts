@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
-import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
+import { getValidToken, resolveDbType, fetchLiveSrOrganizationMap } from '@/lib/sokrioClient';
 import territoriesMasterData from '@/lib/territoriesMaster.json';
 
 export interface LiveDetailRecord {
@@ -56,15 +56,6 @@ interface CacheEntry {
 const memoryCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 60 * 1000; // 1 minute cache
 const inflightPromises = new Map<string, Promise<{ records: LiveDetailRecord[]; meta: any }>>();
-
-const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; territory: string; territoryCode: string; dbCode: string; dbName: string }> = {
-  '54506': { srPositionCode: 'DM-060', srName: 'Mostafizur Rahman', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
-  '53995': { srPositionCode: 'DM-057', srName: 'Chaon Khandker', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
-  '54233': { srPositionCode: 'DM-059', srName: 'Md. Asebur Rahman Ashik', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
-  '51639': { srPositionCode: 'DM-217', srName: 'Md. Shawkat Hossen', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
-  '54801': { srPositionCode: 'DM-058', srName: 'Mohammed Khaled Mahmud', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
-  '20637': { srPositionCode: 'DM-061', srName: 'Md. Ripon Uddin', territory: 'Jatra Bari', territoryCode: 'T16', dbCode: '102267', dbName: 'M/S Ahamed Enterprise' },
-};
 
 function parseDateToMs(dateStr: any): number {
   if (!dateStr) return 0;
@@ -206,12 +197,19 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
   let checkinRes: any;
   let orderRes: any;
   let attendanceRes: any;
+  let srOrgMap = new Map<string, any>();
   try {
-    [checkinRes, orderRes, attendanceRes] = await makeRequests(token);
+    [[checkinRes, orderRes, attendanceRes], srOrgMap] = await Promise.all([
+      makeRequests(token),
+      fetchLiveSrOrganizationMap(),
+    ]);
   } catch (err: any) {
     if (err?.response?.status === 401 || err?.response?.status === 403) {
       token = await getValidToken(true);
-      [checkinRes, orderRes, attendanceRes] = await makeRequests(token);
+      [[checkinRes, orderRes, attendanceRes], srOrgMap] = await Promise.all([
+        makeRequests(token),
+        fetchLiveSrOrganizationMap(),
+      ]);
     } else {
       throw err;
     }
@@ -421,14 +419,15 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
   let idx = 1;
 
   for (const [srCode, d] of srMap.entries()) {
-    const srMeta = SR_METADATA_MAP[srCode] || {
-      srPositionCode: `DM-${String(idx).padStart(3, '0')}`,
-      srName: d.srName,
-      territory: 'Jatra Bari',
-      territoryCode: 'T16',
-      dbCode: d.dbCode || '102267',
-      dbName: d.dbName || 'M/S Ahamed Enterprise',
-    };
+    const org = srOrgMap.get(srCode);
+    const srPositionCode = org?.positionCode || '';
+    const srName = org?.srName || d.srName || '';
+    const territory = org?.territory || '';
+    const area = org?.area || '';
+    const cluster = org?.cluster || '';
+    const dbCode = d.dbCode || org?.dbCode || '';
+    const dbName = d.dbName || org?.dbName || '';
+    const dbType = resolveDbType(dbName) || 'Main DB';
 
     const prodCall = d.invoices.size;
     // Each productive call implies a visited outlet
@@ -487,17 +486,17 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
 
     records.push({
       id: `live-detail-${idx++}`,
-      cluster: 'Central',
-      area: 'Central South',
-      territory: srMeta.territory,
-      dbCode: d.dbCode || srMeta.dbCode,
-      dbName: d.dbName || srMeta.dbName,
-      dbType: 'Main DB',
-      srPositionCode: srMeta.srPositionCode,
+      cluster,
+      area,
+      territory,
+      dbCode,
+      dbName,
+      dbType,
+      srPositionCode,
       srCode,
-      srName: srMeta.srName || d.srName,
-      routeCode: d.routeCode || `T16R${idx}`,
-      routeName: d.route || 'General Route',
+      srName,
+      routeCode: d.routeCode || '',
+      routeName: d.route || '',
       routeChannel: wsVal > 0 ? 'Mix' : 'Retail',
       scheduleCall: sched > 0 ? sched : (visited > 0 ? visited : ''),
       visitedOutlet: visited,

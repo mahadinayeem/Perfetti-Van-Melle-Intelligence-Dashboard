@@ -106,14 +106,14 @@ async function fetchLiveStocksFromSokrio(startDate: string, endDate: string): Pr
   const processedSkus = new Set<string>();
 
   // Resolve dynamic organizational hierarchy from live Sokrio map
-  let cluster = 'Central';
-  let area = 'Central South';
-  let territory = 'Jatra Bari';
-  let defaultDbCode: string | number = 102267;
-  let defaultDbName = 'M/S Ahamed Enterprise';
+  let cluster = '';
+  let area = '';
+  let territory = '';
+  let defaultDbCode: string | number = '';
+  let defaultDbName = '';
 
   if (srOrgMap && srOrgMap.size > 0) {
-    const firstOrg = Array.from(srOrgMap.values())[0];
+    const firstOrg = Array.from(srOrgMap.values()).find(o => o.dbCode || o.territory) || Array.from(srOrgMap.values())[0];
     if (firstOrg) {
       if (firstOrg.cluster) cluster = firstOrg.cluster;
       if (firstOrg.area) area = firstOrg.area;

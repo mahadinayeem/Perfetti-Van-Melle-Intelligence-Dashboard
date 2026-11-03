@@ -104,7 +104,7 @@ function resolveDbCodeAndName(sellerId: any, sellerName: string) {
       }
     }
   }
-  return { dbCode: '102267', dbName: 'M/S Ahamed Enterprise' };
+  return { dbCode: sellerId ? String(sellerId) : '', dbName: sellerName || '' };
 }
 
 export async function GET(request: NextRequest) {

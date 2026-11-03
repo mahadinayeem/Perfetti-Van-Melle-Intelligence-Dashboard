@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
+import { getValidToken, resolveDbType, fetchLiveSrOrganizationMap } from '@/lib/sokrioClient';
 import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import axios from 'axios';
@@ -117,10 +117,30 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
 
   // 1. Fetch live distributor stocks from Sokrio Core
   const stocksUrl = 'https://pvm.core.sokrio.com/api/v1/stocks?per_page=250';
-  const stocksRes = await axios.get(stocksUrl, {
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    timeout: 30000,
-  });
+  const [stocksRes, srOrgMap] = await Promise.all([
+    axios.get(stocksUrl, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      timeout: 30000,
+    }),
+    fetchLiveSrOrganizationMap().catch(() => new Map<string, any>()),
+  ]);
+
+  let defaultCluster = 'Central';
+  let defaultArea = '';
+  let defaultTerritory = '';
+  let defaultDbCode: string | number = '';
+  let defaultDbName = '';
+
+  if (srOrgMap && srOrgMap.size > 0) {
+    const firstOrg = Array.from(srOrgMap.values())[0];
+    if (firstOrg) {
+      if (firstOrg.cluster) defaultCluster = firstOrg.cluster;
+      if (firstOrg.area) defaultArea = firstOrg.area;
+      if (firstOrg.territory) defaultTerritory = firstOrg.territory;
+      if (firstOrg.dbCode) defaultDbCode = Number(firstOrg.dbCode) || firstOrg.dbCode;
+      if (firstOrg.dbName) defaultDbName = firstOrg.dbName;
+    }
+  }
 
   const rawStocks: any[] = stocksRes.data?.stocks || [];
 
@@ -184,13 +204,13 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
     const createDeliveryStock = Number(st.on_transit_send ?? 0);
 
     const dept = st.department || {};
-    const cluster = 'Central';
-    const area = 'Central South';
-    const territory = 'Jatra Bari';
-    const dbCode = dept.code || 102267;
-    const dbName = dept.name || 'M/S Ahamed Enterprise';
-    const dbType = 'MAIN';
-    const location = dept.code || 102267;
+    const cluster = defaultCluster;
+    const area = defaultArea;
+    const territory = defaultTerritory;
+    const dbCode = (dept.code && String(dept.code) !== '101') ? (Number(dept.code) || dept.code) : defaultDbCode;
+    const dbName = (dept.name && dept.name !== 'Central Warehouse') ? dept.name : defaultDbName;
+    const dbType = resolveDbType(dbCode);
+    const location = dbCode;
     const dbStatus = dept.status ? (dept.status.charAt(0).toUpperCase() + dept.status.slice(1)) : 'Active';
 
     result.push({
@@ -259,16 +279,17 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
       }
       if (openingStock <= 0) openingStock = floorStock;
 
-      const dbCode = 102267;
+      const dbCode = defaultDbCode;
+      const dbName = defaultDbName;
       result.push({
         id: `stock-ledger-${skuCode}`,
-        cluster: 'Central',
-        area: 'Central South',
-        territory: 'Jatra Bari',
+        cluster: defaultCluster,
+        area: defaultArea,
+        territory: defaultTerritory,
         dbCode,
-        dbName: 'M/S Ahamed Enterprise',
-        dbType: 'MAIN',
-        location: 102267,
+        dbName,
+        dbType: resolveDbType(dbCode),
+        location: dbCode,
         itemNo: Number(skuCode) || skuCode,
         description,
         billableStock,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
+import { getValidToken, resolveDbType, fetchLiveSrOrganizationMap } from '@/lib/sokrioClient';
 import territoriesMasterData from '@/lib/territoriesMaster.json';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
@@ -77,41 +77,6 @@ const memoryCache = new Map<string, CacheEntry>();
 const inFlightRequests = new Map<string, Promise<DailySRRecord[]>>();
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes TTL for stable high performance
 
-const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; territory: string; territoryCode: string; dbCode: string; dbName: string }> = {
-  '54506': {
-    srPositionCode: 'DM-060',
-    srName: 'Mostafizur Rahman',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '53995': {
-    srPositionCode: 'DM-057',
-    srName: 'Chaon Khandker',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '54233': {
-    srPositionCode: 'DM-059',
-    srName: 'Md. Asebur Rahman Ashik',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '51639': {
-    srPositionCode: 'DM-217',
-    srName: 'Md. Shawkat Hossen',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-};
-
 function resolveTerritoryMeta(customerNo: string, routeCode: string, routeName: string, territoryName: string) {
   const prefix = String(customerNo || '').split('-')[0].trim().toUpperCase();
   const cleanRouteCode = String(routeCode || '').trim();
@@ -125,24 +90,13 @@ function resolveTerritoryMeta(customerNo: string, routeCode: string, routeName: 
   if (cleanRouteCode && routeMap[cleanRouteCode]) return routeMap[cleanRouteCode];
   if (cleanRouteName && routeMap[cleanRouteName]) return routeMap[cleanRouteName];
 
-  if (cleanTerritory.includes('jatra') || cleanTerritory.includes('sarulia') || prefix === 'T16') {
-    return {
-      area: 'Central South',
-      territory: 'Jatra Bari',
-      territoryCode: 'T16',
-      dbCode: '102267',
-      dbName: 'M/S Ahamed Enterprise',
-      srPositionCode: 'DM-057',
-    };
-  }
-
   return {
-    area: 'Central South',
-    territory: 'Gulshan',
-    territoryCode: 'T03',
-    dbCode: '101820',
-    dbName: 'Sara Enterprise',
-    srPositionCode: 'DM-060',
+    area: '',
+    territory: '',
+    territoryCode: '',
+    dbCode: '',
+    dbName: '',
+    srPositionCode: '',
   };
 }
 
@@ -331,14 +285,21 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
   let checkinRes: any;
   let orderRes: any;
   let delRes: any;
+  let srOrgMap = new Map<string, any>();
 
   try {
-    [checkinRes, orderRes, delRes] = await makeRequests(token);
+    [[checkinRes, orderRes, delRes], srOrgMap] = await Promise.all([
+      makeRequests(token),
+      fetchLiveSrOrganizationMap(),
+    ]);
   } catch (err: any) {
     if (err?.response?.status === 401 || err?.response?.status === 403) {
       console.warn('[Daily SR Performance] Token expired during export download. Refreshing and retrying...');
       token = await getValidToken(true);
-      [checkinRes, orderRes, delRes] = await makeRequests(token);
+      [[checkinRes, orderRes, delRes], srOrgMap] = await Promise.all([
+        makeRequests(token),
+        fetchLiveSrOrganizationMap(),
+      ]);
     } else {
       throw err;
     }
@@ -538,7 +499,7 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
   let idx = 1;
 
   for (const [_, grp] of groups.entries()) {
-    const srMeta = SR_METADATA_MAP[grp.srCode];
+    const org = srOrgMap.get(grp.srCode);
     const meta = resolveTerritoryMeta('', grp.routeCode, grp.routeName, grp.routeName);
 
     const orderDate = grp.orderDate;
@@ -621,26 +582,34 @@ async function fetchLiveDailySRPerformance(startDate: string, endDate: string): 
       timePerOutlet = formatMinsToTimeHHMMSS(avgMins);
     }
 
-    const territory = srMeta?.territory || meta.territory || 'Jatra Bari';
+    const cluster = org?.cluster || meta.cluster || '';
+    const area = org?.area || meta.area || '';
+    const territory = org?.territory || meta.territory || '';
     const town = '';
-    const dbType = 'MAIN';
+    const dbCode = org?.dbCode || meta.dbCode || '';
+    const dbName = org?.dbName || meta.dbName || '';
+    const dbType = org?.dbType || meta.dbType || (dbName ? resolveDbType(dbName) : '') || 'MAIN';
+    const srPositionCode = org?.positionCode || meta.srPositionCode || '';
+    const srName = org?.srName || grp.srName || '';
+    const routeCode = grp.routeCode || meta.routeCode || '';
+    const routeName = grp.routeName || meta.routeName || '';
     const routeChannel = (wsValue > 0 || wsCall > 0) ? (retailValue > 0 ? 'Mix' : 'Wholesale') : 'Retail';
 
     records.push({
       id: `daily-sr-${idx++}`,
       orderDate: formatMMDDYYYY(orderDate),
-      cluster: 'Central',
-      area: meta.area || 'Central South',
+      cluster,
+      area,
       territory,
       town,
-      dbCode: srMeta?.dbCode || meta.dbCode || '102267',
-      dbName: srMeta?.dbName || meta.dbName || 'M/S Ahamed Enterprise',
+      dbCode,
+      dbName,
       dbType,
       srCode: grp.srCode,
-      srName: srMeta?.srName || grp.srName,
-      srPositionCode: srMeta?.srPositionCode || meta.srPositionCode || '',
-      routeCode: grp.routeCode || meta.routeCode || '',
-      routeName: grp.routeName || meta.routeName || '',
+      srName,
+      srPositionCode,
+      routeCode,
+      routeName,
       routeDay: dayOfWeek,
       routeChannel,
       logingStatus: grp.calls > 0 || totalPC > 0 ? 'Yes' : 'No',

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidToken, resolveDbType, fetchLiveSrOrganizationMap } from '@/lib/sokrioClient';
+import { getValidToken, fetchLiveSrOrganizationMap, fetchLiveUsers } from '@/lib/sokrioClient';
 import axios from 'axios';
-import * as XLSX from 'xlsx';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,9 +31,9 @@ export interface TeVisitRecord {
   visitedRouteCode: string;
   visitedRouteName: string;
   visitDate: string;
-  sc: string | number;
-  visitedOl: string | number;
-  pending: string | number;
+  sc: number | string;
+  visitedOl: number | string;
+  pending: number | string;
   visitPct: string;
   startWorkTime: string;
   firstOutletVisitTime: string;
@@ -49,8 +48,8 @@ export interface TeVisitRecord {
   distributorPositionName: string;
   visitType: string;
   locationType: string;
-  ta: string;
-  da: string;
+  ta: string | number;
+  da: string | number;
   visitReason: string;
 }
 
@@ -75,8 +74,9 @@ function formatDateToMMDDYYYY(val: any): string {
     if (p.length === 3) {
       if (p[0].length === 4) {
         return `${p[1].padStart(2, '0')}/${p[2].padStart(2, '0')}/${p[0]}`;
+      } else if (p[2].length === 4) {
+        return `${p[0].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[2]}`;
       }
-      return `${p[0].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[2]}`;
     }
   }
   const d = new Date(val);
@@ -89,9 +89,9 @@ function formatDateToMMDDYYYY(val: any): string {
 }
 
 function formatTimeTo12HourWithSeconds(val: any): string {
-  if (!val || val === '-' || val === 'null' || val === 'undefined') return '';
+  if (!val) return '';
   const s = String(val).trim();
-  const timePart = s.includes(' ') && s.includes(':') ? (s.split(' ').find((x) => x.includes(':')) || s) : s;
+  const timePart = s.includes(' ') && s.includes(':') ? (s.split(' ').find(x => x.includes(':')) || s) : s;
   const match = timePart.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
   if (match) {
     let [_, hStr, mStr, sStr, ampm] = match;
@@ -100,41 +100,42 @@ function formatTimeTo12HourWithSeconds(val: any): string {
     const sec = (sStr || '00').padStart(2, '0');
     let period = (ampm || '').toUpperCase();
     if (!period) {
-      const origAmpm = s.match(/(am|pm)/i);
-      if (origAmpm) {
-        period = origAmpm[1].toUpperCase();
-      } else {
-        period = h >= 12 ? 'PM' : 'AM';
-        if (h > 12) h -= 12;
-        if (h === 0) h = 12;
-      }
+      period = h >= 12 ? 'PM' : 'AM';
+      if (h > 12) h -= 12;
+      if (h === 0) h = 12;
     }
     return `${String(h).padStart(2, '0')}:${m}:${sec} ${period}`;
   }
   return s;
 }
 
-const SR_METADATA: Record<string, { srPositionCode: string; territory: string; routeCode: string; routeName: string }> = {
-  '54506': { srPositionCode: 'DM-060', territory: 'Jatra Bari', routeCode: 'T16R00067423245267', routeName: 'KATERPUL' },
-  '51639': { srPositionCode: 'DM-217', territory: 'Jatra Bari', routeCode: 'T16R00067423245279', routeName: 'Nimalkasari' },
-  '53995': { srPositionCode: 'DM-057', territory: 'Jatra Bari', routeCode: 'T16R00067423245244', routeName: 'Alamin Road' },
-  '54233': { srPositionCode: 'DM-059', territory: 'Jatra Bari', routeCode: 'T16R00067423245255', routeName: 'Konapara' },
-};
-
 async function fetchLiveTeVisitsFromSokrio(startDate: string, endDate: string): Promise<TeVisitRecord[]> {
   const token = await getValidToken();
 
-  const [checkinRes, orgMap] = await Promise.all([
+  const [checkinRes, orgMap, users] = await Promise.all([
     axios.get('https://pvm.report.sokrio.com/api/v1/checkin-report', {
       params: { range: `${startDate},${endDate}`, per_page: 250 },
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
       timeout: 30000,
-    }),
+    }).catch(() => ({ data: { checkinReport: [] } })),
     fetchLiveSrOrganizationMap().catch(() => new Map<string, any>()),
+    fetchLiveUsers().catch(() => []),
   ]);
 
   const checkins: any[] = checkinRes.data?.checkinReport || [];
   if (checkins.length === 0) return [];
+
+  // Dynamically discover field TE from live Sokrio users
+  const tmUser = users.find((u: any) => {
+    const roleName = (u.roles?.[0]?.name || '').toLowerCase();
+    const terName = (u.territory?.name || '').toLowerCase();
+    if (roleName.includes('admin') || terName === 'bangladesh' || u.territory_id === 1) return false;
+    return roleName.includes('te') || roleName.includes('tm') || String(u.code) === '5104';
+  });
+
+  const liveTeName = tmUser ? tmUser.name : '';
+  const liveTeCode = tmUser ? (Number(tmUser.code) || tmUser.code) : '';
+  const liveTeType = tmUser ? 'TE' : '';
 
   // Group checkins by SR code and date
   const grouped: Record<string, {
@@ -159,8 +160,8 @@ async function fetchLiveTeVisitsFromSokrio(startDate: string, endDate: string): 
     const cTime = (c.created_at || '').split(' ')[1] || '';
     const outTime = (c.checked_out_at || '').split(' ')[1] || '';
 
-    const routeName = c.route?.name || c.department?.territory?.name || 'General Route';
-    const routeCode = c.route?.code || SR_METADATA[srCode]?.routeCode || `T16R${c.route_id || '01'}`;
+    const routeName = c.route?.name || c.department?.territory?.name || '';
+    const routeCode = c.route?.code || (c.route_id ? `T16R${c.route_id}` : '');
 
     if (!grouped[key]) {
       grouped[key] = {
@@ -186,23 +187,7 @@ async function fetchLiveTeVisitsFromSokrio(startDate: string, endDate: string): 
   }
 
   const records: TeVisitRecord[] = Object.values(grouped).map((g, idx) => {
-    const srMeta = SR_METADATA[g.srCode] || {
-      srPositionCode: '',
-      territory: 'Jatra Bari',
-      routeCode: g.routeCode,
-      routeName: g.routeName,
-    };
-
-    const org = orgMap.get(g.srCode) || {
-      cluster: 'Central',
-      area: 'Central South',
-      territory: 'Jatra Bari',
-      positionCode: srMeta.srPositionCode,
-      dbCode: 102267,
-      dbName: 'M/S Ahamed Enterprise',
-      dbType: 'MAIN',
-      srName: g.srName,
-    };
+    const org = orgMap.get(g.srCode);
 
     const visitedOl = g.visitedCount;
     const sc = visitedOl;
@@ -220,31 +205,31 @@ async function fetchLiveTeVisitsFromSokrio(startDate: string, endDate: string): 
       durationStr = `${hrs} hrs : ${mins} mins`;
     }
 
-    const routeCode = g.routeCode || srMeta.routeCode;
-    const routeName = g.routeName || srMeta.routeName;
+    const routeCode = g.routeCode || '';
+    const routeName = g.routeName || '';
 
     return {
       id: `te-visit-live-${idx + 1}`,
-      cluster: 'Cluster-1', // Matches sample format 'Cluster-1'
-      areaName: org.area || 'Central South',
-      areaCode: 'A20', // Official Central South Area Code
-      territoryName: org.territory || 'Jatra Bari',
-      territoryCode: 'T16',
-      teTsoName: 'Palash Chandra Karmakar',
-      teTsoCode: 5104,
-      type: 'TE',
+      cluster: org?.cluster || 'Cluster-1',
+      areaName: org?.area || '',
+      areaCode: org?.areaCode || '',
+      territoryName: org?.territory || '',
+      territoryCode: org?.territoryCode || '',
+      teTsoName: liveTeName,
+      teTsoCode: liveTeCode,
+      type: liveTeType,
       mainSuperDistributorPositionCode: 'MD11239', // Correct column: MD11239
       mainSuperDistributorPositionName: 'Main DB Jatra Bari', // Correct column: Main DB Jatra Bari
-      distributorId: Number(org.dbCode) || org.dbCode || 102267,
-      distributorName: org.dbName || 'M/S Ahamed Enterprise',
+      distributorId: Number(org?.dbCode) || org?.dbCode || '',
+      distributorName: org?.dbName || '',
       dbType: 'MAIN',
       subDistributorPositionCode: '',
       subDistributorPositionName: '',
       subDbName: '',
       subDbCode: '',
-      srPostion: org.positionCode || srMeta.srPositionCode,
+      srPostion: org?.srPositionCode || '',
       srCode: Number(g.srCode) || g.srCode,
-      srName: g.srName || org.srName,
+      srName: g.srName || org?.srName || '',
       pjpRouteCode: routeCode,
       pjpRouteName2: routeName,
       visitedRouteCode: routeCode,

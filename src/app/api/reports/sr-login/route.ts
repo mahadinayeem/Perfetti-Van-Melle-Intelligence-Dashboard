@@ -144,16 +144,7 @@ async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): 
           const endTime = rawDayOut && rawDayOut !== '-' ? formatTimeToHHMMSS(rawDayOut) : '';
           const dayEnd = endTime ? 'Yes' : 'No';
 
-          const org = orgMap.get(srCode) || {
-            area: 'Central South',
-            territory: 'Jatra Bari',
-            dbCode: '102267',
-            dbName: 'M/S Ahamed Enterprise',
-            dbType: 'Main DB',
-            dbLat: DB_LAT,
-            dbLng: DB_LNG,
-            srName: rawSrName,
-          };
+          const org = orgMap.get(srCode);
 
           let lat: number | string = '';
           let lng: number | string = '';
@@ -166,20 +157,22 @@ async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): 
             if (!isNaN(pLat) && !isNaN(pLng)) {
               lat = pLat;
               lng = pLng;
-              distance = haversineMeters(org.dbLat || DB_LAT, org.dbLng || DB_LNG, pLat, pLng).toFixed(2);
+              if (org?.dbLat && org?.dbLng) {
+                distance = haversineMeters(org.dbLat, org.dbLng, pLat, pLng).toFixed(2);
+              }
             }
           }
 
           records.push({
             id: `sr-login-${idx++}`,
             orderDate,
-            area: org.area || 'Central South',
-            territory: org.territory || 'Jatra Bari',
-            dbCode: org.dbCode || '102267',
-            dbName: org.dbName || 'M/S Ahamed Enterprise',
-            dbType: org.dbType || 'Main DB',
+            area: org?.area || '',
+            territory: org?.territory || '',
+            dbCode: org?.dbCode || '',
+            dbName: org?.dbName || '',
+            dbType: org?.dbType || '',
             srCode: Number(srCode) || srCode,
-            srName: rawSrName || org.srName,
+            srName: rawSrName || org?.srName || (srCode ? `SR ${srCode}` : ''),
             loginTime,
             endTime,
             distanceFromDbLocation: distance,
@@ -217,16 +210,7 @@ async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): 
         const endTime = rawCheckout && rawCheckout !== '-' ? formatTimeToHHMMSS(rawCheckout) : '';
         const dayEnd = endTime ? 'Yes' : 'No';
 
-        const org = orgMap.get(srCode) || {
-          area: 'Central South',
-          territory: 'Jatra Bari',
-          dbCode: '102267',
-          dbName: 'M/S Ahamed Enterprise',
-          dbType: 'Main DB',
-          dbLat: DB_LAT,
-          dbLng: DB_LNG,
-          srName: rawSrName || `SR ${srCode}`,
-        };
+        const org = orgMap.get(srCode);
 
         const pLat = parseFloat(c['Latitude']);
         const pLng = parseFloat(c['Longitude']);
@@ -237,19 +221,21 @@ async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): 
         if (!isNaN(pLat) && !isNaN(pLng)) {
           lat = pLat;
           lng = pLng;
-          distance = haversineMeters(org.dbLat || DB_LAT, org.dbLng || DB_LNG, pLat, pLng).toFixed(2);
+          if (org?.dbLat && org?.dbLng) {
+            distance = haversineMeters(org.dbLat, org.dbLng, pLat, pLng).toFixed(2);
+          }
         }
 
         records.push({
           id: `sr-login-${idx++}`,
           orderDate,
-          area: org.area || 'Central South',
-          territory: org.territory || 'Jatra Bari',
-          dbCode: org.dbCode || '102267',
-          dbName: org.dbName || 'M/S Ahamed Enterprise',
-          dbType: org.dbType || 'Main DB',
+          area: org?.area || '',
+          territory: org?.territory || '',
+          dbCode: org?.dbCode || '',
+          dbName: org?.dbName || '',
+          dbType: org?.dbType || '',
           srCode: Number(srCode) || srCode,
-          srName: rawSrName || org.srName,
+          srName: rawSrName || org?.srName || (srCode ? `SR ${srCode}` : ''),
           loginTime,
           endTime,
           distanceFromDbLocation: distance,

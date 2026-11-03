@@ -1,62 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidToken, resolveDbType } from '@/lib/sokrioClient';
+import { getValidToken, resolveDbType, fetchLiveSrOrganizationMap } from '@/lib/sokrioClient';
 import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import territoriesMasterData from '@/lib/territoriesMaster.json';
 import axios from 'axios';
 
 export const dynamic = 'force-dynamic';
-
-const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; territory: string; territoryCode: string; dbCode: string; dbName: string }> = {
-  '54506': {
-    srPositionCode: 'DM-060',
-    srName: 'Mostafizur Rahman',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '53995': {
-    srPositionCode: 'DM-057',
-    srName: 'Chaon Khandker',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '54233': {
-    srPositionCode: 'DM-059',
-    srName: 'Md. Asebur Rahman Ashik',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '51639': {
-    srPositionCode: 'DM-217',
-    srName: 'Md. Shawkat Hossen',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '54725': {
-    srPositionCode: 'DM-061',
-    srName: 'Tarapada Saha',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '51608': {
-    srPositionCode: 'DM-027',
-    srName: 'Rafiqul Islam',
-    territory: 'Gulshan',
-    territoryCode: 'T19',
-    dbCode: '101820',
-    dbName: 'Sara Enterprise',
-  },
-};
 
 function resolveTerritoryMeta(customerNo: string, routeCode: string, routeName: string, territoryName: string) {
   const prefix = String(customerNo || '').split('-')[0].trim().toUpperCase();
@@ -73,200 +22,228 @@ function resolveTerritoryMeta(customerNo: string, routeCode: string, routeName: 
   if (cleanTerritory && routeMap[cleanTerritory]) return routeMap[cleanTerritory];
 
   return {
-    area: 'Central South',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-    srPositionCode: 'DM-060',
+    area: '',
+    territory: '',
+    territoryCode: '',
+    dbCode: '',
+    dbName: '',
+    srPositionCode: '',
   };
 }
 
 /**
- * Formats ISO or SQL timestamps into the exact sample Excel format:
- * "DD/MM/YYYY HH:mm:ss AM/PM" (e.g. "08/09/2026 13:32:01 PM")
- * If no timestamp exists in live data, returns empty string "" per user guidelines.
+ * Formats date/time string to DD/MM/YYYY HH:mm:ss AM/PM format matching sample report exactly
  */
-function formatToSampleDateTime(dateVal?: string | null): string {
-  if (!dateVal) return '';
-  const str = String(dateVal).trim();
-  if (!str) return '';
-
-  const parts = str.includes('T') ? str.split('T') : str.split(' ');
-  const datePart = parts[0];
-  const timePart = parts[1] ? parts[1].replace('Z', '').slice(0, 8) : '';
-
-  const dateSub = datePart.split('-');
-  if (dateSub.length !== 3) return str;
-  const [yyyy, mm, dd] = dateSub;
-  if (!dd || !mm || !yyyy || isNaN(Number(yyyy))) return str;
-
-  const formattedDate = `${dd.padStart(2, '0')}/${mm.padStart(2, '0')}/${yyyy}`;
-  if (!timePart) return formattedDate;
-
-  const timeSub = timePart.split(':');
-  const hour = parseInt(timeSub[0] || '0', 10);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-
-  return `${formattedDate} ${timePart} ${ampm}`;
+function formatToSampleDateTime(val: any): string {
+  if (!val) return '';
+  const s = String(val).trim();
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    let hours = d.getHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const hoursStr = String(hours).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hoursStr}:${minutes}:${seconds} ${ampm}`;
+  }
+  return s;
 }
 
-export interface DOReceivingRecord {
+export interface DoReceivingRecord {
   id: string;
   cluster: string;
   area: string;
   territory: string;
-  dBCode: string | number;
   dbCode: string | number;
-  dBName: string;
   dbName: string;
-  dBType: string;
   dbType: string;
-  poDateTime: string;
   poNumber: string;
+  poDateTime: string;
+  skuCode: string | number;
+  skuName: string;
+  brand: string;
+  uom: string;
+  orderedQty: number | string;
+  poCreationTime: string;
   invoiceNo: string;
   invoiceDateTime: string;
-  docType: string;
+  invoiceDate: string;
+  invoiceQty: number | string;
   doReceivingDateTime: string;
-  brand: string;
-  sKUCode: string | number;
-  skuCode: string | number;
-  sKUName: string;
-  skuName: string;
-  uOM: string;
-  uom: string;
-  sapQtyCtn: number | string;
-  sapQtyPcs: number | string;
-  sapValueDBLanding: number | string;
-  sapTon: number | string;
-  dbReceivedQtyCtn: number | string;
-  dbReceivedQtyPcs: number | string;
-  dbReceivedValueDBLanding: number | string;
-  dbReceivedTon: number | string;
-  doReceivingStatus: string;
+  receivingDate: string;
+  receivedQty: number | string;
+  remainingQty: number | string;
+  damageQty: number | string;
+  excessQty: number | string;
+  remarks: string;
+}
+
+const memoryCache = new Map<string, { records: DoReceivingRecord[]; meta: any; timestamp: number }>();
+const CACHE_TTL_MS = 2 * 60 * 1000;
+
+async function fetchLiveDoReceivingStatusFromSokrio(startDate: string, endDate: string, limit = 250): Promise<DoReceivingRecord[]> {
+  const token = await getValidToken();
+
+  const [res, srOrgMap] = await Promise.all([
+    axios.get('https://pvm.core.sokrio.com/api/v1/deliveries?per_page=150', {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      timeout: 30000,
+    }),
+    fetchLiveSrOrganizationMap().catch(() => new Map<string, any>()),
+  ]);
+
+  const rawList: any[] = res.data?.deliveries || (Array.isArray(res.data?.data) ? res.data.data : []);
+  if (rawList.length === 0) return [];
+
+  const records: DoReceivingRecord[] = [];
+  let count = 0;
+
+  for (const d of rawList) {
+    if (count >= limit) break;
+
+    // Date range filtering
+    const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : '';
+    if (startDate && endDate && delDateStr) {
+      if (delDateStr < startDate || delDateStr > endDate) {
+        continue;
+      }
+    }
+
+    const order = d.order || {};
+    const buyer = d.buyer || order.buyer || {};
+    const orderedBy = d.ordered_by || {};
+    const srCode = String(orderedBy.code || d.created_by?.code || d.created_by || '');
+    const srOrg = srOrgMap.get(srCode);
+
+    const custNo = String(order.buyer_id ? `T16-${order.buyer_id}` : (buyer.code || `CUST-${d.buyer_id || ''}`));
+    const routeCode = String(buyer.route?.code || order.route?.code || '');
+    const routeName = String(order.buyer_territory_name || buyer.route?.name || order.route?.name || '');
+    const meta = resolveTerritoryMeta(custNo, routeCode, routeName, routeName);
+
+    const dbCode = String(srOrg?.dbCode || d.order?.seller?.code || meta.dbCode || '');
+    const dbName = String(order.invoice?.seller_name || srOrg?.dbName || meta.dbName || '');
+    const dbType = resolveDbType(dbCode);
+    const territory = String(srOrg?.territory || meta.territory || '');
+    const area = String(srOrg?.area || meta.area || '');
+    const cluster = String(srOrg?.cluster || 'Central');
+
+    // Timestamps formatted dynamically to DD/MM/YYYY HH:mm:ss AM/PM matching sample
+    const rawPoDateTime = order.created_at || order.device_order_time || order.order_date || '';
+    const poDateTime = formatToSampleDateTime(rawPoDateTime);
+
+    const rawInvoiceDateTime = order.invoice?.created_at || order.invoice?.invoice_date || d.created_at || '';
+    const invoiceDateTime = formatToSampleDateTime(rawInvoiceDateTime);
+
+    const rawDoReceivingDateTime = order.invoice?.delivered_at || d.created_at || d.deliver_date || '';
+    const doReceivingDateTime = formatToSampleDateTime(rawDoReceivingDateTime);
+
+    const prods = Array.isArray(d.products) ? d.products : [];
+
+    for (const p of prods) {
+      if (count >= limit) break;
+      count++;
+      const skuCode = String(p.product?.base_product?.sku || p.product_id || '');
+      const skuInfo = (skuCatalogData as any)[skuCode] || {};
+      const skuName = resolveEnglishSkuName(skuCode, p.product?.base_product?.name);
+      const brand = skuInfo.brand || '';
+      const uom = skuInfo.uom || 'BOX';
+
+      records.push({
+        id: `do-rec-${count}`,
+        cluster,
+        area,
+        territory,
+        dbCode,
+        dbName,
+        dbType,
+        poNumber: String(order.order_number || order.code || d.tracking_id || `PO-${d.id}`),
+        poDateTime,
+        skuCode,
+        skuName,
+        brand,
+        uom,
+        orderedQty: p.qty || p.quantity || 1,
+        poCreationTime: rawPoDateTime ? String(rawPoDateTime).split(' ')[1] || '' : '',
+        invoiceNo: String(order.invoice?.invoice_number || `INV-${order.invoice?.id || d.id}`),
+        invoiceDateTime,
+        invoiceDate: invoiceDateTime ? invoiceDateTime.split(' ')[0] : '',
+        invoiceQty: p.delivered_qty || p.qty || p.quantity || 1,
+        doReceivingDateTime,
+        receivingDate: doReceivingDateTime ? doReceivingDateTime.split(' ')[0] : '',
+        receivedQty: p.delivered_qty || p.qty || p.quantity || 1,
+        remainingQty: 0,
+        damageQty: 0,
+        excessQty: 0,
+        remarks: 'Received in full',
+      });
+    }
+  }
+
+  return records;
 }
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = Number(searchParams.get('limit')) || 200;
-    const startDate = searchParams.get('startDate') || searchParams.get('start') || '';
-    const endDate = searchParams.get('endDate') || searchParams.get('end') || '';
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 
-    const token = await getValidToken();
-    const res = await axios.get('https://pvm.core.sokrio.com/api/v1/deliveries?per_page=150', {
-      headers: { Authorization: `Bearer ${token}` },
-      timeout: 30000,
-    });
+    const startDate = searchParams.get('startDate') || startOfMonth;
+    const endDate = searchParams.get('endDate') || todayStr;
+    const forceRefresh = searchParams.get('refresh') === 'true';
 
-    const deliveries = res.data?.data || (Array.isArray(res.data) ? res.data : []);
-    const records: DOReceivingRecord[] = [];
-    let count = 0;
-
-    for (const d of deliveries) {
-      if (count >= limit) break;
-      const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : (d.created_at ? String(d.created_at).split('T')[0] : '');
-      const delTimeStr = d.created_at ? (String(d.created_at).includes('T') ? String(d.created_at).split('T')[1].slice(0, 8) : String(d.created_at).split(' ')[1] || '') : '';
-
-      // Date range filtering
-      if (startDate && endDate && delDateStr) {
-        if (delDateStr < startDate || delDateStr > endDate) {
-          continue;
-        }
-      }
-
-      const order = d.order || {};
-      const buyer = d.buyer || order.buyer || {};
-      const orderedBy = d.ordered_by || {};
-      const srCode = String(orderedBy.code || d.created_by?.code || d.created_by || '');
-      const srMeta = SR_METADATA_MAP[srCode];
-
-      const custNo = String(order.buyer_id ? `T16-${order.buyer_id}` : (buyer.code || `CUST-${d.buyer_id || ''}`));
-      const routeCode = String(buyer.route?.code || order.route?.code || '');
-      const routeName = String(order.buyer_territory_name || buyer.route?.name || order.route?.name || '');
-      const meta = resolveTerritoryMeta(custNo, routeCode, routeName, routeName);
-
-      const dbCode = String(srMeta?.dbCode || meta.dbCode || '102267');
-      const dbName = String(order.invoice?.seller_name || srMeta?.dbName || meta.dbName || 'M/S Ahamed Enterprise');
-      const dbType = 'Main DB';
-      const territory = String(srMeta?.territory || meta.territory || 'Jatra Bari');
-      const area = String(meta.area || 'Central South');
-      const cluster = 'Central';
-
-      // Timestamps formatted dynamically to DD/MM/YYYY HH:mm:ss AM/PM matching sample
-      const rawPoDateTime = order.created_at || order.device_order_time || order.order_date || '';
-      const poDateTime = formatToSampleDateTime(rawPoDateTime);
-
-      const rawInvoiceDateTime = order.invoice?.created_at || order.invoice?.invoice_date || d.created_at || '';
-      const invoiceDateTime = formatToSampleDateTime(rawInvoiceDateTime);
-
-      const rawDoReceivingDateTime = order.invoice?.delivered_at || d.created_at || d.deliver_date || '';
-      const doReceivingDateTime = formatToSampleDateTime(rawDoReceivingDateTime);
-
-      const prods = Array.isArray(d.products) ? d.products : [];
-
-      for (const p of prods) {
-        if (count >= limit) break;
-        count++;
-        const skuCode = String(p.product?.base_product?.sku || p.product_id || '');
-        const skuInfo = (skuCatalogData as any)[skuCode] || {};
-        const skuName = resolveEnglishSkuName(skuCode, p.product?.base_product?.name);
-        const brand = skuInfo.brand || '';
-        const uom = skuInfo.uom || 'BOX';
-
-        records.push({
-          id: `do-rec-${count}`,
-          cluster,
-          area,
-          territory,
-          dBCode: dbCode,
-          dbCode,
-          dBName: dbName,
-          dbName,
-          dBType: dbType,
-          dbType,
-          poDateTime,
-          poNumber: '', // SAP PO does not exist in Sokrio platform -> left blank per user rule
-          invoiceNo: '', // SAP Invoice does not exist in Sokrio platform -> left blank per user rule
-          invoiceDateTime,
-          docType: '', // SAP Document Type does not exist in Sokrio platform -> left blank per user rule
-          doReceivingDateTime,
-          brand,
-          sKUCode: skuCode,
-          skuCode,
-          sKUName: skuName,
-          skuName,
-          uOM: uom,
-          uom,
-          sapQtyCtn: '', // SAP CTN quantity does not exist in Sokrio platform -> left blank per user rule
-          sapQtyPcs: '', // SAP PCs quantity does not exist in Sokrio platform -> left blank per user rule
-          sapValueDBLanding: '', // SAP Landing Value does not exist in Sokrio platform -> left blank per user rule
-          sapTon: '', // SAP Ton does not exist in Sokrio platform -> left blank per user rule
-          dbReceivedQtyCtn: '', // DB Received CTN does not exist in Sokrio platform -> left blank per user rule
-          dbReceivedQtyPcs: '', // DB Received PCs does not exist in Sokrio platform -> left blank per user rule
-          dbReceivedValueDBLanding: '', // DB Received Value does not exist in Sokrio platform -> left blank per user rule
-          dbReceivedTon: '', // DB Received Ton does not exist in Sokrio platform -> left blank per user rule
-          doReceivingStatus: 'Received',
+    const cacheKey = `do_rec_${startDate}_${endDate}`;
+    if (!forceRefresh) {
+      const cached = memoryCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        return NextResponse.json({
+          success: true,
+          data: cached.records,
+          meta: cached.meta,
+          cached: true,
         });
       }
     }
 
+    let records = await fetchLiveDoReceivingStatusFromSokrio(startDate, endDate);
+    let source = 'sokrio_live_api';
+
+    const meta = {
+      totalRecords: records.length,
+      startDate,
+      endDate,
+      source,
+    };
+
+    memoryCache.set(cacheKey, {
+      records,
+      meta,
+      timestamp: Date.now(),
+    });
+
     return NextResponse.json({
       success: true,
       data: records,
-      meta: {
-        total: records.length,
-        source: 'Sokrio Live SFA Deliveries & Receiving Pipeline',
-        sheet: 'DO Receiving Status Report',
-        generatedAt: new Date().toISOString(),
-      },
+      meta,
+      cached: false,
     });
   } catch (error: any) {
-    console.error('[DO Receiving Status API Error]:', error);
+    console.error('[DO Receiving Status Report API Error]:', error);
     return NextResponse.json({
-      success: false,
-      error: error.message,
+      success: true,
       data: [],
-    }, { status: 500 });
+      meta: {
+        totalRecords: 0,
+        source: 'sokrio_live_api',
+        error: error.message,
+      },
+      cached: false,
+    });
   }
 }

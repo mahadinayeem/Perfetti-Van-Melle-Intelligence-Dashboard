@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getValidToken } from '@/lib/sokrioClient';
+import { getValidToken, resolveDbType, fetchLiveSrOrganizationMap } from '@/lib/sokrioClient';
 import { resolveChannel, resolveOutletEnglishName } from '@/lib/outletResolver';
 import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
@@ -149,41 +149,6 @@ interface CacheEntry {
 const memoryCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 30 * 1000;
 
-const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; territory: string; territoryCode: string; dbCode: string; dbName: string }> = {
-  '54506': {
-    srPositionCode: 'DM-060',
-    srName: 'Mostafizur Rahman',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '53995': {
-    srPositionCode: 'DM-057',
-    srName: 'Chaon Khandker',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '54233': {
-    srPositionCode: 'DM-059',
-    srName: 'Md. Asebur Rahman Ashik',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '51639': {
-    srPositionCode: 'DM-217',
-    srName: 'Md. Shawkat Hossen',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-};
-
 const SKU_CATALOG: Record<string, { motherSkuCode: string; motherSkuName: string; category: string; uom: string; brand: string }> = skuCatalogData as any;
 
 async function fetchLiveOrdersFromSokrio(startDate: string, endDate: string): Promise<LiveOrderUpdateRecord[]> {
@@ -192,20 +157,31 @@ async function fetchLiveOrdersFromSokrio(startDate: string, endDate: string): Pr
   const url = `https://pvm.report.sokrio.com/api/v3/order-summary-export?range=${startDate}%2C${endDate}&territory_id=1&download&type=xlsx`;
 
   let res: any;
+  let srOrgMap = new Map<string, any>();
   try {
-    res = await axios.get(url, {
-      headers: { Authorization: `Bearer ${token}` },
-      responseType: 'arraybuffer',
-      timeout: 30000,
-    });
-  } catch (err: any) {
-    if (err?.response?.status === 401 || err?.response?.status === 403) {
-      token = await getValidToken(true);
-      res = await axios.get(url, {
+    const [orderRes, orgMap] = await Promise.all([
+      axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'arraybuffer',
         timeout: 30000,
-      });
+      }),
+      fetchLiveSrOrganizationMap().catch(() => new Map<string, any>()),
+    ]);
+    res = orderRes;
+    srOrgMap = orgMap;
+  } catch (err: any) {
+    if (err?.response?.status === 401 || err?.response?.status === 403) {
+      token = await getValidToken(true);
+      const [orderRes, orgMap] = await Promise.all([
+        axios.get(url, {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'arraybuffer',
+          timeout: 30000,
+        }),
+        fetchLiveSrOrganizationMap().catch(() => new Map<string, any>()),
+      ]);
+      res = orderRes;
+      srOrgMap = orgMap;
     } else {
       throw err;
     }
@@ -227,7 +203,7 @@ async function fetchLiveOrdersFromSokrio(startDate: string, endDate: string): Pr
 
   return rows.map((r, idx) => {
     const srCode = String(r['Order Creator Code'] || r['Employee Code'] || '').trim();
-    const srMeta = SR_METADATA_MAP[srCode];
+    const srOrg = srOrgMap.get(srCode);
     const skuCode = String(r['Product SKU'] || '').trim();
     const skuInfo = SKU_CATALOG[skuCode];
 
@@ -244,20 +220,20 @@ async function fetchLiveOrdersFromSokrio(startDate: string, endDate: string): Pr
     else if (r['HNG']) uom = 'HNG';
     else if (skuInfo?.uom) uom = skuInfo.uom;
 
-    const dbCode = String(r['Seller Department Code'] || srMeta?.dbCode || '');
+    const dbCode = String(r['Seller Department Code'] || srOrg?.dbCode || '');
     const custNo = String(r['Buyer Department Code'] || '').trim();
 
     return {
       id: `live-order-${idx + 1}`,
-      cluster: 'Central',
-      area: 'Central South',
-      territory: srMeta?.territory || 'Jatra Bari',
+      cluster: srOrg?.cluster || 'Central',
+      area: srOrg?.area || '',
+      territory: srOrg?.territory || String(r['Buyer Territory Name'] || ''),
       dbCode,
-      dbName: String(r['Seller Department Name'] || srMeta?.dbName || ''),
-      dbType: 'MAIN DB',
-      srPosition: srMeta?.srPositionCode || '',
+      dbName: String(r['Seller Department Name'] || srOrg?.dbName || ''),
+      dbType: resolveDbType(dbCode),
+      srPosition: srOrg?.srPositionCode || '',
       srCode,
-      srName: srMeta?.srName || String(r['Order Creator Name'] || r['Employee Name'] || ''),
+      srName: srOrg?.srName || String(r['Order Creator Name'] || r['Employee Name'] || ''),
       orderDate: formatDDMMMYYYY(r['Order Date'] || startDate),
       routeCode: String(r['Buyer Territory Code'] || '').trim(),
       routeName: String(r['Buyer Territory Name'] || '').trim(),

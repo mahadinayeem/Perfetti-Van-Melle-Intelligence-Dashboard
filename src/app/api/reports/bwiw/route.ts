@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchWithAuth, getValidToken, resolveDbType } from '@/lib/sokrioClient';
+import { fetchWithAuth, getValidToken, resolveDbType, fetchLiveSrOrganizationMap } from '@/lib/sokrioClient';
 import { resolveSubChannel, resolveChannel, resolveOutletEnglishName } from '@/lib/outletResolver';
 import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import territoriesMasterData from '@/lib/territoriesMaster.json';
@@ -83,24 +83,13 @@ function resolveTerritoryMeta(customerNo: string, routeCode: string, routeName: 
   if (cleanRouteCode && routeMap[cleanRouteCode]) return routeMap[cleanRouteCode];
   if (cleanRouteName && routeMap[cleanRouteName]) return routeMap[cleanRouteName];
 
-  if (cleanTerritory.includes('jatra') || cleanTerritory.includes('sarulia') || prefix === 'T16') {
-    return {
-      area: 'Central South',
-      territory: 'Jatra Bari',
-      territoryCode: 'T16',
-      dbCode: '102267',
-      dbName: 'M/S Ahamed Enterprise',
-      srPositionCode: 'DM-057',
-    };
-  }
-
   return {
-    area: 'Central South',
-    territory: 'Gulshan',
-    territoryCode: 'T03',
-    dbCode: '101820',
-    dbName: 'Sara Enterprise',
-    srPositionCode: 'DM-060',
+    area: '',
+    territory: '',
+    territoryCode: '',
+    dbCode: '',
+    dbName: '',
+    srPositionCode: '',
   };
 }
 
@@ -224,42 +213,6 @@ function toStandardDate(val: any): string {
 
 
 
-// Precise metadata map for all SRs present in PVM Sokrio
-const SR_METADATA_MAP: Record<string, { srPositionCode: string; srName: string; territory: string; territoryCode: string; dbCode: string; dbName: string }> = {
-  '54506': {
-    srPositionCode: 'DM-060',
-    srName: 'Mostafizur Rahman',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '53995': {
-    srPositionCode: 'DM-057',
-    srName: 'Chaon Khandker',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '54233': {
-    srPositionCode: 'DM-059',
-    srName: 'Md. Asebur Rahman Ashik',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-  '51639': {
-    srPositionCode: 'DM-217',
-    srName: 'Md. Shawkat Hossen',
-    territory: 'Jatra Bari',
-    territoryCode: 'T16',
-    dbCode: '102267',
-    dbName: 'M/S Ahamed Enterprise',
-  },
-};
-
 const BRAND_MAP: Record<number, string> = {
   1: 'Mentos',
   2: 'Alpenliebe Juzt Jelly',
@@ -307,7 +260,10 @@ function resolveCategoryName(baseName: string, catId?: number): string {
 // Fetch live deliveries directly from Sokrio API and map to BWIW structure
 async function fetchFromSokrio(): Promise<BWIWRecord[]> {
   const baseUrl = process.env.SOKRIO_BASE_URL || 'https://pvm.core.sokrio.com';
-  const res = await fetchWithAuth(`${baseUrl}/api/v1/deliveries`, { per_page: 50 });
+  const [res, srOrgMap] = await Promise.all([
+    fetchWithAuth(`${baseUrl}/api/v1/deliveries`, { per_page: 50 }),
+    fetchLiveSrOrganizationMap(),
+  ]);
   const list: any[] = res?.data || [];
 
   if (!list.length) return [];
@@ -321,22 +277,25 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
     const products = del.products || del.delivered_products || order.ordered_products || [];
 
     const srCode = String(orderedBy.code || '');
-    const srMeta = SR_METADATA_MAP[srCode];
+    const org = srOrgMap.get(srCode);
 
     const orderDate = toStandardDate(order.order_date || del.deliver_date || order.created_at || del.created_at);
     const deliveryDate = toStandardDate(del.deliver_date || orderDate);
     const custNo = String(order.buyer_id ? `T16-${order.buyer_id}` : (buyer.code || `CUST-${del.buyer_id || ''}`));
     const custName = String(order.buyer_name || buyer.name || `Outlet #${del.buyer_id || ''}`);
-    const routeCode = String(buyer.route?.code || order.route?.code || 'T16R01');
-    const routeName = String(order.buyer_territory_name || buyer.route?.name || order.route?.name || 'Jatra Bari');
+    const routeCode = String(buyer.route?.code || order.route?.code || '');
+    const routeName = String(order.buyer_territory_name || buyer.route?.name || order.route?.name || '');
     const meta = resolveTerritoryMeta(custNo, routeCode, routeName, routeName);
 
-    const dbCode = String(srMeta?.dbCode || meta.dbCode || '102267');
-    const dbName = String(srMeta?.dbName || meta.dbName || 'M/S Ahamed Enterprise');
-    const srName = String(orderedBy.name || srMeta?.srName || (srCode ? `SR ${srCode}` : ''));
-    const srPositionCode = String(srMeta?.srPositionCode || meta.srPositionCode || '');
-    const territory = String(srMeta?.territory || meta.territory || 'Jatra Bari');
-    const territoryCode = String(srMeta?.territoryCode || meta.territoryCode || 'T16');
+    const cluster = String(org?.cluster || meta.cluster || '');
+    const area = String(org?.area || meta.area || '');
+    const territory = String(org?.territory || meta.territory || '');
+    const territoryCode = String(org?.territoryCode || meta.territoryCode || '');
+    const dbCode = String(org?.dbCode || meta.dbCode || (del.seller_id ? String(del.seller_id) : ''));
+    const dbName = String(org?.dbName || meta.dbName || del.seller_name || '');
+    const dbType = org?.dbType || meta.dbType || (dbName ? resolveDbType(dbName) : '') || 'MAIN';
+    const srName = String(orderedBy.name || org?.srName || (srCode ? `SR ${srCode}` : ''));
+    const srPositionCode = String(org?.positionCode || meta.srPositionCode || '');
     const inv = del.order?.invoice || del.invoice || {};
     const liveInvoiceVal = inv.invoice_number || del.order?.tracking_id || del.order?.order_number || del.order?.code || del.id || '';
     const invoiceNo = formatInvoiceNo(liveInvoiceVal);
@@ -359,14 +318,14 @@ async function fetchFromSokrio(): Promise<BWIWRecord[]> {
         records.push({
           id: `live-del-${del.id}-${pIdx}`,
           orderDate: formatDDMMYYYY(orderDate),
-          cluster: 'Central',
-          area: meta.area || 'Central South',
+          cluster,
+          area,
           territory,
           territoryCode,
           town: '',
           dbCode,
           dbName,
-          dbType: 'MAIN',
+          dbType,
           srCode,
           srName,
           srPositionCode,
@@ -422,7 +381,7 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
   const deliveryUrl = `https://pvm.report.sokrio.com/api/v3/delivery-summary-export?range=${start}%2C${end}&territory_id=2&download&type=xlsx`;
   const orderUrl = `https://pvm.report.sokrio.com/api/v3/order-summary-export?range=${start}%2C${end}&territory_id=1&download&type=xlsx`;
 
-  const [delRes, orderRes] = await Promise.all([
+  const [delRes, orderRes, srOrgMap] = await Promise.all([
     axios.get(deliveryUrl, {
       headers: { Authorization: `Bearer ${token}` },
       responseType: 'arraybuffer',
@@ -433,6 +392,7 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
       responseType: 'arraybuffer',
       timeout: 60000,
     }),
+    fetchLiveSrOrganizationMap(),
   ]);
 
   const wbOrder = XLSX.read(orderRes.data, { type: 'buffer' });
@@ -495,14 +455,17 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
     const meta = resolveTerritoryMeta(custCode, rawTerritoryCode, routeName, routeName);
 
     const srCode = String(r[delCreatorCodeIdx] || '');
-    const srMeta = SR_METADATA_MAP[srCode];
+    const org = srOrgMap.get(srCode);
 
-    const dbCode = String(srMeta?.dbCode || meta.dbCode || '102267');
-    const dbName = String(srMeta?.dbName || meta.dbName || 'M/S Ahamed Enterprise');
-    const srName = String(r[delCreatorNameIdx] || srMeta?.srName || (srCode ? `SR ${srCode}` : ''));
-    const srPositionCode = srMeta?.srPositionCode || meta.srPositionCode || '';
-    const territory = srMeta?.territory || meta.territory || 'Jatra Bari';
-    const territoryCode = srMeta?.territoryCode || meta.territoryCode || (rawTerritoryCode ? rawTerritoryCode.substring(0, 3) : 'T16');
+    const cluster = String(org?.cluster || meta.cluster || '');
+    const area = String(org?.area || meta.area || '');
+    const territory = String(org?.territory || meta.territory || '');
+    const territoryCode = String(org?.territoryCode || meta.territoryCode || (rawTerritoryCode ? rawTerritoryCode.substring(0, 3) : ''));
+    const dbCode = String(org?.dbCode || meta.dbCode || '');
+    const dbName = String(org?.dbName || meta.dbName || '');
+    const dbType = org?.dbType || meta.dbType || (dbName ? resolveDbType(dbName) : '') || 'MAIN';
+    const srName = String(r[delCreatorNameIdx] || org?.srName || (srCode ? `SR ${srCode}` : ''));
+    const srPositionCode = String(org?.positionCode || meta.srPositionCode || '');
 
     const orderEntry = orderMap[trackingId];
     const orderItem = orderEntry?.items ? orderEntry.items[skuCode] : null;
@@ -522,8 +485,8 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
     records.push({
       id: `live-bwiw-${idx + 1}`,
       orderDate: formatDDMMYYYY(orderDate),
-      cluster: 'Central',
-      area: meta.area || 'Central South',
+      cluster,
+      area,
       territory,
       territoryCode,
       town: '',

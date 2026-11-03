@@ -166,7 +166,9 @@ async function fetchLiveTeAttendanceFromSokrio(startDate: string, endDate: strin
   for (const tm of tmUsers) {
     const tmCode = String(tm.code || tm.phone || tm.id);
     const tmName = tm.name || 'Territory Manager';
-    const terName = tm.territory?.name && tm.territory.name.toLowerCase() !== 'bangladesh' ? tm.territory.name : 'Jatra Bari';
+    const terName = tm.territory?.name && tm.territory.name.toLowerCase() !== 'bangladesh' ? tm.territory.name : '';
+    const areaName = tm.territory?.parent?.name || '';
+    const cluster = tm.territory?.parent?.parent?.name || 'Central';
 
     const punches = tePunchesMap.get(tmCode) || [];
     const checkins = teCheckinsMap.get(tmCode) || [];
@@ -183,8 +185,8 @@ async function fetchLiveTeAttendanceFromSokrio(startDate: string, endDate: strin
 
         records.push({
           id: `te-att-live-${idx++}`,
-          cluster: 'Central',
-          areaName: 'Central South',
+          cluster,
+          areaName,
           territoryName: terName,
           teCode: Number(tmCode) || tmCode,
           teName: tmName,
@@ -202,8 +204,8 @@ async function fetchLiveTeAttendanceFromSokrio(startDate: string, endDate: strin
         const cTime = (c.created_at || '').split(' ')[1] || '';
         records.push({
           id: `te-att-live-${idx++}`,
-          cluster: 'Central',
-          areaName: 'Central South',
+          cluster,
+          areaName: c.department?.territory?.parent?.name || areaName,
           territoryName: c.department?.territory?.name || terName,
           teCode: Number(tmCode) || tmCode,
           teName: tmName,
@@ -214,26 +216,6 @@ async function fetchLiveTeAttendanceFromSokrio(startDate: string, endDate: strin
           startWorkLatitude: c.lat ?? '',
           startWorkLongitude: c.long ?? '',
         });
-      });
-    } else {
-      // Activity fallback for registered TM
-      const lastLogin = tm.last_time_login || tm.last_activity || tm.updated_at || '';
-      const loginDate = lastLogin ? lastLogin.split(' ')[0] : '2026-10-17';
-      const loginTime = lastLogin && lastLogin.includes(' ') ? lastLogin.split(' ')[1] : '10:43:00';
-
-      records.push({
-        id: `te-att-live-${idx++}`,
-        cluster: 'Central',
-        areaName: 'Central South',
-        territoryName: terName,
-        teCode: Number(tmCode) || tmCode,
-        teName: tmName,
-        visitType: 'StockiestVisit',
-        startWorkDate: formatDateToMMDDYY(loginDate),
-        startWorkTime: formatTimeTo12HourWithSeconds(loginTime),
-        distanceFromDbLocation: '1',
-        startWorkLatitude: '23.8601448',
-        startWorkLongitude: '90.4058861',
       });
     }
   }
