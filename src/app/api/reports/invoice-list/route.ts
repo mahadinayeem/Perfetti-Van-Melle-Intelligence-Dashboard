@@ -30,6 +30,21 @@ const CACHE_TTL_MS = 2 * 60 * 1000;
 
 
 
+function formatDateToMMDDYYYY(rawDate: string): string {
+  if (!rawDate) return '';
+  const clean = rawDate.split('T')[0].split(' ')[0].trim();
+  const parts = clean.includes('-') ? clean.split('-') : clean.split('/');
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      return `${parts[1]}/${parts[2]}/${parts[0]}`;
+    }
+    if (parts[2].length === 4) {
+      return `${parts[1]}/${parts[0]}/${parts[2]}`;
+    }
+  }
+  return clean;
+}
+
 async function fetchLiveInvoicesFromSokrio(): Promise<InvoiceListRecord[]> {
   const token = await getValidToken();
   let invoices: any[] = [];
@@ -64,11 +79,11 @@ async function fetchLiveInvoicesFromSokrio(): Promise<InvoiceListRecord[]> {
 
   for (const inv of invoices) {
     const invoiceNo = inv.order?.invoice?.invoice_number || inv.code || (inv.id ? `INV-${inv.id}` : '');
-    const custNo = inv.order?.buyer_id || inv.buyer_id || (inv.buyer?.code ? String(inv.buyer.code) : '');
-    const createdAt = inv.deliver_date || inv.order?.order_date || inv.created_at || '';
-    const invoiceDate = createdAt.includes(' ') ? createdAt.split(' ')[0] : (createdAt.includes('T') ? createdAt.split('T')[0] : createdAt);
+    const custNo = inv.seller?.code || inv.department?.code || inv.order?.buyer_id || inv.buyer_id || (inv.buyer?.code ? String(inv.buyer.code) : '');
+    const rawCreatedAt = inv.deliver_date || inv.order?.order_date || inv.created_at || '';
+    const invoiceDate = formatDateToMMDDYYYY(rawCreatedAt);
     const custReferenceNo = String(inv.order?.code || inv.code || (inv.id ? `PB${inv.id}` : ''));
-    const poDate = String(inv.order?.order_date || invoiceDate);
+    const poDate = formatDateToMMDDYYYY(inv.order?.order_date || rawCreatedAt);
     const totalAmt = Number(inv.payable_amount || inv.payable || inv.total_price || inv.amount || 0);
 
     const products = inv.order?.latest_revision?.ordered_products || inv.products || [];
@@ -113,7 +128,7 @@ async function fetchLiveInvoicesFromSokrio(): Promise<InvoiceListRecord[]> {
         docType: 'ZDOM',
         receivingDt: invoiceDate,
         lineNo: 1,
-        itemNo: 651302,
+        itemNo: '',
         quantity: 1,
         netPrice: totalAmt,
         totalAmt: Math.round(totalAmt),
