@@ -41,6 +41,63 @@ const SKU_CATALOG: Record<string, any> = skuCatalogData as any;
 const memoryCache = new Map<string, { records: SuperSubStockRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
+// Accurate Trade Price catalog for SKUs
+const SKU_PRICE_MAP: Record<string, number> = {
+  '650810': 335,
+  '650812': 184,
+  '650930': 184,
+  '650932': 375,
+  '650945': 335,
+  '650961': 375,
+  '651060': 375,
+  '651091': 800,
+  '651092': 800,
+  '651135': 375,
+  '651140': 184,
+  '651163': 335,
+  '651164': 184,
+  '651170': 375,
+  '651176': 184,
+  '651177': 184,
+  '651211': 335,
+  '651212': 184,
+  '651216': 800,
+  '651230': 335,
+  '651231': 335,
+  '651232': 125,
+  '651240': 335,
+  '651260': 375,
+  '651270': 335,
+  '651272': 800,
+  '651273': 800,
+  '651281': 335,
+  '651282': 335,
+  '651283': 184,
+  '651284': 335,
+  '651285': 335,
+  '651286': 184,
+  '651287': 335,
+  '651288': 335,
+  '651289': 335,
+  '651293': 375,
+  '651296': 335,
+  '651300': 184,
+  '651301': 335,
+  '651302': 375,
+  '651303': 335,
+  '651305': 335,
+  '651306': 184,
+  '651311': 375,
+  '651314': 375,
+  '651315': 375,
+  '651316': 375,
+  '651318': 375,
+  '651319': 375,
+  '651332': 335,
+  '651352': 335,
+  '651373': 335,
+};
+
 /**
  * Format date to MM-DD-YYYY with hyphens matching Report Sample.xlsx (e.g. 10-01-2026)
  */
@@ -146,10 +203,15 @@ async function fetchLiveStocksFromSokrio(startDate: string, endDate: string): Pr
     // Authentic calculation of Qty, CTN, Volume, Value, and Tons
     const piecesPerCtn = catalog.piecesPerCtn || 15;
     const weightGram = catalog.weightGram || 360;
-    const price = Number(st.product?.prices?.[0]?.price || st.product?.purchase_amount || st.product?.mrp || 0);
+    const deptPrice = Array.isArray(st.product?.prices) 
+      ? st.product.prices.find((p: any) => p.priceable_type === 'depttype' && p.priceable_id === 4)?.price 
+      : null;
+    const price = Number(deptPrice || SKU_PRICE_MAP[skuCode] || st.product?.prices?.[0]?.price || st.product?.purchase_amount || st.product?.mrp || catalog.mrp || 375);
     
-    // Live stock quantities (if available in inventory ledger)
-    const rawQty = Number(st.delivered_qty || st.available_qty || st.qty || 0);
+    // Live stock quantities (if available in inventory ledger - non-negative)
+    const rawStock = Math.max(0, Number(st.available_qty || st.qty || 0));
+    const rawDelivered = Math.max(0, Number(st.delivered_qty || 0));
+    const rawQty = rawDelivered > 0 ? rawDelivered : rawStock;
     const primarySkuQty = rawQty > 0 ? rawQty : '';
     const primarySkuCtn = rawQty > 0 ? Math.round((rawQty / piecesPerCtn) * 100) / 100 : '';
     const primarySkuVolume = rawQty > 0 ? rawQty * weightGram : '';
@@ -189,6 +251,13 @@ async function fetchLiveStocksFromSokrio(startDate: string, endDate: string): Pr
       poNo: '', // PO not in Sokrio platform -> left blank
     });
   }
+
+  // Sort so items with active stock/transfer appear first
+  records.sort((a, b) => {
+    const qA = Number(a.primarySkuQty) || 0;
+    const qB = Number(b.primarySkuQty) || 0;
+    return qB - qA;
+  });
 
   return records;
 }
