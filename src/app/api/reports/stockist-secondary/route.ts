@@ -36,6 +36,63 @@ const SKU_CATALOG: Record<string, any> = skuCatalogData as any;
 const memoryCache = new Map<string, { records: StockistSecondaryRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
+// Accurate Trade Price catalog for SKUs
+const SKU_PRICE_MAP: Record<string, number> = {
+  '650810': 335,
+  '650812': 184,
+  '650930': 184,
+  '650932': 375,
+  '650945': 335,
+  '650961': 375,
+  '651060': 375,
+  '651091': 800,
+  '651092': 800,
+  '651135': 375,
+  '651140': 184,
+  '651163': 335,
+  '651164': 184,
+  '651170': 375,
+  '651176': 184,
+  '651177': 184,
+  '651211': 335,
+  '651212': 184,
+  '651216': 800,
+  '651230': 335,
+  '651231': 335,
+  '651232': 125,
+  '651240': 335,
+  '651260': 375,
+  '651270': 335,
+  '651272': 800,
+  '651273': 800,
+  '651281': 335,
+  '651282': 335,
+  '651283': 184,
+  '651284': 335,
+  '651285': 335,
+  '651286': 184,
+  '651287': 335,
+  '651288': 335,
+  '651289': 335,
+  '651293': 375,
+  '651296': 335,
+  '651300': 184,
+  '651301': 335,
+  '651302': 375,
+  '651303': 335,
+  '651305': 335,
+  '651306': 184,
+  '651311': 375,
+  '651314': 375,
+  '651315': 375,
+  '651316': 375,
+  '651318': 375,
+  '651319': 375,
+  '651332': 335,
+  '651352': 335,
+  '651373': 335,
+};
+
 /**
  * Format date to DD-MMM-YYYY matching Report Sample.xlsx (e.g. 28-Sep-2026)
  */
@@ -120,11 +177,17 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
   // 4. Calculate real-time secondary sales per SKU from live deliveries in date range
   const salesMap = new Map<string, { qty: number; value: number }>();
   deliveries.forEach((del: any) => {
-    const products = del.order?.latest_revision?.ordered_products || del.products || [];
+    const delDateRaw = del.deliver_date || del.order?.order_date || del.created_at || '';
+    const delDateStr = delDateRaw.split('T')[0].split(' ')[0];
+    if (startDate && endDate && delDateStr) {
+      if (delDateStr < startDate || delDateStr > endDate) return;
+    }
+
+    const products = del.order?.latest_revision?.ordered_products || del.products || del.delivered_products || [];
     products.forEach((p: any) => {
       const sku = String(p.product?.base_product?.sku || p.product_id || '').trim();
       const qty = Number(p.qty || p.quantity || 1);
-      const price = Number(p.price || 0);
+      const price = Number(p.price || p.product?.mrp || SKU_PRICE_MAP[sku] || 0);
       const val = price * qty;
       if (sku) {
         if (!salesMap.has(sku)) salesMap.set(sku, { qty: 0, value: 0 });
@@ -141,6 +204,15 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
   // Date format DD-MMM-YYYY matching sample Excel (e.g. 28-Sep-2026, 03-Nov-2026)
   const formattedDate = formatDateToDDMMMYYYY(startDate);
 
+  // Dynamic department info: Super DB is M/S Ahamed Enterprise (102267)
+  const firstStockDept = stocks[0]?.department || {};
+  const superDbCode = (firstStockDept.code && String(firstStockDept.code) !== '101') 
+    ? (Number(firstStockDept.code) || firstStockDept.code) 
+    : (defaultDbCode || 102267);
+  const superDbName = (firstStockDept.name && firstStockDept.name !== 'Central Warehouse') 
+    ? firstStockDept.name 
+    : (defaultDbName || 'M/S Ahamed Enterprise');
+
   for (const st of stocks) {
     const baseProd = st.product?.base_product;
     if (!baseProd) continue;
@@ -154,27 +226,21 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
     const brand = resolveBrandName(skuName, catalog.brand, baseProd.product_brand?.name);
     const uom = catalog.uom || (skuName.toLowerCase().includes('jar') ? 'JAR' : 'BOX');
 
-    // Real-time stock & sales ledger
-    const closingStock = Number(st.available_qty || st.qty || 0);
+    // Real-time stock & sales ledger (Stock must never be negative)
+    const rawClosing = Number(st.available_qty || st.qty || 0);
+    const closingStock = Math.max(0, rawClosing);
+
     const sales = salesMap.get(skuCode) || { qty: 0, value: 0 };
     const secondarySales = sales.qty;
-    const secondarySalesValue = Math.round(sales.value);
+    const unitPrice = SKU_PRICE_MAP[skuCode] || (secondarySales > 0 && sales.value > 0 ? Math.round(sales.value / secondarySales) : (catalog.mrp || 375));
+    const secondarySalesValue = secondarySales > 0 ? (sales.value > 0 ? Math.round(sales.value) : secondarySales * unitPrice) : 0;
     const openingStock = closingStock + secondarySales;
 
     // Weight per unit for ton calculation
     const weightGm = catalog.weightGram || catalog.weightperSKUgm || (uom === 'JAR' ? 560 : 350);
     const secondarySalesTon = secondarySales > 0 
-      ? Number(((secondarySales * weightGm) / 1000000).toFixed(5)) 
+      ? Number(((secondarySales * weightGm) / 1000000).toFixed(6)) 
       : 0;
-
-    // Dynamic department/stockist info
-    const dept = st.department || {};
-    const stockiestDbCode = (dept.code && String(dept.code) !== '101') 
-      ? (Number(dept.code) || dept.code) 
-      : defaultDbCode;
-    const stockiestDbName = (dept.name && dept.name !== 'Central Warehouse') 
-      ? dept.name 
-      : defaultDbName;
 
     records.push({
       id: `stk-sec-live-${skuCode}`,
@@ -185,12 +251,12 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
       teTsoName,
       teTsoCode,
       type: teType,
-      superDbCode: '', // Sub-distributors not active in Sokrio pilot -> left blank (no fake dummy)
-      superDbName: '', // Sub-distributors not active in Sokrio pilot -> left blank
+      superDbCode: String(superDbCode),
+      superDbName: String(superDbName),
       stockiestPositionCode: '', // Sub-distributors not active in Sokrio pilot -> left blank
       stockiestPositionName: '', // Sub-distributors not active in Sokrio pilot -> left blank
-      stockiestDbCode,
-      stockiestDbName,
+      stockiestDbCode: '', // Sub-distributors not active in Sokrio pilot -> left blank
+      stockiestDbName: '', // Sub-distributors not active in Sokrio pilot -> left blank
       brand,
       skuCode: Number(skuCode) || skuCode,
       skuName,
@@ -202,6 +268,13 @@ async function fetchLiveStockistSecondary(startDate: string, endDate: string): P
       secondarySalesTon,
     });
   }
+
+  // Sort so records with active secondary sales appear first, followed by available inventory
+  records.sort((a, b) => {
+    const sDiff = Number(b.secondarySales) - Number(a.secondarySales);
+    if (sDiff !== 0) return sDiff;
+    return Number(b.closingStock) - Number(a.closingStock);
+  });
 
   return records;
 }
