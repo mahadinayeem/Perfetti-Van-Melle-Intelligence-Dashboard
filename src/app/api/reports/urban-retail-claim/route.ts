@@ -32,14 +32,26 @@ export interface UrbanRetailClaimRecord {
   claimAmount: number;
 }
 
-function formatDateMMDDYYYY(val: string): string {
+function formatDeliveryDateTime(val: any): string {
   if (!val) return '';
-  const clean = val.split('T')[0].split(' ')[0].trim();
-  const parts = clean.split('-');
-  if (parts.length === 3 && parts[0].length === 4) {
-    return `${parts[1].padStart(2,'0')}/${parts[2].padStart(2,'0')}/${parts[0]}`;
+  const str = String(val).trim();
+  const clean = str.replace('T', ' ').split('.')[0];
+  const parts = clean.split(' ');
+  const datePart = parts[0];
+  const timePart = parts[1] || '00:00:00';
+
+  if (datePart.includes('-')) {
+    const dParts = datePart.split('-');
+    if (dParts.length === 3 && dParts[0].length === 4) {
+      const year = dParts[0];
+      const month = dParts[1].padStart(2, '0');
+      const day = dParts[2].padStart(2, '0');
+      const hour = parseInt(timePart.split(':')[0] || '0', 10);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      return `${day}/${month}/${year} ${timePart} ${ampm}`;
+    }
   }
-  return clean;
+  return str;
 }
 
 const memoryCache = new Map<string, { records: UrbanRetailClaimRecord[]; meta: any; timestamp: number }>();
@@ -134,8 +146,8 @@ export async function GET(request: NextRequest) {
           sRPositionCode: srPositionCode,
           srPositionCode,
           invoiceNo: invNo,
-          deliveryDate: formatDateMMDDYYYY(dateOnly),
-          orderDate: formatDateMMDDYYYY(orderDateOnly),
+          deliveryDate: formatDeliveryDateTime(dateRaw),
+          orderDate: formatDeliveryDateTime(orderDateRaw),
           sKUCode: skuCode,
           skuCode,
           qty,
