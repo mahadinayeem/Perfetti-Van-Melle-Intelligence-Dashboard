@@ -1355,23 +1355,48 @@ export default function DashboardPage() {
   // Track active fetch request sequence to ignore stale responses
   const reqIdRef = useRef(0);
 
-  // Helper to fetch data for a specific endpoint & range
-  const executeFetch = async (tab: ActiveTab, start: string, end: string) => {
+  // Helper to fetch data for a specific endpoint & range with automatic resilient retry
+  const executeFetch = async (tab: ActiveTab, start: string, end: string, retries = 2) => {
     const cfg = TAB_CONFIGS.find(t => t.id === tab) || TAB_CONFIGS[0];
     const separator = cfg.endpoint.includes('?') ? '&' : '?';
     const url = `${cfg.endpoint}${separator}startDate=${start}&endDate=${end}&start=${start}&end=${end}&date=${end}`;
 
-    const res = await fetch(url);
-    if (!res.ok) {
-      const text = await res.text();
-      let errMsg = `Server returned status ${res.status}`;
+    for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        const parsed = JSON.parse(text);
-        errMsg = parsed.message || parsed.error || errMsg;
-      } catch {}
-      throw new Error(errMsg);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 35000); // 35s client timeout
+
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          const text = await res.text();
+          let errMsg = `Server returned status ${res.status}`;
+          try {
+            const parsed = JSON.parse(text);
+            errMsg = parsed.message || parsed.error || errMsg;
+          } catch {}
+          if (res.status >= 500 && attempt < retries) {
+            await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+            continue;
+          }
+          throw new Error(errMsg);
+        }
+        return await res.json();
+      } catch (err: any) {
+        if (attempt < retries && (err.name === 'AbortError' || err.message === 'Failed to fetch' || err.name === 'TypeError')) {
+          await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+          continue;
+        }
+        if (err.name === 'AbortError') {
+          throw new Error('Server response timed out. Please click Retry.');
+        }
+        if (err.message === 'Failed to fetch') {
+          throw new Error('Connection interrupted. Please click Retry.');
+        }
+        throw err;
+      }
     }
-    return await res.json();
   };
 
   // Smart Auto-Cascading Fetch:

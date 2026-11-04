@@ -5,6 +5,9 @@ import skuCatalogData from '@/lib/skuCatalog.json';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 export interface StockReportRecord {
   id?: string;
   cluster: string;
@@ -55,7 +58,7 @@ interface CacheEntry {
   timestamp: number;
 }
 const memoryCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 15 * 1000;
+const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes persistent cache for fast responsiveness
 
 // Accurate Trade Price catalog for SKUs
 const SKU_PRICE_MAP: Record<string, number> = {
@@ -116,21 +119,21 @@ function roundVal(v: number): number {
 async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Promise<StockReportRecord[]> {
   const token = await getValidToken();
 
-  // 1. Fetch live distributor stocks from Sokrio Core
+  // 1. Fetch live distributor stocks from Sokrio Core with 15s timeout
   const stocksUrl = 'https://pvm.core.sokrio.com/api/v1/stocks?per_page=250';
   const [stocksRes, srOrgMap] = await Promise.all([
     axios.get(stocksUrl, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      timeout: 30000,
+      timeout: 15000,
     }),
     fetchLiveSrOrganizationMap().catch(() => new Map<string, any>()),
   ]);
 
   let defaultCluster = 'Central';
-  let defaultArea = '';
-  let defaultTerritory = '';
-  let defaultDbCode: string | number = '';
-  let defaultDbName = '';
+  let defaultArea = 'Central South';
+  let defaultTerritory = 'Jatra Bari';
+  let defaultDbCode: string | number = 102267;
+  let defaultDbName = 'M/S Ahamed Enterprise';
 
   if (srOrgMap && srOrgMap.size > 0) {
     const firstOrg = Array.from(srOrgMap.values())[0];
@@ -155,14 +158,14 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
       const repRes = await axios.get(summaryUrl, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'arraybuffer',
-        timeout: 30000,
+        timeout: 12000,
       });
       arrayBufferData = repRes.data;
     } catch {
       const repRes2 = await axios.get(`https://pvm.report.sokrio.com/api/v3/stock-report?opening_date=${startDate}&closing_date=${endDate}&territory_id=2&download&type=summary`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'arraybuffer',
-        timeout: 30000,
+        timeout: 12000,
       });
       arrayBufferData = repRes2.data;
     }
