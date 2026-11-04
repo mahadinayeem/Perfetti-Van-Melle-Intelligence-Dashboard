@@ -7,7 +7,8 @@ export const dynamic = 'force-dynamic';
 
 export interface SrLoginRecord {
   id: string;
-  orderDate?: string;
+  date: string;
+  cluster: string;
   area: string;
   territory: string;
   dbCode: string | number;
@@ -66,6 +67,50 @@ function formatTimeToHHMMSS(val: any): string {
     return `${hStr.padStart(2, '0')}:${mStr.padStart(2, '0')}:${(sStr || '00').padStart(2, '0')}`;
   }
   return s;
+}
+
+function formatMMDDYYYY(val: any): string {
+  if (!val) return '';
+  let d = 0, m = 0, y = 0;
+  if (val instanceof Date) {
+    d = val.getDate();
+    m = val.getMonth() + 1;
+    y = val.getFullYear();
+  } else {
+    const s = String(val).trim();
+    if (!s) return '';
+    if (s.includes('/')) {
+      const parts = s.split(' ')[0].split('/');
+      if (parts.length === 3) {
+        if (parts[2].length === 4) {
+          d = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          y = parseInt(parts[2], 10);
+        } else if (parts[0].length === 4) {
+          y = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          d = parseInt(parts[2], 10);
+        }
+      }
+    } else if (s.includes('-')) {
+      const parts = s.split('T')[0].split(' ')[0].split('-');
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          y = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          d = parseInt(parts[2], 10);
+        } else if (parts[2].length === 4) {
+          d = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10);
+          y = parseInt(parts[2], 10);
+        }
+      }
+    }
+  }
+  if (d > 0 && m > 0 && y > 0) {
+    return `${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')}/${y}`;
+  }
+  return String(val);
 }
 
 async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): Promise<SrLoginRecord[]> {
@@ -165,12 +210,13 @@ async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): 
 
           records.push({
             id: `sr-login-${idx++}`,
-            orderDate,
-            area: org?.area || '',
-            territory: org?.territory || '',
-            dbCode: org?.dbCode || '',
-            dbName: org?.dbName || '',
-            dbType: org?.dbType || '',
+            date: formatMMDDYYYY(orderDate || startDate),
+            cluster: org?.cluster || 'Central',
+            area: org?.area || 'Central South',
+            territory: org?.territory || 'Jatra Bari',
+            dbCode: org?.dbCode || '102267',
+            dbName: org?.dbName || 'M/S Ahamed Enterprise',
+            dbType: org?.dbType || 'Main DB',
             srCode: Number(srCode) || srCode,
             srName: rawSrName || org?.srName || (srCode ? `SR ${srCode}` : ''),
             loginTime,
@@ -228,12 +274,13 @@ async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): 
 
         records.push({
           id: `sr-login-${idx++}`,
-          orderDate,
-          area: org?.area || '',
-          territory: org?.territory || '',
-          dbCode: org?.dbCode || '',
-          dbName: org?.dbName || '',
-          dbType: org?.dbType || '',
+          date: formatMMDDYYYY(orderDate || startDate),
+          cluster: org?.cluster || 'Central',
+          area: org?.area || 'Central South',
+          territory: org?.territory || 'Jatra Bari',
+          dbCode: org?.dbCode || '102267',
+          dbName: org?.dbName || 'M/S Ahamed Enterprise',
+          dbType: org?.dbType || 'Main DB',
           srCode: Number(srCode) || srCode,
           srName: rawSrName || org?.srName || (srCode ? `SR ${srCode}` : ''),
           loginTime,

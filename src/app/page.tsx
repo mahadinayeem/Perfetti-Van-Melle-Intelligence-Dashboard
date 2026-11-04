@@ -482,6 +482,8 @@ const TAB_CONFIGS: {
     badge: 'Live Geo',
     desc: 'SR Real-Time Login/Attendance, GPS Coordinates, DB Distance & Day End Status',
     columns: [
+      { key: 'date', label: 'Date', pillType: 'bold' },
+      { key: 'cluster', label: 'Cluster' },
       { key: 'area', label: 'Area' },
       { key: 'territory', label: 'Territory' },
       { key: 'dbCode', label: 'DBCode', pillType: 'route' },

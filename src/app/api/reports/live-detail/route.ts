@@ -451,8 +451,11 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
     const lastCallTime = d.maxCheckinMs ? format24hFromMs(d.maxCheckinMs) : '';
     const lastSyncTime = d.lastSyncMs ? format24hFromMs(d.lastSyncMs) : '';
 
-    const startWorkTime = formatTimeToHHMMSS(att?.dayIn) || '';
-    const endWorkTime = formatTimeToHHMMSS(att?.dayOut) || '';
+    const startWorkTime = formatTimeToHHMMSS(att?.dayIn) || (firstCallTime || '');
+    let endWorkTime = formatTimeToHHMMSS(att?.dayOut) || '';
+    if (!endWorkTime && lastCallTime) {
+      endWorkTime = lastCallTime;
+    }
 
     let totalWorkingHours = '';
     if (att?.workingHours && String(att.workingHours).trim() !== '-' && String(att.workingHours).trim() !== '0') {
