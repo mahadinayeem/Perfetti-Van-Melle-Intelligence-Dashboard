@@ -4,6 +4,7 @@ import axios from 'axios';
 import * as XLSX from 'xlsx';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 export interface SrLoginRecord {
   id: string;
@@ -116,37 +117,28 @@ function formatMMDDYYYY(val: any): string {
 async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): Promise<SrLoginRecord[]> {
   let token = await getValidToken();
 
-  const makeRequests = async (authToken: string) => {
-    // Live Day In / Day Out Attendance Report (API v3)
-    const attendanceUrl = `https://pvm.report.sokrio.com/api/v3/daily-attendance?range=${startDate}%2C${endDate}&territory_id=1&roles=7%2C6%2C5%2C4%2C3%2C2%2C1&download`;
-    // Live Checkin Report (API v1)
-    const checkinUrl = `https://pvm.report.sokrio.com/api/v1/checkin-report?range=${startDate}%2C${endDate}&roles=&type=xlsx&download`;
-
-    return await Promise.all([
-      axios.get(attendanceUrl, {
-        headers: { Authorization: `Bearer ${authToken}` },
-        responseType: 'arraybuffer',
-        timeout: 35000,
-      }),
-      axios.get(checkinUrl, {
-        headers: { Authorization: `Bearer ${authToken}` },
-        responseType: 'arraybuffer',
-        timeout: 35000,
-      }),
-    ]);
-  };
-
+  // 1. Primary Fast Source: Live Day In / Day Out Attendance Report (API v3) - Fast (< 2s)
+  const attendanceUrl = `https://pvm.report.sokrio.com/api/v3/daily-attendance?range=${startDate}%2C${endDate}&territory_id=1&roles=7%2C6%2C5%2C4%2C3%2C2%2C1&download`;
   let attendanceRes: any;
-  let checkinRes: any;
 
   try {
-    [attendanceRes, checkinRes] = await makeRequests(token);
+    attendanceRes = await axios.get(attendanceUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: 'arraybuffer',
+      timeout: 15000,
+    });
   } catch (err: any) {
     if (err?.response?.status === 401 || err?.response?.status === 403) {
       token = await getValidToken(true);
-      [attendanceRes, checkinRes] = await makeRequests(token);
+      try {
+        attendanceRes = await axios.get(attendanceUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'arraybuffer',
+          timeout: 15000,
+        });
+      } catch {}
     } else {
-      console.warn('[SR Login] Live attendance API error, proceeding:', err.message);
+      console.warn('[SR Login] Live attendance API error:', err.message);
     }
   }
 
@@ -233,12 +225,19 @@ async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): 
     }
   }
 
-  // 2. Secondary Fallback Source: Parse live check-ins for any SRs who checked in to retail outlets
-  if (checkinRes?.data) {
+  // 2. Secondary Fallback Source: ONLY if attendance report returned 0 records, fetch checkin report on-demand
+  if (records.length === 0) {
     try {
-      const wb = XLSX.read(checkinRes.data, { type: 'buffer' });
-      const sheetName = wb.SheetNames[0];
-      const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName]) || [];
+      const checkinUrl = `https://pvm.report.sokrio.com/api/v1/checkin-report?range=${startDate}%2C${endDate}&roles=&type=xlsx&download`;
+      const checkinRes = await axios.get(checkinUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'arraybuffer',
+        timeout: 15000,
+      });
+      if (checkinRes?.data) {
+        const wb = XLSX.read(checkinRes.data, { type: 'buffer' });
+        const sheetName = wb.SheetNames[0];
+        const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName]) || [];
 
       rows.forEach((c) => {
         const srCode = String(c['Employee Code'] || '').trim();
@@ -291,6 +290,7 @@ async function fetchLiveSrLoginsFromSokrio(startDate: string, endDate: string): 
           startWorkLongitude: lng,
         });
       });
+      }
     } catch (e: any) {
       console.warn('[SR Login] Error parsing checkin workbook:', e.message);
     }
