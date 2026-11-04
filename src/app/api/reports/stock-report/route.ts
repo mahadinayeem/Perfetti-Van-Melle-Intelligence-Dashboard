@@ -3,6 +3,7 @@ import { getValidToken, resolveDbType, fetchLiveSrOrganizationMap } from '@/lib/
 import { resolveEnglishSkuName } from '@/lib/skuResolver';
 import skuCatalogData from '@/lib/skuCatalog.json';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 
 export interface StockReportRecord {
   id?: string;
@@ -144,22 +145,75 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
 
   const rawStocks: any[] = stocksRes.data?.stocks || [];
 
-  // 2. Fetch live stock report ledger metrics from Sokrio Report engine
+  // 2. Fetch live stock report ledger metrics strictly from user-specified Sokrio endpoint:
+  // https://pvm.core.sokrio.com/api/v3/stock-report?opening_date=...&closing_date=...&territory_id=2&download&type=summary
   let rawReportSummary: Record<string, any> = {};
   try {
-    const reportUrl = `https://pvm.report.sokrio.com/api/v3/stock-report?opening_date=${startDate}&closing_date=${endDate}&territory_id=1`;
-    const repRes = await axios.get(reportUrl, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-      timeout: 30000,
-    });
-    const reportsList = repRes.data?.reports || [];
-    for (const item of reportsList) {
-      if (item.product_sku) {
-        rawReportSummary[String(item.product_sku)] = item;
+    const summaryUrl = `https://pvm.core.sokrio.com/api/v3/stock-report?opening_date=${startDate}&closing_date=${endDate}&territory_id=2&download&type=summary`;
+    let arrayBufferData: any;
+    try {
+      const repRes = await axios.get(summaryUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'arraybuffer',
+        timeout: 30000,
+      });
+      arrayBufferData = repRes.data;
+    } catch {
+      const repRes2 = await axios.get(`https://pvm.report.sokrio.com/api/v3/stock-report?opening_date=${startDate}&closing_date=${endDate}&territory_id=2&download&type=summary`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'arraybuffer',
+        timeout: 30000,
+      });
+      arrayBufferData = repRes2.data;
+    }
+
+    if (arrayBufferData) {
+      const wb = XLSX.read(arrayBufferData, { type: 'buffer' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1 });
+      for (let i = 5; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || !r[1]) continue;
+        const sku = String(r[1]).trim();
+        rawReportSummary[sku] = {
+          product_sku: sku,
+          product_name: r[2],
+          opening_stock: Number(r[3] || 0),
+          primary_lifting: Number(r[4] || 0),
+          secondary_sales: Number(r[5] || 0),
+          closing_stock: Number(r[6] || 0),
+          damage_stock: Number(r[7] || 0),
+        };
       }
     }
   } catch (err: any) {
-    console.warn('[Stock Report] Live stock-report ledger warning:', err.message);
+    console.warn('[Stock Report] Live summary excel warning:', err.message);
+  }
+
+  // Fallback to JSON API with territory_id=2 if excel summary had 0 items
+  if (Object.keys(rawReportSummary).length === 0) {
+    try {
+      const jsonUrl = `https://pvm.core.sokrio.com/api/v3/stock-report?opening_date=${startDate}&closing_date=${endDate}&territory_id=2`;
+      const jsonRes = await axios.get(jsonUrl, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+        timeout: 30000,
+      });
+      for (const item of (jsonRes.data?.reports || [])) {
+        if (item.product_sku) {
+          rawReportSummary[String(item.product_sku)] = {
+            product_sku: String(item.product_sku),
+            product_name: item.product_name,
+            opening_stock: Number(item.opening_stock || 0),
+            primary_lifting: Number(item.primary_lifting || 0),
+            secondary_sales: Number(item.secondary_sales || 0),
+            current_stock: Number(item.current_stock || 0),
+            total_transit: Number(item.total_transit || 0),
+          };
+        }
+      }
+    } catch (err: any) {
+      console.warn('[Stock Report] Live JSON warning:', err.message);
+    }
   }
 
   const result: StockReportRecord[] = [];
@@ -193,9 +247,10 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
     const primaryStock = Number(ledger?.primary_lifting ?? 0);
     const deliveredSecondary = Number(ledger?.secondary_sales ?? st.delivered_qty ?? 0);
 
-    // Calculate distributor opening stock: Opening = Floor Stock + Delivered Secondary - Primary Stock
-    // Avoid using national ledger seed (11,000 units from Central Warehouse 10k + Sara Enterprise 1k)
-    let openingStock = Math.max(0, floorStock + deliveredSecondary - primaryStock);
+    // Live opening stock from Territory 2 summary report
+    let openingStock = ledger?.opening_stock !== undefined && Number(ledger.opening_stock) > 0
+      ? Number(ledger.opening_stock)
+      : Math.max(0, floorStock + deliveredSecondary - primaryStock);
     if (openingStock <= 0) openingStock = floorStock;
     const transit = Number(ledger?.total_transit ?? st.on_transit_receive ?? 0);
     const orderedQty = 0;
@@ -272,8 +327,10 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
       const deliveredSecondary = Number(ledger.secondary_sales ?? 0);
       const transit = Number(ledger.total_transit ?? 0);
 
-      // Calculate distributor opening stock: Opening = Floor Stock + Delivered Secondary - Primary Stock
-      let openingStock = Math.max(0, floorStock + deliveredSecondary - primaryStock);
+      // Live opening stock from Territory 2 summary report
+      let openingStock = ledger.opening_stock !== undefined && Number(ledger.opening_stock) > 0
+        ? Number(ledger.opening_stock)
+        : Math.max(0, floorStock + deliveredSecondary - primaryStock);
       if (openingStock <= 0) openingStock = floorStock;
 
       const dbCode = defaultDbCode;
