@@ -4,6 +4,9 @@ import * as XLSX from 'xlsx';
 import { getValidToken, resolveDbType, fetchLiveSrOrganizationMap } from '@/lib/sokrioClient';
 import territoriesMasterData from '@/lib/territoriesMaster.json';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 export interface LiveDetailRecord {
   id?: string;
   cluster: string;
@@ -180,18 +183,64 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
   let token = await getValidToken();
 
   const makeRequests = async (authToken: string) => {
-    const checkinUrl = `https://pvm.report.sokrio.com/api/v1/checkin-report?range=${startDate}%2C${endDate}&roles=&type=xlsx&download`;
+    // 1. Checkin: Request JSON for true live seconds (created_at: YYYY-MM-DD HH:mm:ss)
+    const checkinJsonUrl = `https://pvm.report.sokrio.com/api/v1/checkin-report?range=${startDate}%2C${endDate}&roles=&per_page=500`;
+    const checkinXlsxUrl = `https://pvm.report.sokrio.com/api/v1/checkin-report?range=${startDate}%2C${endDate}&roles=&type=xlsx&download`;
+    // 2. Attendance: Request JSON for true live seconds (checkin_at, checkout_at, working_hours)
+    const attendanceJsonUrl = `https://pvm.report.sokrio.com/api/v3/daily-attendance?range=${startDate}%2C${endDate}&territory_id=1&roles=7%2C6%2C5%2C4%2C3%2C2%2C1`;
+    const attendanceXlsxUrl = `https://pvm.report.sokrio.com/api/v3/daily-attendance?range=${startDate}%2C${endDate}&territory_id=1&roles=7%2C6%2C5%2C4%2C3%2C2%2C1&download`;
+    // 3. Orders:
     const orderUrl = `https://pvm.report.sokrio.com/api/v3/order-summary-export?range=${startDate}%2C${endDate}&territory_id=1&download&type=xlsx`;
-    const attendanceUrl = `https://pvm.report.sokrio.com/api/v3/daily-attendance?range=${startDate}%2C${endDate}&territory_id=1&roles=7%2C6%2C5%2C4%2C3%2C2%2C1&download`;
 
-    return await Promise.all([
-      axios.get(checkinUrl, { headers: { Authorization: `Bearer ${authToken}` }, responseType: 'arraybuffer', timeout: 45000 }),
-      axios.get(orderUrl, { headers: { Authorization: `Bearer ${authToken}` }, responseType: 'arraybuffer', timeout: 45000 }),
-      axios.get(attendanceUrl, { headers: { Authorization: `Bearer ${authToken}` }, responseType: 'arraybuffer', timeout: 45000 }).catch((err) => {
-        console.warn('[Live Detail] Attendance API request failed:', err.message);
+    const fetchCheckin = async (): Promise<{ type: 'json' | 'xlsx'; data: any }> => {
+      try {
+        const res = await axios.get(checkinJsonUrl, {
+          headers: { Authorization: `Bearer ${authToken}`, Accept: 'application/json' },
+          timeout: 25000,
+        });
+        if (res.data?.checkinReport && Array.isArray(res.data.checkinReport) && res.data.checkinReport.length > 0) {
+          return { type: 'json', data: res.data.checkinReport };
+        }
+      } catch {}
+      const xlsxRes = await axios.get(checkinXlsxUrl, {
+        headers: { Authorization: `Bearer ${authToken}` },
+        responseType: 'arraybuffer',
+        timeout: 45000,
+      });
+      return { type: 'xlsx', data: xlsxRes.data };
+    };
+
+    const fetchAttendance = async (): Promise<{ type: 'json' | 'xlsx'; data: any } | null> => {
+      try {
+        const res = await axios.get(attendanceJsonUrl, {
+          headers: { Authorization: `Bearer ${authToken}`, Accept: 'application/json' },
+          timeout: 25000,
+        });
+        if (res.data?.dailyAttendance && Array.isArray(res.data.dailyAttendance)) {
+          return { type: 'json', data: res.data.dailyAttendance };
+        }
+      } catch {}
+      try {
+        const xlsxRes = await axios.get(attendanceXlsxUrl, {
+          headers: { Authorization: `Bearer ${authToken}` },
+          responseType: 'arraybuffer',
+          timeout: 45000,
+        });
+        return { type: 'xlsx', data: xlsxRes.data };
+      } catch {
         return null;
-      }),
-    ]);
+      }
+    };
+
+    const fetchOrder = async () => {
+      return await axios.get(orderUrl, {
+        headers: { Authorization: `Bearer ${authToken}` },
+        responseType: 'arraybuffer',
+        timeout: 45000,
+      });
+    };
+
+    return await Promise.all([fetchCheckin(), fetchOrder(), fetchAttendance()]);
   };
 
   let checkinRes: any;
@@ -215,7 +264,7 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
     }
   }
 
-  // Parse attendance report for Day in Time & Day Out Time
+  // Parse attendance report for Day in Time & Day Out Time (with authentic seconds)
   const attendanceMap = new Map<string, {
     name: string;
     dayIn: string;
@@ -224,40 +273,65 @@ async function fetchLiveDetailFromSokrio(startDate: string, endDate: string): Pr
   }>();
 
   if (attendanceRes && attendanceRes.data) {
-    try {
-      const wbAtt = XLSX.read(attendanceRes.data, { type: 'buffer' });
-      const wsAtt = wbAtt.Sheets[wbAtt.SheetNames[0]];
-      const attRows: any[][] = XLSX.utils.sheet_to_json(wsAtt, { header: 1 }) || [];
-      if (attRows.length > 3) {
-        const headers = (attRows[3] || []).map((h: any) => String(h || '').trim().toLowerCase());
-        const empCodeIdx = headers.findIndex((h: string) => h.includes('employee code') || h.includes('emp code') || h.includes('user code'));
-        const dayInIdx = headers.findIndex((h: string) => h.includes('day in time') || h.includes('day-in') || h.includes('day in'));
-        const dayOutIdx = headers.findIndex((h: string) => h.includes('day out time') || h.includes('day-out') || h.includes('day out'));
-        const workHoursIdx = headers.findIndex((h: string) => h.includes('working hours') || h.includes('working hour'));
-        const nameIdx = headers.findIndex((h: string) => h.includes('name'));
-
-        attRows.slice(4).forEach((r) => {
-          const code = String(r[empCodeIdx >= 0 ? empCodeIdx : 3] || '').trim();
-          if (!code) return;
-          const rawDayIn = r[dayInIdx >= 0 ? dayInIdx : 4];
-          const rawDayOut = r[dayOutIdx >= 0 ? dayOutIdx : 8];
-          const rawWorkHours = r[workHoursIdx >= 0 ? workHoursIdx : 11];
-
-          attendanceMap.set(code, {
-            name: String(r[nameIdx >= 0 ? nameIdx : 2] || '').trim(),
-            dayIn: parseTime(rawDayIn),
-            dayOut: parseTime(rawDayOut),
-            workingHours: rawWorkHours && String(rawWorkHours).trim() !== '-' ? String(rawWorkHours).trim() : '',
-          });
+    if (attendanceRes.type === 'json' && Array.isArray(attendanceRes.data)) {
+      for (const item of attendanceRes.data) {
+        const code = String(item.user_code || '').trim();
+        if (!code) continue;
+        attendanceMap.set(code, {
+          name: String(item.user_name || '').trim(),
+          dayIn: extractTimeOnly(item.checkin_at, ''),
+          dayOut: extractTimeOnly(item.checkout_at, ''),
+          workingHours: item.working_hours && String(item.working_hours).trim() !== '-' ? formatMinutes(item.working_hours) : '',
         });
       }
-    } catch (attErr) {
-      console.error('[Live Detail] Error parsing attendance workbook:', attErr);
+    } else {
+      try {
+        const wbAtt = XLSX.read(attendanceRes.data, { type: 'buffer' });
+        const wsAtt = wbAtt.Sheets[wbAtt.SheetNames[0]];
+        const attRows: any[][] = XLSX.utils.sheet_to_json(wsAtt, { header: 1 }) || [];
+        if (attRows.length > 3) {
+          const headers = (attRows[3] || []).map((h: any) => String(h || '').trim().toLowerCase());
+          const empCodeIdx = headers.findIndex((h: string) => h.includes('employee code') || h.includes('emp code') || h.includes('user code'));
+          const dayInIdx = headers.findIndex((h: string) => h.includes('day in time') || h.includes('day-in') || h.includes('day in'));
+          const dayOutIdx = headers.findIndex((h: string) => h.includes('day out time') || h.includes('day-out') || h.includes('day out'));
+          const workHoursIdx = headers.findIndex((h: string) => h.includes('working hours') || h.includes('working hour'));
+          const nameIdx = headers.findIndex((h: string) => h.includes('name'));
+
+          attRows.slice(4).forEach((r) => {
+            const code = String(r[empCodeIdx >= 0 ? empCodeIdx : 3] || '').trim();
+            if (!code) return;
+            const rawDayIn = r[dayInIdx >= 0 ? dayInIdx : 4];
+            const rawDayOut = r[dayOutIdx >= 0 ? dayOutIdx : 8];
+            const rawWorkHours = r[workHoursIdx >= 0 ? workHoursIdx : 11];
+
+            attendanceMap.set(code, {
+              name: String(r[nameIdx >= 0 ? nameIdx : 2] || '').trim(),
+              dayIn: parseTime(rawDayIn),
+              dayOut: parseTime(rawDayOut),
+              workingHours: rawWorkHours && String(rawWorkHours).trim() !== '-' ? String(rawWorkHours).trim() : '',
+            });
+          });
+        }
+      } catch (attErr) {
+        console.error('[Live Detail] Error parsing attendance workbook:', attErr);
+      }
     }
   }
 
-  const wbCheckin = XLSX.read(checkinRes.data, { type: 'buffer' });
-  const checkinRows: any[] = XLSX.utils.sheet_to_json(wbCheckin.Sheets[wbCheckin.SheetNames[0]]) || [];
+  // Parse checkin rows (supporting JSON with true seconds or XLSX)
+  let checkinRows: any[] = [];
+  if (checkinRes && checkinRes.type === 'json' && Array.isArray(checkinRes.data)) {
+    checkinRows = checkinRes.data.map((c: any) => ({
+      'Employee Code': c.user?.code || c['Employee Code'] || '',
+      'Name': c.user?.name || c['Name'] || '',
+      'Territory Name': c.route?.name || c['Territory Name'] || '',
+      'Check in Time ': c.created_at || c['Check in Time '] || c['Time'] || '',
+      'Time spent(minutes)': c.time_spent ?? c['Time spent(minutes)'] ?? 0,
+    }));
+  } else if (checkinRes && checkinRes.data) {
+    const wbCheckin = XLSX.read(checkinRes.data, { type: 'buffer' });
+    checkinRows = XLSX.utils.sheet_to_json(wbCheckin.Sheets[wbCheckin.SheetNames[0]]) || [];
+  }
 
   const wbOrder = XLSX.read(orderRes.data, { type: 'buffer' });
   const orderRaw: any[][] = XLSX.utils.sheet_to_json(wbOrder.Sheets[wbOrder.SheetNames[0]], { header: 1 }) || [];
