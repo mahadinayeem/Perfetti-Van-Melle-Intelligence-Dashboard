@@ -98,11 +98,27 @@ function toStandardISODate(val: any): string {
   if (val instanceof Date) return val.toISOString().split('T')[0];
   const s = String(val).trim();
   if (s.includes('/')) {
-    const parts = s.split('/');
+    const datePart = s.split(' ')[0].trim();
+    const parts = datePart.split('/');
     if (parts.length === 3) {
       if (parts[2].length === 4) {
         return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
       }
+      if (parts[2].length === 2) {
+        const yy = parseInt(parts[2], 10);
+        const yyyy = yy < 50 ? 2000 + yy : 1900 + yy;
+        return `${yyyy}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+      }
+      if (parts[0].length === 4) {
+        return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+      }
+    }
+  }
+  if (s.includes('-')) {
+    const parts = s.split('T')[0].split(' ')[0].split('-');
+    if (parts.length === 3) {
+      if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+      if (parts[2].length === 4) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
     }
   }
   return s.split('T')[0].split(' ')[0];
@@ -378,8 +394,13 @@ async function fetchLiveBWIWFromSokrio(startDate: string, endDate: string): Prom
   const start = startDate || startOfMonth;
   const end = endDate || todayStr;
 
+  // Lookback 14 days for orders to capture orders fulfilled in the delivery date window
+  const orderStartDate = new Date(start);
+  orderStartDate.setDate(orderStartDate.getDate() - 14);
+  const orderStartStr = `${orderStartDate.getFullYear()}-${String(orderStartDate.getMonth() + 1).padStart(2, '0')}-${String(orderStartDate.getDate()).padStart(2, '0')}`;
+
   const deliveryUrl = `https://pvm.report.sokrio.com/api/v3/delivery-summary-export?range=${start}%2C${end}&territory_id=2&download&type=xlsx`;
-  const orderUrl = `https://pvm.report.sokrio.com/api/v3/order-summary-export?range=${start}%2C${end}&territory_id=1&download&type=xlsx`;
+  const orderUrl = `https://pvm.report.sokrio.com/api/v3/order-summary-export?range=${orderStartStr}%2C${end}&territory_id=1&download&type=xlsx`;
 
   const [delRes, orderRes, srOrgMap] = await Promise.all([
     axios.get(deliveryUrl, {
@@ -580,12 +601,14 @@ export async function GET(req: NextRequest) {
       records = [];
     }
 
-    // Filter strictly by date range if provided
+    // Filter strictly by date range if provided: include if either order date or delivery date falls within range
     if (startDate && endDate) {
       records = records.filter(r => {
-        if (!r.orderDate) return false;
-        const d = toStandardISODate(r.orderDate);
-        return d >= startDate && d <= endDate;
+        const ordD = toStandardISODate(r.orderDate);
+        const delD = toStandardISODate(r.deliveryDate || r.createDeliveryDate || r.deliveryConfirmationDate);
+        const ordMatch = !!(ordD && ordD >= startDate && ordD <= endDate);
+        const delMatch = !!(delD && delD >= startDate && delD <= endDate);
+        return ordMatch || delMatch;
       });
     }
 

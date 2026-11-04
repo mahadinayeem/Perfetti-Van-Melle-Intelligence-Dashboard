@@ -73,11 +73,16 @@ async function fetchLiveInvoicesFromSokrio(startDate?: string, endDate?: string)
   let rowId = 1;
 
   for (const inv of invoices) {
-    const rawCreatedAt = inv.delivered_at || inv.deliver_date || inv.created_at || inv.order?.order_date || '';
-    const dateStr = rawCreatedAt.split('T')[0].split(' ')[0].trim();
-    if (startDate && endDate && dateStr) {
-      if (dateStr < startDate || dateStr > endDate) continue;
+    const rawDeliveryAt = inv.delivered_at || inv.deliver_date || '';
+    const rawOrderAt = inv.order?.order_date || inv.created_at || '';
+    const delDateStr = rawDeliveryAt.split('T')[0].split(' ')[0].trim();
+    const ordDateStr = rawOrderAt.split('T')[0].split(' ')[0].trim();
+    if (startDate && endDate) {
+      const match = (delDateStr && delDateStr >= startDate && delDateStr <= endDate) ||
+                    (ordDateStr && ordDateStr >= startDate && ordDateStr <= endDate);
+      if (!match) continue;
     }
+    const rawCreatedAt = rawDeliveryAt || rawOrderAt || '';
 
     const invoiceNo = inv.order?.invoice?.invoice_number || inv.code || (inv.id ? `INV-${inv.id}` : '');
     const custNo = (inv.seller_id === 3249 || inv.seller?.code === '102267') ? '102267' : (inv.seller?.code || inv.buyer?.code || inv.buyer_id || '102267');

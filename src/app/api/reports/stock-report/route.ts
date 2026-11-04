@@ -193,10 +193,9 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
     const primaryStock = Number(ledger?.primary_lifting ?? 0);
     const deliveredSecondary = Number(ledger?.secondary_sales ?? st.delivered_qty ?? 0);
 
-    let openingStock = Number(ledger?.opening_stock ?? 0);
-    if (openingStock <= 0 || openingStock === floorStock) {
-      openingStock = Math.max(0, floorStock + deliveredSecondary - primaryStock);
-    }
+    // Calculate distributor opening stock: Opening = Floor Stock + Delivered Secondary - Primary Stock
+    // Avoid using national ledger seed (11,000 units from Central Warehouse 10k + Sara Enterprise 1k)
+    let openingStock = Math.max(0, floorStock + deliveredSecondary - primaryStock);
     if (openingStock <= 0) openingStock = floorStock;
     const transit = Number(ledger?.total_transit ?? st.on_transit_receive ?? 0);
     const orderedQty = 0;
@@ -273,10 +272,8 @@ async function fetchLiveStockFromSokrio(startDate: string, endDate: string): Pro
       const deliveredSecondary = Number(ledger.secondary_sales ?? 0);
       const transit = Number(ledger.total_transit ?? 0);
 
-      let openingStock = Number(ledger.opening_stock ?? 0);
-      if (openingStock <= 0 || openingStock === floorStock) {
-        openingStock = Math.max(0, floorStock + deliveredSecondary - primaryStock);
-      }
+      // Calculate distributor opening stock: Opening = Floor Stock + Delivered Secondary - Primary Stock
+      let openingStock = Math.max(0, floorStock + deliveredSecondary - primaryStock);
       if (openingStock <= 0) openingStock = floorStock;
 
       const dbCode = defaultDbCode;

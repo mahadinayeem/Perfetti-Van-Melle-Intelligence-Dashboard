@@ -1509,21 +1509,23 @@ export default function DashboardPage() {
   // Custom date picker input handlers
   const handleStartDateChange = (val: string) => {
     setStartDate(val);
-    fetchManualData(activeTab, val, endDate);
+    setAutoCascadeNote(null);
+    if (val && val.length === 10) {
+      fetchManualData(activeTab, val, endDate);
+    }
   };
 
   const handleEndDateChange = (val: string) => {
     setEndDate(val);
-    fetchManualData(activeTab, startDate, val);
+    setAutoCascadeNote(null);
+    if (val && val.length === 10) {
+      fetchManualData(activeTab, startDate, val);
+    }
   };
 
-  // Refresh handler: re-evaluates cascade or refreshes custom range
+  // Refresh handler: refreshes current active date range
   const handleRefresh = () => {
-    if (autoCascadeNote !== null) {
-      cascadeFetch(activeTab);
-    } else {
-      fetchManualData(activeTab, startDate, endDate);
-    }
+    fetchManualData(activeTab, startDate, endDate);
   };
 
   const activePreset = useMemo(() => {
@@ -1707,7 +1709,7 @@ export default function DashboardPage() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, activeTabConfig.label.slice(0, 31));
 
-    const fileName = `PVM_${activeTabConfig.label.replace(/\s+/g, '_')}_${startDate}_to_${endDate}`;
+    const fileName = activeTabConfig.label;
     if (format === 'xlsx') {
       XLSX.writeFile(workbook, `${fileName}.xlsx`);
     } else {
@@ -2301,7 +2303,6 @@ export default function DashboardPage() {
                 className="custom-input"
                 value={startDate}
                 onChange={(e) => handleStartDateChange(e.target.value)}
-                disabled={loading}
               />
             </div>
 
@@ -2315,7 +2316,6 @@ export default function DashboardPage() {
                 className="custom-input"
                 value={endDate}
                 onChange={(e) => handleEndDateChange(e.target.value)}
-                disabled={loading}
               />
             </div>
 
