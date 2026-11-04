@@ -1,64 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchLiveDeliveries } from '@/lib/sokrioClient';
-import dbMaster from '@/lib/dbMaster.json';
-import skuCatalogData from '@/lib/skuCatalog.json';
-
-function formatDDMMYYYY(val: any): string {
-  if (!val) return '';
-  if (val instanceof Date) {
-    const d = String(val.getDate()).padStart(2, '0');
-    const m = String(val.getMonth() + 1).padStart(2, '0');
-    const y = val.getFullYear();
-    return `${d}/${m}/${y}`;
-  }
-  const s = String(val).trim();
-  if (s.includes('/')) {
-    const parts = s.split('/');
-    if (parts.length === 3) {
-      if (parts[2].length === 4) return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
-      if (parts[0].length === 4) return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
-    }
-  }
-  if (s.includes('-')) {
-    const parts = s.split('T')[0].split(' ')[0].split('-');
-    if (parts.length === 3 && parts[0].length === 4) {
-      return `${parts[2].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[0]}`;
-    }
-  }
-  return s;
-}
+import { fetchLiveSrOrganizationMap, getValidToken } from '@/lib/sokrioClient';
+import { resolveEnglishSkuName } from '@/lib/skuResolver';
+import axios from 'axios';
 
 export const dynamic = 'force-dynamic';
 
 export interface WholesaleClaimRecord {
   id: string;
-  cluster: string | number;
-  area: string | number;
-  territory: string | number;
+  cluster: string;
+  area: string;
+  territory: string;
   dBCode: string | number;
   dbCode: string | number;
-  dBName: string | number;
-  dbName: string | number;
-  promoID: string | number;
-  promoId: string | number;
-  promoName: string | number;
-  outletCode: string | number;
-  outletName: string | number;
-  sRName: string | number;
-  srName: string | number;
-  sRPositionCode: string | number;
-  srPositionCode: string | number;
-  invoiceNo: string | number;
-  deliveryDate: string | number;
+  dBName: string;
+  dbName: string;
+  promoID: string;
+  promoId: string;
+  promoName: string;
+  outletCode: string;
+  outletName: string;
+  sRName: string;
+  srName: string;
+  sRPositionCode: string;
+  srPositionCode: string;
+  invoiceNo: string;
+  deliveryDate: string;
   sKUCode: string | number;
   skuCode: string | number;
-  qty: string | number;
-  claimAmount: string | number;
+  qty: number;
+  claimAmount: number;
 }
 
-const DB_MAP: Record<string, any> = (dbMaster as any).dbs || {};
-const PROMOS: any[] = (dbMaster as any).promos || [];
-const SKU_CATALOG: Record<string, any> = skuCatalogData as any;
+function formatDateMMDDYYYY(val: string): string {
+  if (!val) return '';
+  const clean = val.split('T')[0].split(' ')[0].trim();
+  const parts = clean.split('-');
+  if (parts.length === 3 && parts[0].length === 4) {
+    return `${parts[1].padStart(2,'0')}/${parts[2].padStart(2,'0')}/${parts[0]}`;
+  }
+  return clean;
+}
+
 const memoryCache = new Map<string, { records: WholesaleClaimRecord[]; meta: any; timestamp: number }>();
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
@@ -66,8 +48,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    const startOfMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
 
     const startDate = searchParams.get('startDate') || startOfMonth;
     const endDate = searchParams.get('endDate') || todayStr;
@@ -77,69 +59,81 @@ export async function GET(request: NextRequest) {
     if (!forceRefresh) {
       const cached = memoryCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-        return NextResponse.json({
-          success: true,
-          data: cached.records,
-          meta: cached.meta,
-          cached: true,
-        });
+        return NextResponse.json({ success: true, data: cached.records, meta: cached.meta, cached: true });
       }
     }
 
-    const deliveries = await fetchLiveDeliveries(forceRefresh);
+    const [srOrgMap, token] = await Promise.all([
+      fetchLiveSrOrganizationMap(forceRefresh),
+      getValidToken(),
+    ]);
+
+    const invRes = await axios.get('https://pvm.core.sokrio.com/api/v1/invoices?per_page=150', {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      timeout: 30000,
+    });
+    const invoices = invRes.data?.invoices || invRes.data?.data || [];
+
     const records: WholesaleClaimRecord[] = [];
     let count = 0;
 
-    for (const d of deliveries) {
-      const delDateStr = d.deliver_date ? String(d.deliver_date).split(' ')[0] : todayStr;
-      const dbCodeRaw = (d.seller_id && String(d.seller_id) === '3249') ? '102267' : (d.seller?.code ? String(d.seller.code) : '102267');
-      const dbInfo = DB_MAP[dbCodeRaw] || {
-        dbCode: dbCodeRaw,
-        dbName: d.seller_name || 'M/S Ahamed Enterprise',
-        cluster: 'Central',
-        area: 'Central South',
-        territory: d.order?.buyer_territory_name || 'Jatra Bari',
-        srPositionCode: '',
-      };
+    for (const inv of invoices) {
+      const dateRaw = inv.delivered_at || inv.created_at || inv.order?.order_date || '';
+      const dateOnly = String(dateRaw).split('T')[0].split(' ')[0].trim();
+      if (startDate && endDate && dateOnly) {
+        if (dateOnly < startDate || dateOnly > endDate) continue;
+      }
 
-      const outletName = d.order?.buyer_name || d.buyer_name || '';
-      const srName = d.order?.creator_name || d.creator_name || '';
-      const prods = Array.isArray(d.products) && d.products.length > 0 ? d.products : [null];
+      const srCode = String(inv.ordered_by?.code || inv.created_by || '').trim();
+      const orgInfo = srOrgMap.get(srCode);
+
+      const dbCode = inv.seller_id === 3249 ? '102267' : (inv.seller?.code || orgInfo?.dbCode || '102267');
+      const dbName = inv.seller_name || orgInfo?.dbName || '';
+      const territory = inv.order?.buyer_territory_name || orgInfo?.territory || '';
+      const cluster = orgInfo?.cluster || 'Central';
+      const area = orgInfo?.area || 'Central South';
+      const srName = inv.ordered_by?.name || inv.creator_name || '';
+      const srPositionCode = orgInfo?.positionCode || '';
+      const outletName = inv.order?.buyer_name || inv.buyer_name || '';
+      const outletCode = inv.buyer?.code || (inv.buyer_id ? String(inv.buyer_id) : '');
+      const invNo = inv.order?.invoice?.invoice_number || inv.code || (inv.id ? `INV-${inv.id}` : '');
+
+      const prods = Array.isArray(inv.latest_revision?.invoiced_products) ? inv.latest_revision.invoiced_products : [];
 
       for (const p of prods) {
+        // Wholesale claims: products with any promotional discount (WS channel)
+        if (!p.promotion) continue;
+
         count++;
-        const skuCode = p?.product?.base_product?.sku || (p?.product_id ? String(p.product_id) : '');
-        const qty = p ? parseFloat(p.qty) || 0 : 0;
-        const promo = PROMOS[count % PROMOS.length] || { id: 'ADMPP01735', name: 'CC Rope B24 HNG G100tk off -UR WS' };
-        const claimAmount = Math.round(qty * 4.16);
-        const outletCode = d.buyer_id ? String(d.buyer_id) : (d.buyer?.code ? String(d.buyer.code) : '');
-        const invNo = d.order?.invoice?.invoice_number || d.code || (d.id ? `INV-${d.id}` : '');
-        const srPos = dbInfo.srPositionCode || '';
+        const skuCode = String(p.product?.base_product?.sku || p.product_id || '').trim();
+        const qty = Number(p.qty) || 0;
+        const promoDiscount = Number(p.promotion_discount) || 0;
+        const claimAmount = promoDiscount > 0 ? promoDiscount : Math.round(qty * Number(p.price || 0) * 0.03);
 
         records.push({
           id: `ws-claim-${count}`,
-          cluster: dbInfo.cluster || 'Cluster-1',
-          area: dbInfo.area || 'East',
-          territory: dbInfo.territory || d.order?.buyer_territory_name || '',
-          dBCode: dbCodeRaw,
-          dbCode: dbCodeRaw,
-          dBName: dbInfo.dbName || '',
-          dbName: dbInfo.dbName || '',
-          promoID: promo.id,
-          promoId: promo.id,
-          promoName: promo.name,
+          cluster,
+          area,
+          territory,
+          dBCode: dbCode,
+          dbCode,
+          dBName: dbName,
+          dbName,
+          promoID: String(p.promotion?.id || ''),
+          promoId: String(p.promotion?.id || ''),
+          promoName: p.promotion?.title || '',
           outletCode,
           outletName,
           sRName: srName,
           srName,
-          sRPositionCode: srPos,
-          srPositionCode: srPos,
+          sRPositionCode: srPositionCode,
+          srPositionCode,
           invoiceNo: invNo,
-          deliveryDate: delDateStr ? formatDDMMYYYY(delDateStr) : '',
+          deliveryDate: formatDateMMDDYYYY(dateOnly),
           sKUCode: skuCode,
           skuCode,
           qty,
-          claimAmount: claimAmount || 0,
+          claimAmount,
         });
       }
     }
@@ -148,20 +142,18 @@ export async function GET(request: NextRequest) {
       total: records.length,
       startDate,
       endDate,
-      source: 'Sokrio Live SFA Deliveries & Wholesale Trade Claim API (/api/v1/deliveries)',
+      source: 'Sokrio Live SFA API (/api/v1/invoices) — promotion-tagged line items only',
       sheet: 'WHolesale Export Claim',
+      note: records.length === 0
+        ? 'No wholesale promotional claims found for this date range. Claims appear when invoices contain promotion-tagged line items with applicable discounts.'
+        : `Found ${records.length} promotional claim line(s) from live Sokrio data.`,
       generatedAt: new Date().toISOString(),
     };
 
     memoryCache.set(cacheKey, { records, meta, timestamp: Date.now() });
-
     return NextResponse.json({ success: true, data: records, meta });
   } catch (error: any) {
     console.error('[Wholesale Claim API Error]:', error);
-    return NextResponse.json({
-      success: false,
-      error: error.message,
-      data: [],
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message, data: [] }, { status: 500 });
   }
 }
